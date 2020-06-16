@@ -1,0 +1,47 @@
+{
+  "configurations": [
+    {
+      "browse": {
+        "databaseFilename": "",
+        "limitSymbolsToIncludedHeaders": true
+      },
+      "includePath": [
+        "/home/ljh/dummy/devel/include/**",
+        "/home/ljh/Project/vrep_jaco/vrep_jaco/devel/include/**",
+        "/home/ljh/Project/vrep_jaco/moveit/devel/include/**",
+        "/opt/ros/melodic/include/**",
+        "/home/ljh/Project/vrep_jaco/vrep_jaco/src/vrep_jaco/action_client/include/**",
+        "/home/ljh/Project/vrep_jaco/moveit/src/actionlib/actionlib/include/**",
+        "/home/ljh/Project/vrep_jaco/moveit/src/moveit/moveit_planners/chomp/chomp_motion_planner/include/**",
+        "/home/ljh/dummy/src/DynamixelSDK/ros/include/**",
+        "/home/ljh/dummy/src/dynamixel-workbench/dynamixel_workbench_controllers/include/**",
+        "/home/ljh/dummy/src/dynamixel-workbench/dynamixel_workbench_operators/include/**",
+        "/home/ljh/dummy/src/dynamixel-workbench/dynamixel_workbench_toolbox/include/**",
+        "/home/ljh/Project/vrep_jaco/moveit/src/geometric_shapes/include/**",
+        "/home/ljh/Project/vrep_jaco/vrep_jaco/src/vrep_jaco/kinova-ros/kinova_moveit/inverse_kinematics_plugins/ikfast/j2n6s300_ikfast/include/**",
+        "/home/ljh/Project/vrep_jaco/vrep_jaco/src/vrep_jaco/kinova-ros/kinova_moveit/inverse_kinematics_plugins/ikfast/j2s6s300_ikfast/include/**",
+        "/home/ljh/Project/vrep_jaco/vrep_jaco/src/vrep_jaco/kinova-ros/kinova_moveit/inverse_kinematics_plugins/ikfast/j2s7s300_ikfast/include/**",
+        "/home/ljh/Project/vrep_jaco/vrep_jaco/src/vrep_jaco/jaco_controller_integrated/include/**",
+        "/home/ljh/dummy/src/jaco_dummy/include/**",
+        "/home/ljh/Project/vrep_jaco/vrep_jaco/src/vrep_jaco/kinova-ros/kinova_moveit/kinova_arm_moveit_demo/include/**",
+        "/home/ljh/Project/vrep_jaco/vrep_jaco/src/vrep_jaco/kinova-ros/kinova_driver/include/**",
+        "/home/ljh/Project/vrep_jaco/vrep_jaco/src/vrep_jaco/kinova-ros/kinova_moveit/inverse_kinematics_plugins/ikfast/m1n6s300_ikfast/include/**",
+        "/home/ljh/Project/vrep_jaco/moveit/src/moveit/moveit_experimental/moveit_jog_arm/include/**",
+        "/home/ljh/Project/vrep_jaco/moveit/src/moveit/moveit_planners/chomp/chomp_interface/include/**",
+        "/home/ljh/Project/vrep_jaco/moveit/src/moveit/moveit_ros/benchmarks/include/**",
+        "/home/ljh/Project/vrep_jaco/moveit/src/moveit/moveit_plugins/moveit_ros_control_interface/include/**",
+        "/home/ljh/Project/vrep_jaco/moveit/src/moveit/moveit_ros/move_group/include/**",
+        "/home/ljh/Project/vrep_jaco/moveit/src/moveit/moveit_ros/occupancy_map_monitor/include/**",
+        "/home/ljh/Project/vrep_jaco/moveit/src/moveit/moveit_ros/robot_interaction/include/**",
+        "/home/ljh/Project/vrep_jaco/moveit/src/moveit/moveit_setup_assistant/include/**",
+        "/home/ljh/Project/vrep_jaco/moveit/src/moveit/moveit_plugins/moveit_simple_controller_manager/include/**",
+        "/home/ljh/Project/vrep_jaco/moveit/src/moveit_visual_tools/include/**",
+        "/home/ljh/Project/vrep_jaco/moveit/src/rviz_visual_tools/include/**",
+        "/home/ljh/Project/vrep_jaco/vrep_jaco/src/vrep_jaco/vrep_api/include/**",
+        "/home/ljh/Project/vrep_jaco/vrep_jaco/src/vrep_jaco/joystick_input/wiimote/include/**",
+        "/usr/include/**"
+      ],
+      "name": "ROS"
+    }
+  ]
+}
