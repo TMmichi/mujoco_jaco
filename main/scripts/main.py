@@ -29,8 +29,8 @@ class RL_controller:
         args.sess = self.sess
 
         # State Generation Module defined here
-        self.stateGen = State_generator(**vars(args))
-        args.stateGen = self.stateGen
+        #self.stateGen = State_generator(**vars(args))
+        #args.stateGen = self.stateGen
 
         # Reward Generation
         self.reward_method = "l2"

@@ -27,7 +27,7 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
         try:
             self.state_shape = kwargs['stateGen'].get_state_shape()
         except Exception:
-            self.state_shape = [9]
+            self.state_shape = [6]
         self.obs_max = 2
         obs = np.array([self.obs_max]*self.state_shape[0])
         self.observation_space = spaces.Box(-obs, obs)
@@ -84,8 +84,8 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
         #print("Printing takes: ",datetime.datetime.now() - then)
         done, additional_reward, wb = self.terminal_inspection()
         total_reward = reward_val + additional_reward
-        write_str = "Act:\t{0:2.3f},\t{1:2.3f},\t{2:2.3f},\t{3:2.3f},\t{4:2.3f},\t{5:2.3f} | Obs:\t{6:2.3f},\t{7:2.3f},\t{8:2.3f},\t{9:2.3f},\t{10:2.3f},\t{11:2.3f},\t{12:2.3f},\t{13:2.3f},\t{14:2.3f}| wb = {15:.3f} | \033[92m Reward: {16:2.5f}\033[0m".format(
-            action[0], action[1], action[2], action[3], action[4], action[5], self.obs[0], self.obs[1], self.obs[2], self.obs[3], self.obs[4], self.obs[5], self.obs[6], self.obs[7], self.obs[8], wb, total_reward)
+        write_str = "Act:\t{0:2.3f},\t{1:2.3f},\t{2:2.3f},\t{3:2.3f},\t{4:2.3f},\t{5:2.3f} | Obs:\t{6:2.3f},\t{7:2.3f},\t{8:2.3f},\t{9:2.3f},\t{10:2.3f},\t{11:2.3f} | wb = {12:.3f} | \033[92m Reward: {13:2.5f}\033[0m".format(
+            action[0], action[1], action[2], action[3], action[4], action[5], self.obs[0], self.obs[1], self.obs[2], self.obs[3], self.obs[4], self.obs[5], wb, total_reward)
         print(write_str, end='\r')
         self.joint_angle_log.writelines(write_str+"\n")
         #print("\033[31mWhole step takes: ",datetime.datetime.now() - then,"\033[0m")

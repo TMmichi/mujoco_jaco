@@ -63,6 +63,7 @@ class Mujoco(Interface):
 
         if joint_names is None:
             joint_ids, joint_names = self.get_joints_in_ee_kinematic_tree()
+            print(joint_ids, joint_names)
         else:
             joint_ids = [model.joint_name2id(name) for name in joint_names]
         self.joint_pos_addrs = [model.get_joint_qpos_addr(name) for name in joint_names]

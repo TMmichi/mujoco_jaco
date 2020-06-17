@@ -23,6 +23,7 @@
         <mesh file="finger_distal.STL"/>
         <mesh file="finger_proximal.STL"/>
         <mesh file="ring_big.STL"/>
+        <mesh file="ring_big_joint0.stl"/>
         <mesh file="ring_small.STL"/>
 
         <texture name="floor_tile" file="meshes/floor_tile.png" width="3000" height="3000" type="2d"/>
@@ -75,7 +76,7 @@
             <body name="link1" pos="0 0 0.157">
                 <inertial pos="-0.000042 -0.001285 0.112784" mass="0.754000" diaginertia="0.3 0.3 0.3"/>
                 <geom name="link1" type="mesh" mesh="link1" pos="0 0 0" euler="0 3.14 0" material="carbon"/>
-                <geom name="ring0" type="mesh" mesh="ring_big" material="grey_plastic"/>
+                <!--<geom name="ring0" type="mesh" mesh="ring_big_joint0" material="grey_plastic"/>-->
                 <joint name="joint0" axis="0 0 -1" pos="0 0 0"/>
 
 

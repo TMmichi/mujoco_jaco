@@ -60,7 +60,6 @@ class JacoMujocoEnvUtil:
             dq=fb['dq'],
             target=self.target_pos
         )
-        #print(u)    
         self.interface.send_forces(np.hstack([u, [0, 0, 0]]))
     
     def _reset(self, target_angle=None):
@@ -97,7 +96,7 @@ class JacoMujocoEnvUtil:
             r = R.from_quat(orientation_quat)
             orientation_euler = r.as_euler('xyz')
             self.gripper_pose = np.append(position, orientation_euler)
-            observation = np.append(self.gripper_pose, self.goal)
+            observation = np.append(position-self.goal,orientation_euler)
         else:
             data_from_callback = []
             observation = self.state_gen.generate(data_from_callback)
@@ -143,7 +142,8 @@ class JacoMujocoEnvUtil:
                     return False, 0, wb
 
     def _take_action(self, a):
-        self.target_pos = self._get_observation()[:6] + np.hstack([a[:3]/100,a[3:]/20])
+        _ = self._get_observation()
+        self.target_pos = self.gripper_pose + np.hstack([a[:3]/100,a[3:]/20])
 
     def _get_depth(self):
         pass
