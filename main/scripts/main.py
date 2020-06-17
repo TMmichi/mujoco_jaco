@@ -2,12 +2,14 @@
 
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+from sys import platform
 import math
 import stable_baselines.common.tf_util as tf_util
 from stable_baselines.trpo_mpi import TRPO
 from stable_baselines.common.policies import MlpPolicy
 from stable_baselines.sac import SAC
 from stable_baselines.sac.policies import MlpPolicy as MlpPolicy_sac, LnMlpPolicy as LnMlpPolicy_sac
+from stable_baselines.gail import generate_expert_traj
 from state_gen.state_generator import State_generator
 from env_script.env_mujoco import JacoMujocoEnv
 
@@ -39,11 +41,13 @@ class RL_controller:
         args.reward_module = self.reward_module
 
         # If resume training on pre-trained models with episodes, else None
-        #self.model_path = "/home/ljh/Project/mujoco_jaco/src/models_baseline/"
-        self.model_path = "/Users/jeonghoon/Google_drive/Workspace/MLCS/mujoco_jaco/src/models_baseline/"
+        if platform == "linux" or platform == "linux2":
+            self.model_path = "/home/ljh/Project/mujoco_jaco/src/models_baseline/"
+            self.tb_dir = "/home/ljh/Project/mujoco_jaco/src/tensorboard_log"
+        elif platform == "darwin":
+            self.model_path = "/Users/jeonghoon/Google_drive/Workspace/MLCS/mujoco_jaco/src/models_baseline/"
+            self.tb_dir = "/Users/jeonghoon/Google_drive/Workspace/MLCS/mujoco_jaco/src/tensorboard_log"
         args.model_path = self.model_path
-        #self.tb_dir = "/home/ljh/Project/mujoco_jaco/src/tensorboard_log"
-        self.tb_dir = "/Users/jeonghoon/Google_drive/Workspace/MLCS/mujoco_jaco/src/tensorboard_log"
         args.tb_dir = self.tb_dir
         self.steps_per_batch = 100
         self.batches_per_episodes = 5
@@ -55,8 +59,8 @@ class RL_controller:
         self.args = args
 
 
-    def _train(self):
-        print("Training service init")
+    def train_from_scratch(self):
+        print("Training from scratch called")
         self.env = JacoMujocoEnv(**vars(self.args))
         self.num_timesteps = self.steps_per_batch * self.batches_per_episodes * \
             math.ceil(self.num_episodes / self.train_num)
@@ -72,8 +76,17 @@ class RL_controller:
                 self.trainer.learn(total_timesteps = self.num_timesteps)
                 print("Train Finished")
                 self.trainer.save(model_dir)
+        
+    def train_from_expert(self,n_episodes=10):
+        print("Training from expert called")
+        self.env = JacoMujocoEnv(**vars(self.args))
+        generate_expert_traj(self._expert, 'expert_traj', self.env, n_episodes=n_episodes)
+        
+    def _expert(self,_obs):
+        action = []
+        return action
     
-    def _test(self):
+    def test(self):
         print("Testing called")
         self.env = JacoMujocoEnv(**vars(self.args))
         model_name = str(1) + ".zip"
@@ -96,15 +109,32 @@ if __name__ == "__main__":
     while True:
         opt = input("Train/Test (1/2): ")
         if opt == "1":
+            iter_train = 0
+            while True:
+                iter_train += 1
+                opt2 = input("Train_from_scratch/Train_from_expert (1/2): ")
+                if opt2 == "1":
+                    controller.train_from_scratch()
+                    break
+                elif opt2 == "2":
+                    n_episodes = int(input("How many trials do you want to record?"))
+                    controller.train_from_expert(n_episodes)
+                    break
+                else:
+                    if iter_train <= 5:
+                        print("Wront input, press 1 or 2 (Wrong trials: {0})".format(iter_train))
+                    else:
+                        print("Wront input, Abort")
+                        break
             break
         elif opt == "2":
-            controller._test()
+            controller.test()
             break
         else:
             iter += 1
             if iter <= 5:
                 print("Wront input, press 1 or 2 (Wrong trials: {0})".format(iter))
             else:
-                print("Wront input, Exit")
+                print("Wront input, Abort")
                 break
 

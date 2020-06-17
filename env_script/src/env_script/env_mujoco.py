@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import os
+from sys import platform
 import numpy as np
 import time
 
@@ -41,8 +42,10 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
         self.seed()
 
         ### ------------  LOGGING  ------------ ###
-        #log_dir ="/home/ljh/Project/vrep_jaco/vrep_jaco/src/vrep_jaco/rl_controller/logs"
-        log_dir="/Users/jeonghoon/Google_drive/Workspace/MLCS/mujoco_jaco/src"
+        if platform == 'linux' or platform == 'linux2':
+            log_dir ="/home/ljh/Project/vrep_jaco/vrep_jaco/src/vrep_jaco/rl_controller/logs"
+        elif platform == 'darwin':
+            log_dir="/Users/jeonghoon/  Google_drive/Workspace/MLCS/mujoco_jaco/src"
         os.makedirs(log_dir, exist_ok = True)
         self.joint_angle_log = open(log_dir+"/log.txt",'w')
 
@@ -119,24 +122,24 @@ if __name__ == "__main__":
     obs = env_test_class.obs[:6]
     print("First: \t\t",obs[:6])
     for i in range(100):
-        iter = 0
+        iter=0
         if i%4==0:
             target_pos = env_test_class.obs[:6] + np.array([0.01,0.01,0.01,0.1,0.1,0.1])
-            env_test_class.take_action([0.01,0.01,0.01,0.1,0.1,0.1])
+            env_test_class.take_action(np.array([1,1,1,2,2,2]))
         elif i%4==1:
             target_pos = env_test_class.obs[:6] + np.array([-0.01,-0.01,-0.01,-0.1,-0.1,-0.1])
-            env_test_class.take_action([-0.01,-0.01,-0.01,-0.1,-0.1,-0.1])
+            env_test_class.take_action(np.array([-1,-1,-1,-2,-2,-2]))
         elif i%4==2:
             target_pos = env_test_class.obs[:6] + np.array([0.01,-0.01,-0.01,0.1,-0.1,-0.1])
-            env_test_class.take_action([0.01,-0.01,-0.01,0.1,-0.1,-0.1])
+            env_test_class.take_action(np.array([1,-1,-1,2,-2,-2]))
         elif i%4==3:
             target_pos = env_test_class.obs[:6] + np.array([-0.01,0.01,0.01,-0.1,0.1,0.1])
-            env_test_class.take_action([-0.01,0.01,0.01,-0.1,0.1,0.1])
+            env_test_class.take_action(np.array([-1,1,1,-2,2,2]))
         while True:
             env_test_class._step_simulation()
             env_test_class.make_observation()
             pos = env_test_class.obs[:6]
-            if np.linalg.norm(pos[:3]-target_pos[:3]) < 0.001 and np.linalg.norm(pos[3:]-target_pos[3:]) < 0.18:
+            if np.linalg.norm(pos[:3]-target_pos[:3]) < 0.001 and np.linalg.norm(pos[3:]-target_pos[3:]) < 0.1:
                 print("Reached")
                 break
             if iter % 100 == 0:
