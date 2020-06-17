@@ -1,3 +1,7 @@
 [submodule "stable_baselines"]
 	path = stable_baselines
 	url = https://github.com/TMmichi/mujoco_jaco.git
+[submodule "stable-baselines"]
+	path = stable-baselines
+	url = https://github.com/TMmichi/stable-baselines.git
+	branch = master
