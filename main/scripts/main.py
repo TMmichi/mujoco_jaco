@@ -39,9 +39,11 @@ class RL_controller:
         args.reward_module = self.reward_module
 
         # If resume training on pre-trained models with episodes, else None
-        self.model_path = "/home/ljh/Project/mujoco_jaco/src/models_baseline/"
+        #self.model_path = "/home/ljh/Project/mujoco_jaco/src/models_baseline/"
+        self.model_path = "/Users/jeonghoon/Google_drive/Workspace/MLCS/mujoco_jaco/src/models_baseline/"
         args.model_path = self.model_path
-        self.tb_dir = "/home/ljh/Project/mujoco_jaco/src/tensorboard_log"
+        #self.tb_dir = "/home/ljh/Project/mujoco_jaco/src/tensorboard_log"
+        self.tb_dir = "/Users/jeonghoon/Google_drive/Workspace/MLCS/mujoco_jaco/src/tensorboard_log"
         args.tb_dir = self.tb_dir
 
         self.steps_per_batch = 100
@@ -53,13 +55,13 @@ class RL_controller:
         self.env = JacoMujocoEnv(**vars(args))
         self.num_timesteps = self.steps_per_batch * self.batches_per_episodes * \
             math.ceil(self.num_episodes / self.train_num)
+
+    def _train(self):
+        print("Training service init")
         # self.trainer = TRPO(MlpPolicy, self.env, cg_damping=0.1, vf_iters=5, vf_stepsize=1e-3, timesteps_per_batch=self.steps_per_batch,
         #                    tensorboard_log=args.tb_dir, full_tensorboard_log=True)
         self.trainer = SAC(
             LnMlpPolicy_sac, self.env, tensorboard_log=args.tb_dir, full_tensorboard_log=True)
-
-    def _train(self):
-        print("Training service init")
         with self.sess:
             for train_iter in range(self.train_num):
                 print("\033[91mTraining Iter: ", train_iter,"\033[0m")
@@ -68,7 +70,38 @@ class RL_controller:
                 self.trainer.learn(total_timesteps = self.num_timesteps)
                 print("Train Finished")
                 self.trainer.save(model_dir)
+    
+    def _test(self):
+        print("Testing called")
+        model_name = str(1) + ".zip"
+        model_dir = self.model_path + model_name
+        test_iter = 100
+        with self.sess:
+            self.model = SAC.load(model_dir)
+            for _ in range(test_iter):
+                obs = self.env.reset()
+                done = False
+                while not done:
+                    action, states = self.model.predict(obs)
+                    obs,rewards,done,_ = self.env.step(action,log=False)
+                    print(rewards,end='\r')
+
 
 if __name__ == "__main__":
     controller = RL_controller()
-    controller._train()
+    iter = 0
+    while True:
+        opt = input("Train/Test (1/2): ")
+        if opt == "1":
+            break
+        elif opt == "2":
+            controller._test()
+            break
+        else:
+            iter += 1
+            if iter <= 5:
+                print("Wront input, press 1 or 2 (Wrong trials: {0})".format(iter))
+            else:
+                print("Wront input, Exit")
+                break
+

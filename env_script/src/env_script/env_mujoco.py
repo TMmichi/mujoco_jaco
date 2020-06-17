@@ -41,7 +41,8 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
         self.seed()
 
         ### ------------  LOGGING  ------------ ###
-        log_dir ="/home/ljh/Project/vrep_jaco/vrep_jaco/src/vrep_jaco/rl_controller/logs"
+        #log_dir ="/home/ljh/Project/vrep_jaco/vrep_jaco/src/vrep_jaco/rl_controller/logs"
+        log_dir="/Users/jeonghoon/Google_drive/Workspace/MLCS/mujoco_jaco/src"
         os.makedirs(log_dir, exist_ok = True)
         self.joint_angle_log = open(log_dir+"/log.txt",'w')
 
@@ -58,7 +59,7 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
     def get_action_bound(self):
         return self.action_space_max
 
-    def step(self, action):
+    def step(self, action, log=True):
         #then = datetime.datetime.now()
         #print("Within the step at: ",then)
         '''
@@ -86,8 +87,9 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
         total_reward = reward_val + additional_reward
         write_str = "Act:\t{0:2.3f},\t{1:2.3f},\t{2:2.3f},\t{3:2.3f},\t{4:2.3f},\t{5:2.3f} | Obs:\t{6:2.3f},\t{7:2.3f},\t{8:2.3f},\t{9:2.3f},\t{10:2.3f},\t{11:2.3f} | wb = {12:.3f} | \033[92m Reward: {13:2.5f}\033[0m".format(
             action[0], action[1], action[2], action[3], action[4], action[5], self.obs[0], self.obs[1], self.obs[2], self.obs[3], self.obs[4], self.obs[5], wb, total_reward)
-        print(write_str, end='\r')
-        self.joint_angle_log.writelines(write_str+"\n")
+        if log:
+            print(write_str, end='\r')
+            self.joint_angle_log.writelines(write_str+"\n")
         #print("\033[31mWhole step takes: ",datetime.datetime.now() - then,"\033[0m")
         return self.obs, total_reward, done, {0: 0}
 
