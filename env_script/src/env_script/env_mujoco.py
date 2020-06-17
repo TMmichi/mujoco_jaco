@@ -8,9 +8,9 @@ import time
 from gym import spaces
 from gym.utils import seeding
 
-#from env_script.env_mujoco_util import JacoMujocoEnvUtil
+from env_script.env_mujoco_util import JacoMujocoEnvUtil
 #from env_mujoco_util import JacoMujocoEnvUtil
-from env_multi_mujoco_util import JacoMujocoEnvUtil
+#from env_multi_mujoco_util import JacoMujocoEnvUtil
 
 
 class JacoMujocoEnv(JacoMujocoEnvUtil):
