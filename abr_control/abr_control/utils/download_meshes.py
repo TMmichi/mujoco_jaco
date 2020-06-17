@@ -32,7 +32,6 @@ def check_and_download(name, google_id, files=None, force_download=False):
             mesh_files = [
                 f for f in os.listdir(name) if os.path.isfile(os.path.join(name, f))
             ]
-            print(files,mesh_files)
             # files_missing = all(elem in sorted(mesh_files) for elem in sorted(files))
             files_missing = set(files).difference(set(mesh_files))
             if files_missing:

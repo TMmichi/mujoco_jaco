@@ -11,14 +11,14 @@ from numpy.random import uniform as uniform_np
 from scipy.spatial.transform import Rotation as R
 
 from abr_control.arms.mujoco_config import MujocoConfig
-from abr_control.interfaces.mujoco import Mujoco
+from abr_control.interfaces.mujoco_dual import Mujoco
 from abr_control.controllers import OSC
 
 
 class JacoMujocoEnvUtil:
     def __init__(self, **kwargs):
 
-        self.jaco = MujocoConfig('jaco2')
+        self.jaco = MujocoConfig('jaco2_dual')
         self.interface = Mujoco(self.jaco, dt=0.005)
         self.interface.connect()
         self.ctr = OSC(self.jaco, kp=100, kv=9, vmax=[0.2,0.5236], ctrlr_dof=[
@@ -52,7 +52,6 @@ class JacoMujocoEnvUtil:
             self.reward_module = None
 
     def _step_simulation(self):
-        #print("Target Pose_in: \t",self.target_pos)
         fb = self.interface.get_feedback()
         self.current_jointstate = fb['q'][:6]
         u = self.ctr.generate(
@@ -67,20 +66,21 @@ class JacoMujocoEnvUtil:
         self.gripper_angle_1 = 0.35
         self.gripper_angle_2 = 0.35
         if target_angle == None:
-            random_init_angle = [uniform_np(-pi, pi), 3.75, uniform_np(
+            random_init_angle = [uniform_np(-pi/2, pi/2), 3.75, uniform_np(
                 1.5, 2.5), uniform_np(0.8, 2.3), uniform_np(0.8, 2.3), uniform_np(0.8, 2.3)]
+            random_init_angle *= 2
+            random_init_angle[6] = random_init_angle[0] + pi
         else:
             random_init_angle = target_angle
-        self.start_angle = random_init_angle
-        self.interface.set_joint_state(random_init_angle, [0]*6)
+        self.interface.set_joint_state(random_init_angle, [0]*12)
         for _ in range(3):
             fb = self.interface.get_feedback()
             u = self.ctr.generate(
                 q=fb['q'],
                 dq=fb['dq'],
-                target=np.hstack([0, 0, -0.15, 0, 0, 0])
+                target=np.hstack([0, 0, -0.15, 0, 0, 0]*2)
             )
-            self.interface.send_forces([0]*9)
+            self.interface.send_forces([0]*18)
         self.current_jointstate = fb['q'][:6]
         self.goal = self._sample_goal()
         obs = self._get_observation()
@@ -144,7 +144,6 @@ class JacoMujocoEnvUtil:
     def _take_action(self, a):
         _ = self._get_observation()
         self.target_pos = self.gripper_pose + np.hstack([a[:3]/100,a[3:]/20])
-        print("Target: ",self.target_pos)
 
     def _get_depth(self):
         pass

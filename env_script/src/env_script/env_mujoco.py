@@ -8,8 +8,9 @@ import time
 from gym import spaces
 from gym.utils import seeding
 
-from env_script.env_mujoco_util import JacoMujocoEnvUtil
+#from env_script.env_mujoco_util import JacoMujocoEnvUtil
 #from env_mujoco_util import JacoMujocoEnvUtil
+from env_multi_mujoco_util import JacoMujocoEnvUtil
 
 
 class JacoMujocoEnv(JacoMujocoEnvUtil):
@@ -119,8 +120,9 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
 if __name__ == "__main__":
     env_test_class = JacoMujocoEnv()
     env_test_class.make_observation()
-    obs = env_test_class.obs[:6]
+    obs = env_test_class.gripper_pose
     print("First: \t\t",obs[:6])
+    time.sleep(10)
     for i in range(100):
         iter=0
         if i%4==0:
@@ -139,10 +141,10 @@ if __name__ == "__main__":
             env_test_class._step_simulation()
             env_test_class.make_observation()
             pos = env_test_class.obs[:6]
-            if np.linalg.norm(pos[:3]-target_pos[:3]) < 0.001 and np.linalg.norm(pos[3:]-target_pos[3:]) < 0.1:
+            if np.linalg.norm(pos[:3]-target_pos[:3]) < 0.001 and np.linalg.norm(pos[3:]-target_pos[3:]) < 0.18:
                 print("Reached")
                 break
             if iter % 100 == 0:
-                print("Curent Pose:\t",pos)
+                print("Current Pose:\t",pos)
                 print("Target Pose:\t",target_pos)
             iter += 1
