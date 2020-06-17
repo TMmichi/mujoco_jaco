@@ -2,7 +2,6 @@ stable_baselines
 tensorboard_log
 */.DS_Store
 
-
 .vscode/*
 !.vscode/settings.json
 !.vscode/tasks.json

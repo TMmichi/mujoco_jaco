@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+6#!/usr/bin/env python
 
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
@@ -45,23 +45,25 @@ class RL_controller:
         #self.tb_dir = "/home/ljh/Project/mujoco_jaco/src/tensorboard_log"
         self.tb_dir = "/Users/jeonghoon/Google_drive/Workspace/MLCS/mujoco_jaco/src/tensorboard_log"
         args.tb_dir = self.tb_dir
-
         self.steps_per_batch = 100
         self.batches_per_episodes = 5
         args.steps_per_batch = self.steps_per_batch
         args.batches_per_episodes = self.batches_per_episodes
         self.num_episodes = 10000
         self.train_num = 1
-        self.env = JacoMujocoEnv(**vars(args))
-        self.num_timesteps = self.steps_per_batch * self.batches_per_episodes * \
-            math.ceil(self.num_episodes / self.train_num)
+
+        self.args = args
+
 
     def _train(self):
         print("Training service init")
+        self.env = JacoMujocoEnv(**vars(self.args))
+        self.num_timesteps = self.steps_per_batch * self.batches_per_episodes * \
+            math.ceil(self.num_episodes / self.train_num)
         # self.trainer = TRPO(MlpPolicy, self.env, cg_damping=0.1, vf_iters=5, vf_stepsize=1e-3, timesteps_per_batch=self.steps_per_batch,
         #                    tensorboard_log=args.tb_dir, full_tensorboard_log=True)
         self.trainer = SAC(
-            LnMlpPolicy_sac, self.env, tensorboard_log=args.tb_dir, full_tensorboard_log=True)
+            LnMlpPolicy_sac, self.env, tensorboard_log=self.tb_dir, full_tensorboard_log=True)
         with self.sess:
             for train_iter in range(self.train_num):
                 print("\033[91mTraining Iter: ", train_iter,"\033[0m")
@@ -73,6 +75,7 @@ class RL_controller:
     
     def _test(self):
         print("Testing called")
+        self.env = JacoMujocoEnv(**vars(self.args))
         model_name = str(1) + ".zip"
         model_dir = self.model_path + model_name
         test_iter = 100
@@ -82,7 +85,7 @@ class RL_controller:
                 obs = self.env.reset()
                 done = False
                 while not done:
-                    action, states = self.model.predict(obs)
+                    action, state = self.model.predict(obs)
                     obs,rewards,done,_ = self.env.step(action,log=False)
                     print(rewards,end='\r')
 
