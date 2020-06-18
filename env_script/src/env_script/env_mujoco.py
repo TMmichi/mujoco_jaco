@@ -8,8 +8,8 @@ import time
 from gym import spaces
 from gym.utils import seeding
 
-from env_script.env_mujoco_util import JacoMujocoEnvUtil
-#from env_mujoco_util import JacoMujocoEnvUtil
+#from env_script.env_mujoco_util import JacoMujocoEnvUtil
+from env_mujoco_util import JacoMujocoEnvUtil
 #from env_multi_mujoco_util import JacoMujocoEnvUtil
 
 
@@ -142,6 +142,7 @@ if __name__ == "__main__":
             env_test_class.make_observation()
             pos = env_test_class.obs[:6]
             if np.linalg.norm(pos[:3]-target_pos[:3]) < 0.001 and np.linalg.norm(pos[3:]-target_pos[3:]) < 0.18:
+                print("Reached Pose:\t",pos)
                 print("Reached")
                 break
             if iter % 100 == 0:
