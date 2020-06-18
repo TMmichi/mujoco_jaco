@@ -1,6 +1,7 @@
 from xml.etree import ElementTree
 
 import os
+import time
 import numpy as np
 
 import mujoco_py as mjp
@@ -129,35 +130,73 @@ class MujocoConfig:
         # number of joints in the Mujoco simulation
         if self.N_ROBOTS == 1:
             N_ALL_JOINTS = int(len(self.sim.data.get_body_jacp("EE")) / 3)
+            # need to calculate the joint_dyn_addrs indices in flat vectors returned
+            # for the Jacobian
+            self.jac_indices = np.hstack(
+                # 6 because position and rotation Jacobians are 3 x N_JOINTS
+                [self.joint_dyn_addrs + (ii * N_ALL_JOINTS) for ii in range(3)]
+            )
+
+            # for the inertia matrix
+            self.M_indices = [
+                ii * N_ALL_JOINTS + jj
+                for jj in self.joint_dyn_addrs
+                for ii in self.joint_dyn_addrs
+            ]
+
+            # a place to store data returned from Mujoco
+            #self._g = np.zeros(self.N_JOINTS)
+            self._J3NP = np.zeros(3 * N_ALL_JOINTS)
+            self._J3NR = np.zeros(3 * N_ALL_JOINTS)
+            self._J6N = np.zeros((6, self.N_JOINTS))
+            self._MNN_vector = np.zeros(N_ALL_JOINTS ** 2)
+            self._MNN = np.zeros(self.N_JOINTS ** 2)
+            self._R9 = np.zeros(9)
+            self._R = np.zeros((3, 3))
+            self._x = np.ones(4)
+            self.N_ALL_JOINTS = N_ALL_JOINTS
+
         else:
-            N_ALL_JOINTS = int(len(self.sim.data.get_body_jacp("EE_1")) / 3)
+            N_ALL_JOINTS = int(len(self.sim.data.get_body_jacp("EE_1")) / 3 / self.N_ROBOTS)
+            self.jac_indices = []
+            self.M_indices = []
+            #self._g = []
+            self._J3NP = []
+            self._J3NR = []
+            self._J6N = []
+            self._MNN_vector = []
+            self._MNN = []
+            self._R9 = []
+            self._R = []
+            self._x = []
 
-        # need to calculate the joint_dyn_addrs indices in flat vectors returned
-        # for the Jacobian
-        self.jac_indices = np.hstack(
-            # 6 because position and rotation Jacobians are 3 x N_JOINTS
-            [self.joint_dyn_addrs + (ii * N_ALL_JOINTS) for ii in range(3)]
-        )
-        print(self.jac_indices)
+            for i in range(self.N_ROBOTS):
+                # need to calculate the joint_dyn_addrs indices in flat vectors returned
+                # for the Jacobian
+                self.jac_indices.append(np.hstack(
+                    # 6 because position and rotation Jacobians are 3 x N_JOINTS
+                    [self.joint_dyn_addrs[6*i:6*(i+1)] + (ii * N_ALL_JOINTS) for ii in range(3)]
+                ))
+                print(self.jac_indices)
 
-        # for the inertia matrix
-        self.M_indices = [
-            ii * N_ALL_JOINTS + jj
-            for jj in self.joint_dyn_addrs
-            for ii in self.joint_dyn_addrs
-        ]
+                # for the inertia matrix
+                self.M_indices.append([
+                    ii * N_ALL_JOINTS + jj
+                    for jj in self.joint_dyn_addrs
+                    for ii in self.joint_dyn_addrs
+                ])
 
-        # a place to store data returned from Mujoco
-        self._g = np.zeros(self.N_JOINTS)
-        self._J3NP = np.zeros(3 * N_ALL_JOINTS)
-        self._J3NR = np.zeros(3 * N_ALL_JOINTS)
-        self._J6N = np.zeros((6, self.N_JOINTS))
-        self._MNN_vector = np.zeros(N_ALL_JOINTS ** 2)
-        self._MNN = np.zeros(self.N_JOINTS ** 2)
-        self._R9 = np.zeros(9)
-        self._R = np.zeros((3, 3))
-        self._x = np.ones(4)
-        self.N_ALL_JOINTS = N_ALL_JOINTS
+                # a place to store data returned from Mujoco
+                #self._g.append(np.zeros(self.N_JOINTS))
+                self._J3NP.append(np.zeros(3 * N_ALL_JOINTS))
+                self._J3NR.append(np.zeros(3 * N_ALL_JOINTS))
+                self._J6N.append(np.zeros((6, self.N_JOINTS)))
+                self._MNN_vector.append(np.zeros(N_ALL_JOINTS ** 2))
+                self._MNN.append(np.zeros(self.N_JOINTS ** 2))
+                self._R9.append(np.zeros(9))
+                self._R.append(np.zeros((3, 3)))
+                self._x.append(np.ones(4))
+                self.N_ALL_JOINTS = N_ALL_JOINTS
 
     def _load_state(self, q, dq=None, u=None):
         """ Change the current joint angles
@@ -248,39 +287,45 @@ class MujocoConfig:
         if x is not None and not np.allclose(x, 0):
             raise Exception("x offset currently not supported, set to None")
 
-        if not self.use_sim_state and q is not None:
-            old_q, old_dq, old_u = self._load_state(q)
+        for i in range(self.N_ROBOTS):
+            if not self.use_sim_state and q is not None:
+                old_q, old_dq, old_u = self._load_state(q)
 
-        if object_type == "body":
-            # TODO: test if using this function is faster than the old way
-            # NOTE: for bodies, the Jacobian for the COM is returned
-            mjp.cymj._mj_jacBodyCom(
-                self.model,
-                self.sim.data,
-                self._J3NP,
-                self._J3NR,
-                self.model.body_name2id(name),
-            )
-        else:
-            if object_type == "geom":
-                jacp = self.sim.data.get_geom_jacp
-                jacr = self.sim.data.get_geom_jacr
-            elif object_type == "site":
-                jacp = self.sim.data.get_site_jacp
-                jacr = self.sim.data.get_site_jacr
+            if object_type == "body":
+                # TODO: test if using this function is faster than the old way
+                # NOTE: for bodies, the Jacobian for the COM is returned
+                mjp.cymj._mj_jacBodyCom(
+                    self.model,
+                    self.sim.data,
+                    self._J3NP[i],
+                    self._J3NR[i],
+                    self.model.body_name2id(name),
+                )
+                print(self._J3NP[i])
+                print(self._J3NR[i])
             else:
-                raise Exception("Invalid object type specified: ", object_type)
+                if object_type == "geom":
+                    jacp = self.sim.data.get_geom_jacp
+                    jacr = self.sim.data.get_geom_jacr
+                elif object_type == "site":
+                    jacp = self.sim.data.get_site_jacp
+                    jacr = self.sim.data.get_site_jacr
+                else:
+                    raise Exception("Invalid object type specified: ", object_type)
 
-            jacp(name, self._J3NP)[self.jac_indices]  # pylint: disable=W0106
-            jacr(name, self._J3NR)[self.jac_indices]  # pylint: disable=W0106
+                jacp(name, self._J3NP[i])[self.jac_indices[i]]  # pylint: disable=W0106
+                jacr(name, self._J3NR[i])[self.jac_indices[i]]  # pylint: disable=W0106
 
-        # get the position Jacobian hstacked (1 x N_JOINTS*3)
-        self._J6N[:3] = self._J3NP[self.jac_indices].reshape((3, self.N_JOINTS))
-        # get the rotation Jacobian hstacked (1 x N_JOINTS*3)
-        self._J6N[3:] = self._J3NR[self.jac_indices].reshape((3, self.N_JOINTS))
+            # get the position Jacobian hstacked (1 x N_JOINTS*3)
+            #print(self.jac_indices[i])
+            #print(self._J3NP[i])
+            #print(self._J3NP[i][self.jac_indices[i]])
+            self._J6N[i][:3] = self._J3NP[i][self.jac_indices[i]].reshape((3, self.N_JOINTS))
+            # get the rotation Jacobian hstacked (1 x N_JOINTS*3)
+            self._J6N[i][3:] = self._J3NR[i][self.jac_indices[i]].reshape((3, self.N_JOINTS))
 
-        if not self.use_sim_state and q is not None:
-            self._load_state(old_q, old_dq, old_u)
+            if not self.use_sim_state and q is not None:
+                self._load_state(old_q, old_dq, old_u)
 
         return np.copy(self._J6N)
 

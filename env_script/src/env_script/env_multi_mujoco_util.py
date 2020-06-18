@@ -10,7 +10,7 @@ import numpy as np
 from numpy.random import uniform as uniform_np
 from scipy.spatial.transform import Rotation as R
 
-from abr_control.arms.mujoco_config import MujocoConfig
+from abr_control.arms.mujoco_config_multi import MujocoConfig
 from abr_control.interfaces.mujoco_dual import Mujoco
 from abr_control.controllers import OSC
 
@@ -18,7 +18,7 @@ from abr_control.controllers import OSC
 class JacoMujocoEnvUtil:
     def __init__(self, **kwargs):
 
-        self.jaco = MujocoConfig('jaco2_dual')
+        self.jaco = MujocoConfig('jaco2_dual',n_robots=2)
         self.interface = Mujoco(self.jaco, dt=0.005)
         self.interface.connect()
         self.ctr = OSC(self.jaco, kp=100, kv=9, vmax=[0.2,0.5236], ctrlr_dof=[
@@ -53,10 +53,11 @@ class JacoMujocoEnvUtil:
 
     def _step_simulation(self):
         fb = self.interface.get_feedback()
-        self.current_jointstate = fb['q'][:6]
+        self.current_jointstate_1 = fb['q'][:6]
+        self.current_jointstate_2 = fb['q'][6:]
         u = self.ctr.generate(
-            q=fb['q'],
-            dq=fb['dq'],
+            q=fb['q'][:12],
+            dq=fb['dq'][:12],
             target=self.target_pos
         )
         self.interface.send_forces(np.hstack([u, [0, 0, 0]]))
@@ -76,12 +77,13 @@ class JacoMujocoEnvUtil:
         for _ in range(3):
             fb = self.interface.get_feedback()
             u = self.ctr.generate(
-                q=fb['q'],
-                dq=fb['dq'],
+                q=fb['q'][:12],
+                dq=fb['dq'][:12],
                 target=np.hstack([0, 0, -0.15, 0, 0, 0]*2)
             )
             self.interface.send_forces([0]*18)
-        self.current_jointstate = fb['q'][:6]
+        self.current_jointstate_1 = fb['q'][:6]
+        self.current_jointstate_2 = fb['q'][6:]
         self.goal = self._sample_goal()
         obs = self._get_observation()
         dist_diff = np.linalg.norm(obs[:3] - self.goal)

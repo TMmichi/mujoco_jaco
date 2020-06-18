@@ -114,6 +114,12 @@ class OSC(Controller):
         self.ZEROS_SIX = np.zeros(6)
         self.IDENTITY_N_JOINTS = np.eye(self.robot_config.N_JOINTS)
 
+        if self.robot_config.N_ROBOTS == 1:
+            self.end_effector = "EE"
+        else:
+            self.end_effector = ["EE_"+str(ii) for ii in range(1,self.robot_config.N_ROBOTS+1)]
+
+
     def _Mx(self, M, J, threshold=1e-3):
         """ Generate the task-space inertia matrix
 
@@ -164,7 +170,7 @@ class OSC(Controller):
                 )
             )
             # get the quaternion for the end effector
-            q_e = self.robot_config.quaternion("EE", q=q)
+            q_e = self.robot_config.quaternion(self.end_effector, q=q)
             q_r = transformations.quaternion_multiply(
                 q_d, transformations.quaternion_conjugate(q_e)
             )
@@ -173,7 +179,7 @@ class OSC(Controller):
         elif self.orientation_algorithm == 1:
             # From (Caccavale et al, 1997) Section IV Quaternion feedback
             # get rotation matrix for the end effector orientation
-            R_e = self.robot_config.R("EE", q)
+            R_e = self.robot_config.R(self.end_effector, q)
             # get rotation matrix for the target orientation
             R_d = transformations.euler_matrix(
                 target_abg[0], target_abg[1], target_abg[2], axes="rxyz"
@@ -236,7 +242,11 @@ class OSC(Controller):
 
         if target_velocity is None:
             target_velocity = self.ZEROS_SIX
-
+        if ref_frame == "EE":
+            if self.robot_config.N_ROBOTS==1:
+                ref_frame = self.end_effector
+            else:
+                ref_frame = self.end_effector[0]
         J = self.robot_config.J(ref_frame, q, x=xyz_offset)  # Jacobian
         # isolate rows of Jacobian corresponding to controlled task space DOF
         J = J[self.ctrlr_dof]
