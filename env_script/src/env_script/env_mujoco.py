@@ -9,8 +9,8 @@ from gym import spaces
 from gym.utils import seeding
 
 #from env_script.env_mujoco_util import JacoMujocoEnvUtil
-from env_mujoco_util import JacoMujocoEnvUtil
-#from env_multi_mujoco_util import JacoMujocoEnvUtil
+#from env_mujoco_util import JacoMujocoEnvUtil
+from env_multi_mujoco_util import JacoMujocoEnvUtil
 
 
 class JacoMujocoEnv(JacoMujocoEnvUtil):
@@ -122,7 +122,6 @@ if __name__ == "__main__":
     env_test_class.make_observation()
     obs = env_test_class.gripper_pose
     print("First: \t\t",obs[:6])
-    time.sleep(10)
     for i in range(100):
         iter=0
         if i%4==0:

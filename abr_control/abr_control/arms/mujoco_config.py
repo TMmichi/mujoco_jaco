@@ -261,6 +261,8 @@ class MujocoConfig:
                 self._J3NR,
                 self.model.body_name2id(name),
             )
+            print(self._J3NP)
+            print(self._J3NR)
         else:
             if object_type == "geom":
                 jacp = self.sim.data.get_geom_jacp
@@ -278,6 +280,9 @@ class MujocoConfig:
         self._J6N[:3] = self._J3NP[self.jac_indices].reshape((3, self.N_JOINTS))
         # get the rotation Jacobian hstacked (1 x N_JOINTS*3)
         self._J6N[3:] = self._J3NR[self.jac_indices].reshape((3, self.N_JOINTS))
+
+        print(self._J6N)
+        quit()
 
         if not self.use_sim_state and q is not None:
             self._load_state(old_q, old_dq, old_u)

@@ -243,10 +243,7 @@ class OSC(Controller):
         if target_velocity is None:
             target_velocity = self.ZEROS_SIX
         if ref_frame == "EE":
-            if self.robot_config.N_ROBOTS==1:
-                ref_frame = self.end_effector
-            else:
-                ref_frame = self.end_effector[0]
+            ref_frame = self.end_effector
         J = self.robot_config.J(ref_frame, q, x=xyz_offset)  # Jacobian
         # isolate rows of Jacobian corresponding to controlled task space DOF
         J = J[self.ctrlr_dof]

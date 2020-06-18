@@ -18,7 +18,7 @@ from abr_control.controllers import OSC
 class JacoMujocoEnvUtil:
     def __init__(self, **kwargs):
 
-        self.jaco = MujocoConfig('jaco2_dual',n_robots=2)
+        self.jaco = MujocoConfig('jaco2_dual_include',n_robots=2)
         self.interface = Mujoco(self.jaco, dt=0.005)
         self.interface.connect()
         self.ctr = OSC(self.jaco, kp=100, kv=9, vmax=[0.2,0.5236], ctrlr_dof=[
