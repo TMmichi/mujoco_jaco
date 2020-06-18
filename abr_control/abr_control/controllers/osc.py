@@ -244,82 +244,159 @@ class OSC(Controller):
             target_velocity = self.ZEROS_SIX
         if ref_frame == "EE":
             ref_frame = self.end_effector
-        J = self.robot_config.J(ref_frame, q, x=xyz_offset)  # Jacobian
-        # isolate rows of Jacobian corresponding to controlled task space DOF
-        J = J[self.ctrlr_dof]
+        
+        if self.robot_config.N_ROBOTS == 1:
+            J = self.robot_config.J(ref_frame, q, x=xyz_offset)  # Jacobian
+            # isolate rows of Jacobian corresponding to controlled task space DOF
+            J = J[self.ctrlr_dof]
 
-        M = self.robot_config.M(q)  # inertia matrix in joint space
-        Mx, M_inv = self._Mx(M=M, J=J)  # inertia matrix in task space
+            M = self.robot_config.M(q)  # inertia matrix in joint space
+            Mx, M_inv = self._Mx(M=M, J=J)  # inertia matrix in task space
 
-        # calculate the desired task space forces -----------------------------
-        u_task = np.zeros(6)
+            # calculate the desired task space forces -----------------------------
+            u_task = np.zeros(6)
 
-        # if position is being controlled
-        if np.sum(self.ctrlr_dof[:3]) > 0:
-            xyz = self.robot_config.Tx(ref_frame, q, x=xyz_offset)
-            u_task[:3] = xyz - target[:3]
+            # if position is being controlled
+            if np.sum(self.ctrlr_dof[:3]) > 0:
+                xyz = self.robot_config.Tx(ref_frame, q, x=xyz_offset)
+                u_task[:3] = xyz - target[:3]
 
-        # if orientation is being controlled
-        if np.sum(self.ctrlr_dof[3:]) > 0:
-            u_task[3:] = self._calc_orientation_forces(target[3:], q)
+            # if orientation is being controlled
+            if np.sum(self.ctrlr_dof[3:]) > 0:
+                u_task[3:] = self._calc_orientation_forces(target[3:], q)
 
-        # task space integrated error term
-        if self.ki != 0:
-            self.integrated_error += u_task
-            u_task += self.ki * self.integrated_error
+            # task space integrated error term
+            if self.ki != 0:
+                self.integrated_error += u_task
+                u_task += self.ki * self.integrated_error
 
-        u = np.zeros(self.robot_config.N_JOINTS)
-        if self.vmax is not None:
-            # if max task space velocities specified, apply velocity limiting
-            u_task = self._velocity_limiting(u_task)
+            u = np.zeros(self.robot_config.N_JOINTS)
+            if self.vmax is not None:
+                # if max task space velocities specified, apply velocity limiting
+                u_task = self._velocity_limiting(u_task)
+            else:
+                # otherwise apply specified gains
+                u_task *= self.task_space_gains
+
+            # compensate for velocity
+            if np.all(target_velocity == 0):
+                # if there's no target velocity in task space,
+                # compensate for velocity in joint space (more accurate)
+                u = -1 * self.kv * np.dot(M, dq)
+            else:
+                dx = np.zeros(6)
+                dx[self.ctrlr_dof] = np.dot(J, dq)
+                u_task += self.kv * (dx - target_velocity)
+
+            # isolate task space forces corresponding to controlled DOF
+            u_task = u_task[self.ctrlr_dof]
+
+            # transform task space control signal into joint space ----------------
+            u -= np.dot(J.T, np.dot(Mx, u_task))
+
+            # add in estimation of full centrifugal and Coriolis effects ----------
+            if self.use_C:
+                u -= np.dot(self.robot_config.C(q=q, dq=dq), dq)
+
+            # store the current control signal u for training in case
+            # dynamics adaptation signal is being used
+            # NOTE: do not include gravity or null controller in training signal
+            self.training_signal = np.copy(u)
+
+            # add in gravity term in joint space ----------------------------------
+            if self.use_g:
+                u -= self.robot_config.g(q=q)
+
+                # add in gravity term in task space
+                # Jbar = np.dot(M_inv, np.dot(J.T, Mx))
+                # g = self.robot_config.g(q=q)
+                # self.u_g = g
+                # g_task = np.dot(Jbar.T, g)
+
+            # add in secondary control signals ------------------------------------
+            if self.null_controllers is not None:
+                for null_controller in self.null_controllers:
+                    # generate control signal to apply in null space
+                    u_null = null_controller.generate(q, dq)
+                    # calculate null space filter
+                    Jbar = np.dot(M_inv, np.dot(J.T, Mx))
+                    null_filter = self.IDENTITY_N_JOINTS - np.dot(J.T, Jbar.T)
+                    # add in filtered null space control signal
+                    u += np.dot(null_filter, u_null)
+        
         else:
-            # otherwise apply specified gains
-            u_task *= self.task_space_gains
+            J = self.robot_config.J(ref_frame, q, x=xyz_offset)  # Jacobian
+            for i in self.robot_config.N_ROBOTS:
+                # isolate rows of Jacobian corresponding to controlled task space DOF
+                J = J[i][self.ctrlr_dof]
 
-        # compensate for velocity
-        if np.all(target_velocity == 0):
-            # if there's no target velocity in task space,
-            # compensate for velocity in joint space (more accurate)
-            u = -1 * self.kv * np.dot(M, dq)
-        else:
-            dx = np.zeros(6)
-            dx[self.ctrlr_dof] = np.dot(J, dq)
-            u_task += self.kv * (dx - target_velocity)
+                M = self.robot_config.M(q)  # inertia matrix in joint space
+                Mx, M_inv = self._Mx(M=M, J=J)  # inertia matrix in task space
 
-        # isolate task space forces corresponding to controlled DOF
-        u_task = u_task[self.ctrlr_dof]
+                # calculate the desired task space forces -----------------------------
+                u_task = np.zeros(6)
 
-        # transform task space control signal into joint space ----------------
-        u -= np.dot(J.T, np.dot(Mx, u_task))
+                # if position is being controlled
+                if np.sum(self.ctrlr_dof[:3]) > 0:
+                    xyz = self.robot_config.Tx(ref_frame, q, x=xyz_offset)
+                    u_task[:3] = xyz - target[:3]
 
-        # add in estimation of full centrifugal and Coriolis effects ----------
-        if self.use_C:
-            u -= np.dot(self.robot_config.C(q=q, dq=dq), dq)
+                # if orientation is being controlled
+                if np.sum(self.ctrlr_dof[3:]) > 0:
+                    u_task[3:] = self._calc_orientation_forces(target[3:], q)
 
-        # store the current control signal u for training in case
-        # dynamics adaptation signal is being used
-        # NOTE: do not include gravity or null controller in training signal
-        self.training_signal = np.copy(u)
+                # task space integrated error term
+                if self.ki != 0:
+                    self.integrated_error += u_task
+                    u_task += self.ki * self.integrated_error
 
-        # add in gravity term in joint space ----------------------------------
-        if self.use_g:
-            u -= self.robot_config.g(q=q)
+                u = np.zeros(self.robot_config.N_JOINTS)
+                if self.vmax is not None:
+                    # if max task space velocities specified, apply velocity limiting
+                    u_task = self._velocity_limiting(u_task)
+                else:
+                    # otherwise apply specified gains
+                    u_task *= self.task_space_gains
 
-            # add in gravity term in task space
-            # Jbar = np.dot(M_inv, np.dot(J.T, Mx))
-            # g = self.robot_config.g(q=q)
-            # self.u_g = g
-            # g_task = np.dot(Jbar.T, g)
+                # compensate for velocity
+                if np.all(target_velocity == 0):
+                    # if there's no target velocity in task space,
+                    # compensate for velocity in joint space (more accurate)
+                    u = -1 * self.kv * np.dot(M, dq)
+                else:
+                    dx = np.zeros(6)
+                    dx[self.ctrlr_dof] = np.dot(J, dq)
+                    u_task += self.kv * (dx - target_velocity)
 
-        # add in secondary control signals ------------------------------------
-        if self.null_controllers is not None:
-            for null_controller in self.null_controllers:
-                # generate control signal to apply in null space
-                u_null = null_controller.generate(q, dq)
-                # calculate null space filter
-                Jbar = np.dot(M_inv, np.dot(J.T, Mx))
-                null_filter = self.IDENTITY_N_JOINTS - np.dot(J.T, Jbar.T)
-                # add in filtered null space control signal
-                u += np.dot(null_filter, u_null)
+                # isolate task space forces corresponding to controlled DOF
+                u_task = u_task[self.ctrlr_dof]
+
+                # transform task space control signal into joint space ----------------
+                u -= np.dot(J.T, np.dot(Mx, u_task))
+
+                # add in estimation of full centrifugal and Coriolis effects ----------
+                if self.use_C:
+                    u -= np.dot(self.robot_config.C(q=q, dq=dq), dq)
+
+                # store the current control signal u for training in case
+                # dynamics adaptation signal is being used
+                # NOTE: do not include gravity or null controller in training signal
+                self.training_signal = np.copy(u)
+
+                # add in gravity term in joint space ----------------------------------
+                if self.use_g:
+                    u -= self.robot_config.g(q=q)
+
+                # add in secondary control signals ------------------------------------
+                if self.null_controllers is not None:
+                    for null_controller in self.null_controllers:
+                        # generate control signal to apply in null space
+                        u_null = null_controller.generate(q, dq)
+                        # calculate null space filter
+                        Jbar = np.dot(M_inv, np.dot(J.T, Mx))
+                        null_filter = self.IDENTITY_N_JOINTS - np.dot(J.T, Jbar.T)
+                        # add in filtered null space control signal
+                        u += np.dot(null_filter, u_null)
+
 
         return u

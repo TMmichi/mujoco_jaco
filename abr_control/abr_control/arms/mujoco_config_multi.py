@@ -157,9 +157,14 @@ class MujocoConfig:
             self.N_ALL_JOINTS = N_ALL_JOINTS
 
         else:
+            body_jacp1 = self.sim.data.get_body_jacp("EE_1")
+            body_jacp2 = self.sim.data.get_body_jacp("EE_2")
+            print(body_jacp1)
+            print(body_jacp2)
             N_ALL_JOINTS = int(len(self.sim.data.get_body_jacp("EE_1")) / 3 / self.N_ROBOTS)
             # need to calculate the joint_dyn_addrs indices in flat vectors returned
             # for the Jacobian
+            print(self.joint_dyn_addrs)
             self.jac_indices = np.hstack(
                 # 6 because position and rotation Jacobians are 3 x N_JOINTS
                 [self.joint_dyn_addrs[:6] + (ii * N_ALL_JOINTS) for ii in range(3)]
@@ -177,7 +182,7 @@ class MujocoConfig:
             self._R = []
             self._x = []
 
-            for i in range(self.N_ROBOTS):
+            for _ in range(self.N_ROBOTS):
                 
                 # for the inertia matrix
                 self.M_indices.append([
@@ -292,8 +297,8 @@ class MujocoConfig:
                 old_q, old_dq, old_u = self._load_state(q)
 
             if object_type == "body":
-                print(name[i])
-                print(self.model.body_name2id(name[i]))
+                #print(name[i])
+                #print(self.model.body_name2id(name[i]))
                 # TODO: test if using this function is faster than the old way
                 # NOTE: for bodies, the Jacobian for the COM is returned
                 mjp.cymj._mj_jacBodyCom(
@@ -303,8 +308,6 @@ class MujocoConfig:
                     self._J3NR[i],
                     self.model.body_name2id(name[i]),
                 )
-                print(self._J3NP[i])
-                print(self._J3NR[i])
             else:
                 if object_type == "geom":
                     jacp = self.sim.data.get_geom_jacp
@@ -319,15 +322,15 @@ class MujocoConfig:
                 jacr(name[i], self._J3NR[i])[self.jac_indices]  # pylint: disable=W0106
 
             # get the position Jacobian hstacked (1 x N_JOINTS*3)
-            #print(self.jac_indices
-            #print(self._J3NP[i])
-            #print(self._J3NP[i][self.jac_indices)
             self._J6N[i][:3] = self._J3NP[i][self.jac_indices].reshape((3, self.N_JOINTS))
             # get the rotation Jacobian hstacked (1 x N_JOINTS*3)
             self._J6N[i][3:] = self._J3NR[i][self.jac_indices].reshape((3, self.N_JOINTS))
 
             if not self.use_sim_state and q is not None:
                 self._load_state(old_q, old_dq, old_u)
+        
+        print(self._J3NP)
+        print(self._J3NR)
 
         return np.copy(self._J6N)
 

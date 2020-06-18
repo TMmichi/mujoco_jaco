@@ -127,10 +127,8 @@ class MujocoConfig:
         self.N_JOINTS = int(len(self.joint_pos_addrs) / self.N_ROBOTS)
 
         # number of joints in the Mujoco simulation
-        if self.N_ROBOTS == 1:
-            N_ALL_JOINTS = int(len(self.sim.data.get_body_jacp("EE")) / 3)
-        else:
-            N_ALL_JOINTS = int(len(self.sim.data.get_body_jacp("EE_1")) / 3)
+        body_jacp = self.sim.data.get_body_jacp("EE")
+        N_ALL_JOINTS = int(len(body_jacp) / 3)
 
         # need to calculate the joint_dyn_addrs indices in flat vectors returned
         # for the Jacobian
@@ -261,8 +259,7 @@ class MujocoConfig:
                 self._J3NR,
                 self.model.body_name2id(name),
             )
-            print(self._J3NP)
-            print(self._J3NR)
+
         else:
             if object_type == "geom":
                 jacp = self.sim.data.get_geom_jacp
