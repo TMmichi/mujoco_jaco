@@ -278,8 +278,9 @@ class MujocoConfig:
         # get the rotation Jacobian hstacked (1 x N_JOINTS*3)
         self._J6N[3:] = self._J3NR[self.jac_indices].reshape((3, self.N_JOINTS))
 
-        print(self._J6N)
-        quit()
+        print("self._J3NP: ",self._J3NP)
+        print("self._J3NR: ",self._J3NR)
+        print("self.J6N: ",self._J6N)
 
         if not self.use_sim_state and q is not None:
             self._load_state(old_q, old_dq, old_u)
@@ -300,10 +301,16 @@ class MujocoConfig:
 
         # stored in mjData.qM, stored in custom sparse format,
         # convert qM to a dense matrix with mj_fullM
+        print("self.sim.data.qM: ",self.sim.data.qM)
+        print("qM length: ",len(self.sim.data.qM))
         mjp.cymj._mj_fullM(self.model, self._MNN_vector, self.sim.data.qM)
+        print("self.M_indices: ",self.M_indices)
+        print("self._MNN_vector: \n",self._MNN_vector)
+        print("length M_indices, _MNN_vector: ",len(self.M_indices), len(self._MNN_vector))
         M = self._MNN_vector[self.M_indices]
         M = M.reshape((self.N_JOINTS, self.N_JOINTS))
-
+        print("M: ",M)
+        quit()
         if not self.use_sim_state and q is not None:
             self._load_state(old_q, old_dq, old_u)
 

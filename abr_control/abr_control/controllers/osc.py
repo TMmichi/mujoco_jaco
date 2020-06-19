@@ -326,13 +326,11 @@ class OSC(Controller):
         
         else:
             J = self.robot_config.J(ref_frame, q, x=xyz_offset)  # Jacobian
-            for i in self.robot_config.N_ROBOTS:
+            M = self.robot_config.M(q)  # inertia matrix in joint space
+            for i in range(self.robot_config.N_ROBOTS):
                 # isolate rows of Jacobian corresponding to controlled task space DOF
-                J = J[i][self.ctrlr_dof]
-
-                M = self.robot_config.M(q)  # inertia matrix in joint space
-                Mx, M_inv = self._Mx(M=M, J=J)  # inertia matrix in task space
-
+                Mx, M_inv = self._Mx(M=M[i], J=J[i][self.ctrlr_dof])  # inertia matrix in task space
+                
                 # calculate the desired task space forces -----------------------------
                 u_task = np.zeros(6)
 
@@ -397,6 +395,5 @@ class OSC(Controller):
                         null_filter = self.IDENTITY_N_JOINTS - np.dot(J.T, Jbar.T)
                         # add in filtered null space control signal
                         u += np.dot(null_filter, u_null)
-
 
         return u

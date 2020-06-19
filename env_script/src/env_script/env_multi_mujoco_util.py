@@ -10,7 +10,8 @@ import numpy as np
 from numpy.random import uniform as uniform_np
 from scipy.spatial.transform import Rotation as R
 
-from abr_control.arms.mujoco_config_multi import MujocoConfig
+#from abr_control.arms.mujoco_config_multi import MujocoConfig
+from abr_control.arms.mujoco_config_multi_mod import MujocoConfig
 from abr_control.interfaces.mujoco_dual import Mujoco
 from abr_control.controllers import OSC
 
@@ -67,10 +68,12 @@ class JacoMujocoEnvUtil:
         self.gripper_angle_1 = 0.35
         self.gripper_angle_2 = 0.35
         if target_angle == None:
-            random_init_angle = [uniform_np(-pi/2, pi/2), 3.75, uniform_np(
-                1.5, 2.5), uniform_np(0.8, 2.3), uniform_np(0.8, 2.3), uniform_np(0.8, 2.3)]
+            #random_init_angle = [uniform_np(-pi/2, pi/2), 3.75, uniform_np(
+            #    1.5, 2.5), uniform_np(0.8, 2.3), uniform_np(0.8, 2.3), uniform_np(0.8, 2.3)]
+            random_init_angle = [1,1,1,1,1,1]
             random_init_angle *= 2
-            random_init_angle[6] = random_init_angle[0] + pi
+            random_init_angle[7] = random_init_angle[1] + pi/4
+            random_init_angle[6] = random_init_angle[0] + pi/4
         else:
             random_init_angle = target_angle
         self.interface.set_joint_state(random_init_angle, [0]*12)

@@ -42,6 +42,8 @@
 
     <worldbody>
         <include file="jaco2_ind_1.xml"/>
+    </worldbody>
+    <worldbody>
         <include file="jaco2_ind_2.xml"/>
     </worldbody>
 

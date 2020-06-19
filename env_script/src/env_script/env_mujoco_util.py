@@ -67,8 +67,10 @@ class JacoMujocoEnvUtil:
         self.gripper_angle_1 = 0.35
         self.gripper_angle_2 = 0.35
         if target_angle == None:
-            random_init_angle = [uniform_np(-pi, pi), 3.75, uniform_np(
-                1.5, 2.5), uniform_np(0.8, 2.3), uniform_np(0.8, 2.3), uniform_np(0.8, 2.3)]
+            #random_init_angle = [uniform_np(-pi, pi), 3.75, uniform_np(
+            #    1.5, 2.5), uniform_np(0.8, 2.3), uniform_np(0.8, 2.3), uniform_np(0.8, 2.3)]
+            random_init_angle = [1,1,1,1,1,1]
+            #random_init_angle = [1+pi/4,1+pi/4,1,1,1,1]
         else:
             random_init_angle = target_angle
         self.start_angle = random_init_angle
