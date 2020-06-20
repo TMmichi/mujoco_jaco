@@ -2,3 +2,6 @@
 	path = stable-baselines
 	url = https://github.com/TMmichi/stable-baselines.git
 	branch = master
+[submodule "abr_control"]
+	path = abr_control
+	url = https://github.com/TMmichi/abr_control.git
