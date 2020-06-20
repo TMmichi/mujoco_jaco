@@ -14,6 +14,7 @@ from scipy.spatial.transform import Rotation as R
 from abr_control.arms.mujoco_config import MujocoConfig
 from abr_control.interfaces.mujoco import Mujoco
 from abr_control.controllers import OSC
+from abr_control.utils import transformations
 
 
 class JacoMujocoEnvUtil:
@@ -29,10 +30,10 @@ class JacoMujocoEnvUtil:
         self.jaco = MujocoConfig(xml_name,n_robots=self.n_robots)
         self.interface = Mujoco(self.jaco, dt=0.005)
         self.interface.connect()
-        self.ctr = OSC(self.jaco, kp=100, kv=9, vmax=[0.2,0.5236], ctrlr_dof=[
-                       True, True, True, False, False, False])
+        self.ctr = OSC(self.jaco, kp=300, kv=20, ko=180, vmax=[0.2,0.5236], ctrlr_dof=[
+                       True, True, True, True, True, True])
         self.target_pos = self._reset()[:6]
-        self.base_position = self.interface.get_xyz('link1')
+        self.base_position = self._get_property('link1','position')
 
         ### ------------  STATE GENERATION  ------------ ###
         try:
@@ -86,7 +87,7 @@ class JacoMujocoEnvUtil:
         self.interface.set_joint_state(random_init_angle, [0]*6*self.n_robots)
         for _ in range(3):
             fb = self.interface.get_feedback()
-            u = self.ctr.generate(
+            _ = self.ctr.generate(
                 q=fb['q'],
                 dq=fb['dq'],
                 target=np.hstack([[-0.25, 0, -0.15, 0, 0, 0]*self.n_robots])
@@ -104,27 +105,14 @@ class JacoMujocoEnvUtil:
     def _get_observation(self):
         test = True  # TODO: Remove test
         if test:
-            self.gripper_pose = []
+            self.gripper_pose = self._get_property('hand','pose')
             observation = []
             for i in range(self.n_robots):
-                if self.n_robots == 1:
-                    prefix = ""
-                else:
-                    prefix = "_"+str(i+1)
-                position = self.interface.get_xyz('hand'+prefix)
-                orientation_quat = self.interface.get_orientation('hand'+prefix)
-                r = R.from_quat(orientation_quat)
-                orientation_euler = r.as_euler('xyz')
-                pose = np.append(position, orientation_euler)
-                self.gripper_pose.append(pose)
-                obs_ind = np.append(position-self.goal[i],orientation_euler)
-                observation.append(obs_ind)
-            self.gripper_pose = np.array(self.gripper_pose)
-            observation = np.array(observation)
+                observation.append(self.gripper_pose[i] - np.hstack([self.goal[i],[0,0,0]]))
         else:
             data_from_callback = []
             observation = self.state_gen.generate(data_from_callback)
-        return observation
+        return np.array(observation)
 
     def _get_reward(self):
         # TODO: Reward from IRL
@@ -153,7 +141,7 @@ class JacoMujocoEnvUtil:
     def _get_terminal_inspection(self):
         self.num_episodes += 1
         dist_diff = np.linalg.norm(self.gripper_pose[0][:3] - self.goal)
-        wb = np.linalg.norm(self.interface.get_xyz('hand') - self.base_position)
+        wb = np.linalg.norm(self._get_property('hand','position')[0] - self.base_position[0])
         if pi - 0.1 < self.interface.get_feedback()['q'][2] < pi + 0.1:
             print("\033[91m \nUn wanted joint angle - possible singular state \033[0m")
             return True, -5, wb
@@ -171,6 +159,49 @@ class JacoMujocoEnvUtil:
     def _take_action(self, a):
         _ = self._get_observation()
         self.target_pos = self.gripper_pose[0] + np.hstack([a[:3]/100,a[3:]/20])
+
+    def _get_property(self, subject, prop):
+        out = []
+        for i in range(self.n_robots):
+            if prop == 'position':
+                if self.n_robots == 1:
+                    out.append(self.interface.get_xyz(subject))
+                else:
+                    prefix = "_"+str(i+1)
+                    out.append(self.interface.get_xyz(subject+prefix))
+                return np.copy(out)
+            elif prop == 'orientation':
+                if self.n_robots == 1:
+                    orientation_quat = self.interface.get_orientation(subject)
+                    out.append(transformations.euler_from_quaternion(orientation_quat,'rxyz'))
+                    #r = R.from_quat(orientation_quat)
+                    #out.append(r.as_euler('xyz'))
+                else:
+                    prefix = "_"+str(i+1)
+                    orientation_quat = self.interface.get_orientation(subject+prefix)
+                    #r = R.from_quat(orientation_quat)
+                    #out.append(r.as_euler('xyz'))
+                    out.append(transformations.euler_from_quaternion(orientation_quat,'rxyz'))
+                return np.copy(out)
+            elif prop == 'pose':
+                if self.n_robots == 1:
+                    pos = self.interface.get_xyz(subject)
+                    orientation_quat = self.interface.get_orientation(subject)
+                    #r = R.from_quat(orientation_quat)
+                    #ori = r.as_euler('xyz')
+                    ori = transformations.euler_from_quaternion(orientation_quat,'rxyz')
+                    pose = np.append(pos,ori)
+                    out.append(pose)
+                else:
+                    prefix = "_"+str(i+1)
+                    pos = self.interface.get_xyz(subject+prefix)
+                    orientation_quat = self.interface.get_orientation(subject+prefix)
+                    #r = R.from_quat(orientation_quat)
+                    #ori = r.as_euler('xyz')
+                    ori = transformations.euler_from_quaternion(orientation_quat,'rxyz')
+                    pose = np.append(pos,ori)
+                    out.append(pose)
+                return np.copy(out)
 
     def _get_depth(self):
         pass
