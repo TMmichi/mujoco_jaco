@@ -8,7 +8,6 @@ from random import sample, randint, uniform
 
 import numpy as np
 from numpy.random import uniform as uniform_np
-from scipy.spatial.transform import Rotation as R
 
 #from abr_control.arms.mujoco_config_multi import MujocoConfig
 from abr_control.arms.mujoco_config import MujocoConfig
@@ -30,9 +29,9 @@ class JacoMujocoEnvUtil:
         self.jaco = MujocoConfig(xml_name,n_robots=self.n_robots)
         self.interface = Mujoco(self.jaco, dt=0.005)
         self.interface.connect()
-        self.ctr = OSC(self.jaco, kp=300, kv=20, ko=180, vmax=[0.2,0.5236], ctrlr_dof=[
+        self.ctr = OSC(self.jaco, kp=50, ko=180, kv=20, vmax=[0.2,0.5236], ctrlr_dof=[
                        True, True, True, True, True, True])
-        self.target_pos = self._reset()[:6]
+        self.target_pos = self._reset()
         self.base_position = self._get_property('link1','position')
 
         ### ------------  STATE GENERATION  ------------ ###
@@ -75,9 +74,9 @@ class JacoMujocoEnvUtil:
         self.gripper_angle_1 = 0.35
         self.gripper_angle_2 = 0.35
         if target_angle == None:
-            #random_init_angle = [uniform_np(-pi/2, pi/2), 3.75, uniform_np(
-            #    1.5, 2.5), uniform_np(0.8, 2.3), uniform_np(0.8, 2.3), uniform_np(0.8, 2.3)]
-            random_init_angle = [1,1,1,1,1,1]
+            random_init_angle = [uniform_np(-pi/2, pi/2), 3.75, uniform_np(
+                1.5, 2.5), uniform_np(0.8, 2.3), uniform_np(0.8, 2.3), uniform_np(0.8, 2.3)]
+            #random_init_angle = [1,1,1,1,1,1]
             random_init_angle *= self.n_robots
             if self.n_robots > 1:
                 random_init_angle[7] = random_init_angle[1] + pi/4
@@ -98,9 +97,9 @@ class JacoMujocoEnvUtil:
         self.goal = self._sample_goal()
         obs = self._get_observation()
         #TODO: additional term for dist_diff
-        dist_diff = np.linalg.norm(obs[0][:3] - self.goal)
+        dist_diff = np.linalg.norm(obs[0][:3] - self.goal[0])
         self.ref_reward = (3 - dist_diff * 1.3)
-        return obs
+        return obs[0]
 
     def _get_observation(self):
         test = True  # TODO: Remove test
@@ -117,7 +116,7 @@ class JacoMujocoEnvUtil:
     def _get_reward(self):
         # TODO: Reward from IRL
         if self.reward_method == "l2":
-            dist_diff = np.linalg.norm(self.gripper_pose[0][:3] - self.goal)
+            dist_diff = np.linalg.norm(self.gripper_pose[0][:3] - self.goal[0])
             if dist_diff > 0.5:
                 return 0
             else:
@@ -132,7 +131,7 @@ class JacoMujocoEnvUtil:
     def _sample_goal(self):
         goal = []
         for _ in range(self.n_robots):
-            target_pos = [uniform(0.2, 0.5) * sample([-1, 1], 1)[0]
+            target_pos = [uniform(0.25, 0.35) * sample([-1, 1], 1)[0]
                         for i in range(2)] + [uniform(0.1, 0.4)]
             goal.append(target_pos)
         # TODO: Target pose -> make object in Mujoco
@@ -140,7 +139,7 @@ class JacoMujocoEnvUtil:
 
     def _get_terminal_inspection(self):
         self.num_episodes += 1
-        dist_diff = np.linalg.norm(self.gripper_pose[0][:3] - self.goal)
+        dist_diff = np.linalg.norm(self.gripper_pose[0][:3] - self.goal[0])
         wb = np.linalg.norm(self._get_property('hand','position')[0] - self.base_position[0])
         if pi - 0.1 < self.interface.get_feedback()['q'][2] < pi + 0.1:
             print("\033[91m \nUn wanted joint angle - possible singular state \033[0m")
@@ -174,21 +173,15 @@ class JacoMujocoEnvUtil:
                 if self.n_robots == 1:
                     orientation_quat = self.interface.get_orientation(subject)
                     out.append(transformations.euler_from_quaternion(orientation_quat,'rxyz'))
-                    #r = R.from_quat(orientation_quat)
-                    #out.append(r.as_euler('xyz'))
                 else:
                     prefix = "_"+str(i+1)
                     orientation_quat = self.interface.get_orientation(subject+prefix)
-                    #r = R.from_quat(orientation_quat)
-                    #out.append(r.as_euler('xyz'))
                     out.append(transformations.euler_from_quaternion(orientation_quat,'rxyz'))
                 return np.copy(out)
             elif prop == 'pose':
                 if self.n_robots == 1:
                     pos = self.interface.get_xyz(subject)
                     orientation_quat = self.interface.get_orientation(subject)
-                    #r = R.from_quat(orientation_quat)
-                    #ori = r.as_euler('xyz')
                     ori = transformations.euler_from_quaternion(orientation_quat,'rxyz')
                     pose = np.append(pos,ori)
                     out.append(pose)
@@ -196,8 +189,6 @@ class JacoMujocoEnvUtil:
                     prefix = "_"+str(i+1)
                     pos = self.interface.get_xyz(subject+prefix)
                     orientation_quat = self.interface.get_orientation(subject+prefix)
-                    #r = R.from_quat(orientation_quat)
-                    #ori = r.as_euler('xyz')
                     ori = transformations.euler_from_quaternion(orientation_quat,'rxyz')
                     pose = np.append(pos,ori)
                     out.append(pose)

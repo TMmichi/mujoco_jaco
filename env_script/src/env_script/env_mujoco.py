@@ -8,8 +8,8 @@ import time
 from gym import spaces
 from gym.utils import seeding
 
-#from env_script.env_mujoco_util import JacoMujocoEnvUtil
-from env_mujoco_util import JacoMujocoEnvUtil
+from env_script.env_mujoco_util import JacoMujocoEnvUtil
+#from env_mujoco_util import JacoMujocoEnvUtil
 
 
 class JacoMujocoEnv(JacoMujocoEnvUtil):
@@ -32,22 +32,23 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
         self.obs_max = 2
         obs = np.array([self.obs_max]*self.state_shape[0])
         self.observation_space = spaces.Box(-obs, obs)
+        self.prev_obs = [0,0,0,0,0,0]
         # 0.007 (m) -> multiplied by factor of 2, will later be divided into 2 @ step
         self.action_space_max = 0.7 * 2
         # unit action (1) from the policy = 0.5 (cm) in real world
         # x,y,z,r,p,y, finger {1,2}, finger 3
         act = np.array([self.action_space_max]*6)
         self.action_space = spaces.Box(-act, act)  # Action space: [-1.4, 1.4]
-        self.target = [0,0,0,0,0,0]
+        self.target = [0, 0, 0, 0, 0, 0]
         self.seed()
 
         ### ------------  LOGGING  ------------ ###
         if platform == 'linux' or platform == 'linux2':
-            log_dir ="/home/ljh/Project/vrep_jaco/vrep_jaco/src/vrep_jaco/rl_controller/logs"
+            log_dir = "/home/ljh/Project/vrep_jaco/vrep_jaco/src/vrep_jaco/rl_controller/logs"
         elif platform == 'darwin':
-            log_dir="/Users/jeonghoon/  Google_drive/Workspace/MLCS/mujoco_jaco/src"
-        os.makedirs(log_dir, exist_ok = True)
-        self.joint_angle_log = open(log_dir+"/log.txt",'w')
+            log_dir = "/Users/jeonghoon/  Google_drive/Workspace/MLCS/mujoco_jaco/src"
+        os.makedirs(log_dir, exist_ok=True)
+        self.joint_angle_log = open(log_dir+"/log.txt", 'w')
 
     def reset(self):
         self.current_steps = 0
@@ -74,9 +75,9 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
         # TODO: Determine how many time steps should be proceed when called
         # moveit trajectory planning (0.15) + target angle following (0.3 - 0.15?)
         # -> In real world, full timesteps are used for conducting action (No need for finding IK solution)
-        num_step_pass = 20
+        num_step_pass = 40
         # actions = np.clip(actions,-self.action _space_max, self.action_space_max)
-        action = np.clip(action,-self.action_space_max, self.action_space_max)
+        action = np.clip(action, -self.action_space_max, self.action_space_max)
         self.take_action(action)
         for _ in range(num_step_pass):
             self._step_simulation()
@@ -88,13 +89,23 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
         #print("Printing takes: ",datetime.datetime.now() - then)
         done, additional_reward, wb = self.terminal_inspection()
         total_reward = reward_val + additional_reward
-        write_str = "Act:\t{0:2.3f},\t{1:2.3f},\t{2:2.3f},\t{3:2.3f},\t{4:2.3f},\t{5:2.3f} | Obs:\t{6:2.3f},\t{7:2.3f},\t{8:2.3f},\t{9:2.3f},\t{10:2.3f},\t{11:2.3f} | wb = {12:.3f} | \033[92m Reward: {13:2.5f}\033[0m".format(
-            action[0], action[1], action[2], action[3], action[4], action[5], self.obs[0], self.obs[1], self.obs[2], self.obs[3], self.obs[4], self.obs[5], wb, total_reward)
+        write_str = "Act:\t{0:2.3f},\t{1:2.3f},\t{2:2.3f},\t{3:2.3f},\t{4:2.3f},\t{5:2.3f}\t|\tObs:".format(
+            action[0], action[1], action[2], action[3], action[4], action[5])
+        for i in range(len(self.obs)):
+            write_str += self._colored_string(self.obs[i],self.prev_obs[i],action[i])
+        write_str += "\t|\twb = {0:2.3f}\t|\t\033[92mReward:\t{1:1.5f}\033[0m".format(wb,total_reward)
         if log:
             print(write_str, end='\r')
             self.joint_angle_log.writelines(write_str+"\n")
+        self.prev_obs = self.obs
         #print("\033[31mWhole step takes: ",datetime.datetime.now() - then,"\033[0m")
         return self.obs, total_reward, done, {0: 0}
+
+    def _colored_string(self, obs_val, prev_obs_val, action):
+        if int(np.sign(obs_val-prev_obs_val)) == int(np.sign(action)):
+            return "\t\033[92m{0:2.3f}\033[0m".format(obs_val)
+        else:
+            return "\t\033[91m{0:2.3f}\033[0m".format(obs_val)
 
     def terminal_inspection(self):
         # TODO: terminal state definition
@@ -107,7 +118,8 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
     def make_observation(self):
         self.obs = self._get_observation()[0]
         assert self.state_shape[0] == self.obs.shape[0], \
-            "State shape from state generator ({0}) and observations ({1}) differs. Possible test code error. You should fix it.".format(self.state_shape[0], self.obs.shape[0])
+            "State shape from state generator ({0}) and observations ({1}) differs. Possible test code error. You should fix it.".format(
+                self.state_shape[0], self.obs.shape[0])
 
     def take_action(self, a):
         self._take_action(a)
@@ -116,54 +128,61 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
 
+
 if __name__ == "__main__":
     env_test_class = JacoMujocoEnv()
     env_test_class.make_observation()
     obs = env_test_class.gripper_pose
-    print("First: \t\t",obs[:6])
-    itera = False
+    print("First: \t\t", obs[:6])
+    itera = True
     if itera:
         for i in range(100):
-            iter=0
-            if i%4==0:
-                target_pos = env_test_class.obs[:6] + np.array([0.01,0.01,0.01,0.1,0.1,0.1])
-                env_test_class.take_action(np.array([1,1,1,2,2,2]))
-            elif i%4==1:
-                target_pos = env_test_class.obs[:6] + np.array([-0.01,-0.01,-0.01,-0.1,-0.1,-0.1])
-                env_test_class.take_action(np.array([-1,-1,-1,-2,-2,-2]))
-            elif i%4==2:
-                target_pos = env_test_class.obs[:6] + np.array([0.01,-0.01,-0.01,0.1,-0.1,-0.1])
-                env_test_class.take_action(np.array([1,-1,-1,2,-2,-2]))
-            elif i%4==3:
-                target_pos = env_test_class.obs[:6] + np.array([-0.01,0.01,0.01,-0.1,0.1,0.1])
-                env_test_class.take_action(np.array([-1,1,1,-2,2,2]))
+            iter = 0
+            if i % 4 == 0:
+                target_pos = env_test_class.obs[:6] + \
+                    np.array([0.02, 0.01, 0.01, 0.1, 0.1, 0.1])
+                env_test_class.take_action(np.array([2, 1, 1, 2, 2, 2]))
+            elif i % 4 == 1:
+                target_pos = env_test_class.obs[:6] + \
+                    np.array([-0.02, -0.01, -0.01, -0.1, -0.1, -0.1])
+                env_test_class.take_action(np.array([-2, -1, -1, -2, -2, -2]))
+            elif i % 4 == 2:
+                target_pos = env_test_class.obs[:6] + \
+                    np.array([0.02, -0.01, -0.01, 0.1, -0.1, -0.1])
+                env_test_class.take_action(np.array([2, -1, -1, 2, -2, -2]))
+            elif i % 4 == 3:
+                target_pos = env_test_class.obs[:6] + \
+                    np.array([-0.02, 0.01, 0.01, -0.1, 0.1, 0.1])
+                env_test_class.take_action(np.array([-2, 1, 1, -2, 2, 2]))
             while True:
                 env_test_class._step_simulation()
                 env_test_class.make_observation()
                 pos = env_test_class.obs[:6]
-                if np.linalg.norm(pos[:3]-target_pos[:3]) < 0.005 and np.linalg.norm(pos[3:]-target_pos[3:]) < 0.05:
-                    print("Reached Pose:\t",pos)
+                if np.linalg.norm(pos[:3]-target_pos[:3]) < 0.003 and abs(pos[3]-target_pos[3]) < 0.01 and abs(pos[4]-target_pos[4]) < 0.01 and abs(pos[5]-target_pos[5] < 0.01):
+                    print("Reached Pose:\t", pos)
                     print("Reached")
                     break
                 if iter % 100 == 0:
-                    print("Current Pose:\t",pos)
-                    print("Target Pose:\t",target_pos)
+                    print("Current Pose:\t", pos)
+                    print("Target Pose:\t", target_pos)
                 iter += 1
     else:
-        iter=0
-        target_pos = np.array([0.2,0.3,0.5,0,0,-1])
+        iter = 0
+        target_pos = np.array([0.2, 0.3, 0.3, 1, 0, 0])
         action_p = (target_pos[:3] - env_test_class.obs[:3])*100
         action_o = (target_pos[3:] - env_test_class.obs[3:])*20
-        env_test_class.take_action(np.hstack([action_p,action_o]))
+        env_test_class.take_action(np.hstack([action_p, action_o]))
         while True:
             env_test_class._step_simulation()
             env_test_class.make_observation()
             pos = env_test_class.obs[:6]
-            if np.linalg.norm(pos[:3]-target_pos[:3]) < 0.005 and np.linalg.norm(pos[3:]-target_pos[3:]) < 0.05:
-                print("Reached Pose:\t",pos)
+            # if np.linalg.norm(pos[:3]-target_pos[:3]) < 0.005 and np.linalg.norm(pos[3:]-target_pos[3:]) < 0.01:
+            if np.linalg.norm(pos[:3]-target_pos[:3]) < 0.005 and abs(pos[3]-target_pos[3]) < 0.01 and abs(pos[4]-target_pos[4]) < 0.01 and abs(pos[5]-target_pos[5] < 0.01):
+                print("Reached Pose:\t", pos)
                 print("Reached")
+                time.sleep(10)
                 break
             if iter % 100 == 0:
-                print("Current Pose:\t",pos)
-                print("Target Pose:\t",target_pos)
+                print("Current Pose:\t", pos)
+                print("Target Pose:\t", target_pos)
             iter += 1
