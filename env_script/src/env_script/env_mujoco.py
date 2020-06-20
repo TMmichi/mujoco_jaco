@@ -89,11 +89,13 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
         #print("Printing takes: ",datetime.datetime.now() - then)
         done, additional_reward, wb = self.terminal_inspection()
         total_reward = reward_val + additional_reward
-        write_str = "Act:\t{0:2.3f},\t{1:2.3f},\t{2:2.3f},\t{3:2.3f},\t{4:2.3f},\t{5:2.3f}\t|\tObs:".format(
-            action[0], action[1], action[2], action[3], action[4], action[5])
+        write_str = "Act:"
+        for i in range(len(action)):
+            write_str += "\t{0:2.3f}".format(action[i])
+        write_str += "\t| Obs:" 
         for i in range(len(self.obs)):
             write_str += self._colored_string(self.obs[i],self.prev_obs[i],action[i])
-        write_str += "\t|\twb = {0:2.3f}\t|\t\033[92mReward:\t{1:1.5f}\033[0m".format(wb,total_reward)
+        write_str += "\t| wb = {0:2.3f} | \033[92mReward:\t{1:1.5f}\033[0m".format(wb,total_reward)
         if log:
             print(write_str, end='\r')
             self.joint_angle_log.writelines(write_str+"\n")
