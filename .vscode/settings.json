@@ -6,5 +6,6 @@
         "/home/ljh/Project/vrep_jaco/moveit/devel/lib/python2.7/dist-packages",
         "/opt/ros/melodic/lib/python2.7/dist-packages",
         "/home/ljh/Project/vrep_jaco/vrep_jaco/src/vrep_jaco/rl_controller"
-    ]
+    ],
+    "restructuredtext.confPath": "${workspaceFolder}/catkin/doc"
 }
