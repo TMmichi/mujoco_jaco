@@ -121,25 +121,45 @@ if __name__ == "__main__":
     env_test_class.make_observation()
     obs = env_test_class.gripper_pose
     print("First: \t\t",obs[:6])
-    for i in range(100):
+    itera = False
+    if itera:
+        for i in range(100):
+            iter=0
+            if i%4==0:
+                target_pos = env_test_class.obs[:6] + np.array([0.01,0.01,0.01,0.1,0.1,0.1])
+                env_test_class.take_action(np.array([1,1,1,2,2,2]))
+            elif i%4==1:
+                target_pos = env_test_class.obs[:6] + np.array([-0.01,-0.01,-0.01,-0.1,-0.1,-0.1])
+                env_test_class.take_action(np.array([-1,-1,-1,-2,-2,-2]))
+            elif i%4==2:
+                target_pos = env_test_class.obs[:6] + np.array([0.01,-0.01,-0.01,0.1,-0.1,-0.1])
+                env_test_class.take_action(np.array([1,-1,-1,2,-2,-2]))
+            elif i%4==3:
+                target_pos = env_test_class.obs[:6] + np.array([-0.01,0.01,0.01,-0.1,0.1,0.1])
+                env_test_class.take_action(np.array([-1,1,1,-2,2,2]))
+            while True:
+                env_test_class._step_simulation()
+                env_test_class.make_observation()
+                pos = env_test_class.obs[:6]
+                if np.linalg.norm(pos[:3]-target_pos[:3]) < 0.005 and np.linalg.norm(pos[3:]-target_pos[3:]) < 0.05:
+                    print("Reached Pose:\t",pos)
+                    print("Reached")
+                    break
+                if iter % 100 == 0:
+                    print("Current Pose:\t",pos)
+                    print("Target Pose:\t",target_pos)
+                iter += 1
+    else:
         iter=0
-        if i%4==0:
-            target_pos = env_test_class.obs[:6] + np.array([0.01,0.01,0.01,0.1,0.1,0.1])
-            env_test_class.take_action(np.array([1,1,1,2,2,2]))
-        elif i%4==1:
-            target_pos = env_test_class.obs[:6] + np.array([-0.01,-0.01,-0.01,-0.1,-0.1,-0.1])
-            env_test_class.take_action(np.array([-1,-1,-1,-2,-2,-2]))
-        elif i%4==2:
-            target_pos = env_test_class.obs[:6] + np.array([0.01,-0.01,-0.01,0.1,-0.1,-0.1])
-            env_test_class.take_action(np.array([1,-1,-1,2,-2,-2]))
-        elif i%4==3:
-            target_pos = env_test_class.obs[:6] + np.array([-0.01,0.01,0.01,-0.1,0.1,0.1])
-            env_test_class.take_action(np.array([-1,1,1,-2,2,2]))
+        target_pos = np.array([0.2,0.3,0.5,0,0,-1])
+        action_p = (target_pos[:3] - env_test_class.obs[:3])*100
+        action_o = (target_pos[3:] - env_test_class.obs[3:])*20
+        env_test_class.take_action(np.hstack([action_p,action_o]))
         while True:
             env_test_class._step_simulation()
             env_test_class.make_observation()
             pos = env_test_class.obs[:6]
-            if np.linalg.norm(pos[:3]-target_pos[:3]) < 0.001:
+            if np.linalg.norm(pos[:3]-target_pos[:3]) < 0.005 and np.linalg.norm(pos[3:]-target_pos[3:]) < 0.05:
                 print("Reached Pose:\t",pos)
                 print("Reached")
                 break
