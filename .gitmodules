@@ -2,5 +2,5 @@
 	path = abr_control
 	url = https://github.com/TMmichi/abr_control.git
 [submodule "stable_baselines"]
-	path = stable-baselines
+	path = stable_baselines
 	url = https://github.com/TMmichi/stable-baselines.git
