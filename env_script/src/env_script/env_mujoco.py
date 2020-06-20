@@ -9,8 +9,7 @@ from gym import spaces
 from gym.utils import seeding
 
 #from env_script.env_mujoco_util import JacoMujocoEnvUtil
-#from env_mujoco_util import JacoMujocoEnvUtil
-from env_multi_mujoco_util import JacoMujocoEnvUtil
+from env_mujoco_util import JacoMujocoEnvUtil
 
 
 class JacoMujocoEnv(JacoMujocoEnvUtil):
@@ -106,7 +105,7 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
             return True, 0, 0
 
     def make_observation(self):
-        self.obs = self._get_observation()
+        self.obs = self._get_observation()[0]
         assert self.state_shape[0] == self.obs.shape[0], \
             "State shape from state generator ({0}) and observations ({1}) differs. Possible test code error. You should fix it.".format(self.state_shape[0], self.obs.shape[0])
 
@@ -140,7 +139,7 @@ if __name__ == "__main__":
             env_test_class._step_simulation()
             env_test_class.make_observation()
             pos = env_test_class.obs[:6]
-            if np.linalg.norm(pos[:3]-target_pos[:3]) < 0.001 and np.linalg.norm(pos[3:]-target_pos[3:]) < 0.18:
+            if np.linalg.norm(pos[:3]-target_pos[:3]) < 0.001:
                 print("Reached Pose:\t",pos)
                 print("Reached")
                 break
