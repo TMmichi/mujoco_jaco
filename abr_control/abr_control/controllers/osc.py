@@ -4,7 +4,7 @@ from abr_control.utils import transformations
 
 from .controller import Controller
 
-
+debug = False
 class OSC(Controller):
     """ Implements an operational space controller (OSC)
 
@@ -252,6 +252,9 @@ class OSC(Controller):
 
             M = self.robot_config.M(q)  # inertia matrix in joint space
             Mx, M_inv = self._Mx(M=M, J=J)  # inertia matrix in task space
+            if debug:
+                print("Mx: ",Mx)
+                print("M_inv: ",M_inv)
 
             # calculate the desired task space forces -----------------------------
             u_task = np.zeros(6)
@@ -260,10 +263,15 @@ class OSC(Controller):
             if np.sum(self.ctrlr_dof[:3]) > 0:
                 xyz = self.robot_config.Tx(ref_frame, q, x=xyz_offset)
                 u_task[:3] = xyz - target[:3]
+                if debug:
+                    print("xyz: ",xyz)
+                    print("u_task1: ",u_task)
 
             # if orientation is being controlled
             if np.sum(self.ctrlr_dof[3:]) > 0:
                 u_task[3:] = self._calc_orientation_forces(target[3:], q)
+                if debug:
+                    print("u_task2: ",u_task)
 
             # task space integrated error term
             if self.ki != 0:
@@ -274,29 +282,44 @@ class OSC(Controller):
             if self.vmax is not None:
                 # if max task space velocities specified, apply velocity limiting
                 u_task = self._velocity_limiting(u_task)
+                if debug:
+                    print("u_task3: ",u_task)
+
             else:
                 # otherwise apply specified gains
                 u_task *= self.task_space_gains
+                if debug:
+                    print("u_task4: ",u_task)
 
             # compensate for velocity
             if np.all(target_velocity == 0):
                 # if there's no target velocity in task space,
                 # compensate for velocity in joint space (more accurate)
                 u = -1 * self.kv * np.dot(M, dq)
+                if debug:
+                    print("u: ",u)
             else:
                 dx = np.zeros(6)
                 dx[self.ctrlr_dof] = np.dot(J, dq)
                 u_task += self.kv * (dx - target_velocity)
+                if debug:
+                    print("u_task5: ",u_task)
 
             # isolate task space forces corresponding to controlled DOF
             u_task = u_task[self.ctrlr_dof]
+            if debug:
+                print("u_task5: ",u_task)
 
             # transform task space control signal into joint space ----------------
             u -= np.dot(J.T, np.dot(Mx, u_task))
+            if debug:
+                print("u2: ",u)
 
             # add in estimation of full centrifugal and Coriolis effects ----------
             if self.use_C:
                 u -= np.dot(self.robot_config.C(q=q, dq=dq), dq)
+                if debug:
+                    print("u3: ",u)
 
             # store the current control signal u for training in case
             # dynamics adaptation signal is being used
@@ -306,6 +329,8 @@ class OSC(Controller):
             # add in gravity term in joint space ----------------------------------
             if self.use_g:
                 u -= self.robot_config.g(q=q)
+                if debug:
+                    print("u4: ",u)
 
                 # add in gravity term in task space
                 # Jbar = np.dot(M_inv, np.dot(J.T, Mx))
@@ -323,58 +348,84 @@ class OSC(Controller):
                     null_filter = self.IDENTITY_N_JOINTS - np.dot(J.T, Jbar.T)
                     # add in filtered null space control signal
                     u += np.dot(null_filter, u_null)
+                if debug:
+                    print("u5: ",u)
         
         else:
+            u_list = []
             J = self.robot_config.J(ref_frame, q, x=xyz_offset)  # Jacobian
             M = self.robot_config.M(q)  # inertia matrix in joint space
             for i in range(self.robot_config.N_ROBOTS):
                 # isolate rows of Jacobian corresponding to controlled task space DOF
                 Mx, M_inv = self._Mx(M=M[i], J=J[i][self.ctrlr_dof])  # inertia matrix in task space
-                
+                if debug:
+                    print("Mx: ",Mx)
+                    print("M_inv: ",M_inv)
                 # calculate the desired task space forces -----------------------------
                 u_task = np.zeros(6)
 
                 # if position is being controlled
                 if np.sum(self.ctrlr_dof[:3]) > 0:
-                    xyz = self.robot_config.Tx(ref_frame, q, x=xyz_offset)
-                    u_task[:3] = xyz - target[:3]
+                    xyz = self.robot_config.Tx(ref_frame[i], q, x=xyz_offset)
+                    u_task[:3] = xyz - target[6*i:6*i+3]
+                    if debug:
+                        print("xyz: ",xyz)
+                        print("u_task1: ",u_task)
 
                 # if orientation is being controlled
                 if np.sum(self.ctrlr_dof[3:]) > 0:
-                    u_task[3:] = self._calc_orientation_forces(target[3:], q)
+                    u_task[3:] = self._calc_orientation_forces(target[6*i+3:6*i+6], q[6*i:6*i+6])
+                    if debug:
+                        print("u_task2: ",u_task)
 
                 # task space integrated error term
                 if self.ki != 0:
                     self.integrated_error += u_task
                     u_task += self.ki * self.integrated_error
+                    if debug:
+                        print("u_task2: ",u_task)
 
                 u = np.zeros(self.robot_config.N_JOINTS)
                 if self.vmax is not None:
                     # if max task space velocities specified, apply velocity limiting
                     u_task = self._velocity_limiting(u_task)
+                    if debug:
+                        print("u_task3: ",u_task)
                 else:
                     # otherwise apply specified gains
                     u_task *= self.task_space_gains
+                    if debug:
+                        print("u_task4: ",u_task)
 
                 # compensate for velocity
                 if np.all(target_velocity == 0):
                     # if there's no target velocity in task space,
                     # compensate for velocity in joint space (more accurate)
-                    u = -1 * self.kv * np.dot(M, dq)
+                    u = -1 * self.kv * np.dot(M[i], dq[6*i:6*(i+1)])
+                    if debug:
+                        print("u: ",u)
                 else:
                     dx = np.zeros(6)
-                    dx[self.ctrlr_dof] = np.dot(J, dq)
+                    dx[self.ctrlr_dof] = np.dot(J[i][self.ctrlr_dof], dq[6*i:6*(i+1)])
                     u_task += self.kv * (dx - target_velocity)
+                    if debug:
+                        print("u_task5: ",u_task)
 
                 # isolate task space forces corresponding to controlled DOF
                 u_task = u_task[self.ctrlr_dof]
+                if debug:
+                    print("u_task6: ",u_task)
 
                 # transform task space control signal into joint space ----------------
-                u -= np.dot(J.T, np.dot(Mx, u_task))
+                u -= np.dot(J[i][self.ctrlr_dof].T, np.dot(Mx, u_task))
+                if debug:
+                    print("u2: ",u)
 
                 # add in estimation of full centrifugal and Coriolis effects ----------
                 if self.use_C:
-                    u -= np.dot(self.robot_config.C(q=q, dq=dq), dq)
+                    u -= np.dot(self.robot_config.C(q=q[6*i:6*(i+1)], dq=dq[6*i:6*(i+1)]), dq[6*i:6*(i+1)])
+                    if debug:
+                        print("u3: ",u)
 
                 # store the current control signal u for training in case
                 # dynamics adaptation signal is being used
@@ -383,17 +434,25 @@ class OSC(Controller):
 
                 # add in gravity term in joint space ----------------------------------
                 if self.use_g:
-                    u -= self.robot_config.g(q=q)
+                    u -= self.robot_config.g(q=q)[6*i:6*(i+1)]
+                    if debug:
+                        print("u4: ",u)
 
                 # add in secondary control signals ------------------------------------
                 if self.null_controllers is not None:
                     for null_controller in self.null_controllers:
                         # generate control signal to apply in null space
-                        u_null = null_controller.generate(q, dq)
+                        u_null = null_controller.generate(q[6*i:6*(i+1)], dq[6*i:6*(i+1)])
                         # calculate null space filter
-                        Jbar = np.dot(M_inv, np.dot(J.T, Mx))
-                        null_filter = self.IDENTITY_N_JOINTS - np.dot(J.T, Jbar.T)
+                        Jbar = np.dot(M_inv, np.dot(J[i][self.ctrlr_dof].T, Mx))
+                        null_filter = self.IDENTITY_N_JOINTS - np.dot(J[i][self.ctrlr_dof].T, Jbar.T)
                         # add in filtered null space control signal
                         u += np.dot(null_filter, u_null)
+                    if debug:
+                        print("u5: ",u)
+                u_list = np.hstack([u_list,u])
+            if debug:
+                print("Total u: ",u_list)
+        quit()
 
         return u

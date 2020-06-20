@@ -7,7 +7,7 @@ import numpy as np
 import mujoco_py as mjp
 from abr_control.utils import download_meshes
 
-
+debug = False
 class MujocoConfig:
     """ A wrapper on the Mujoco simulator to generate all the kinematics and
     dynamics calculations necessary for controllers.
@@ -125,7 +125,7 @@ class MujocoConfig:
         self.joint_dyn_addrs = np.copy(joint_dyn_addrs)
 
         # number of joints in the robot arm
-        self.N_JOINTS = int(len(self.joint_pos_addrs))
+        self.N_JOINTS = int(len(self.joint_pos_addrs) / self.N_ROBOTS)
 
         # number of joints in the Mujoco simulation
         if self.N_ROBOTS == 1:
@@ -157,32 +157,37 @@ class MujocoConfig:
             self.N_ALL_JOINTS = N_ALL_JOINTS
 
         else:
-            N_ALL_JOINTS = int(len(self.sim.data.get_body_jacp("EE_1")) / 3)
+            N_ALL_JOINTS = int(len(self.sim.data.get_body_jacp("EE_1")) / 3 / self.N_ROBOTS)
             # need to calculate the joint_dyn_addrs indices in flat vectors returned
             # for the Jacobian
-            print("self.joint_dyn_addrs: ",self.joint_dyn_addrs)
+            if debug:
+                print("self.joint_dyn_addrs: ",self.joint_dyn_addrs)
             self.jac_indices = np.hstack(
                 # 6 because position and rotation Jacobians are 3 x N_JOINTS
-                [self.joint_dyn_addrs[:6] + (ii * N_ALL_JOINTS) for ii in range(3)]
+                [self.joint_dyn_addrs[:6] + (ii * N_ALL_JOINTS * self.N_ROBOTS) for ii in range(3)]
             )
-            print("self.jac_indices: ",self.jac_indices)
+            #print("self.jac_indices: ",self.jac_indices)
 
             # for the inertia matrix
-            self.M_indices = [
-                ii * N_ALL_JOINTS + jj
-                for jj in self.joint_dyn_addrs
-                for ii in self.joint_dyn_addrs
-            ]
-
-            print(self.M_indices)
+            self.M_indices = np.array([],dtype=np.int32)
+            for i in range(self.N_ROBOTS):
+                vac = N_ALL_JOINTS * i
+                self.M_indices = np.hstack([
+                    self.M_indices,
+                    [ii * N_ALL_JOINTS * self.N_ROBOTS + jj + vac
+                    for jj in self.joint_dyn_addrs[:self.N_JOINTS]
+                    for ii in self.joint_dyn_addrs[self.N_JOINTS*i:self.N_JOINTS*(i+1)]]
+                ])
+            if debug:
+                print("self.M_indices: ",self.M_indices)
 
             # a place to store data returned from Mujoco
             #self._g = np.zeros(self.N_JOINTS)
-            self._J3NP = np.zeros(3 * N_ALL_JOINTS)
-            self._J3NR = np.zeros(3 * N_ALL_JOINTS)
-            self._J6N = np.zeros((2, 6, int(self.N_JOINTS / self.N_ROBOTS)))
-            self._MNN_vector = np.zeros(N_ALL_JOINTS ** 2)
-            self._MNN = np.zeros(self.N_JOINTS ** 2)
+            self._J3NP = np.zeros(3 * (N_ALL_JOINTS * self.N_ROBOTS))
+            self._J3NR = np.zeros(3 * (N_ALL_JOINTS * self.N_ROBOTS))
+            self._J6N = np.zeros((self.N_ROBOTS, 6, self.N_JOINTS))
+            self._MNN_vector = np.zeros((N_ALL_JOINTS * self.N_ROBOTS) ** 2)
+            self._MNN = np.zeros((self.N_JOINTS * self.N_ROBOTS) ** 2)
             self._R9 = np.zeros(9)
             self._R = np.zeros((3, 3))
             self._x = np.ones(4)
@@ -236,7 +241,8 @@ class MujocoConfig:
 
         if not self.use_sim_state and q is not None:
             self._load_state(old_q, old_dq, old_u)
-
+        if debug:
+            print("g: ",g)
         return g
 
     def dJ(self, name, q=None, dq=None, x=None):
@@ -275,10 +281,7 @@ class MujocoConfig:
             options: body, geom, site
         """
         for i in range(self.N_ROBOTS):
-            if i == 0:
-                jac_indices = self.jac_indices
-            else:
-                jac_indices = self.jac_indices + int(self.N_ALL_JOINTS / self.N_ROBOTS)
+            jac_indices = self.jac_indices + self.N_ALL_JOINTS * i
 
             if x is not None and not np.allclose(x, 0):
                 raise Exception("x offset currently not supported, set to None")
@@ -309,18 +312,19 @@ class MujocoConfig:
                 jacp(name[i], self._J3NP)[jac_indices]  # pylint: disable=W0106
                 jacr(name[i], self._J3NR)[jac_indices]  # pylint: disable=W0106
             
-            print("self._J3NP: ",self._J3NP)
-            print("self._J3NR: ",self._J3NR)
+            #print("self._J3NP: ",self._J3NP)
+            #print("self._J3NR: ",self._J3NR)
 
             # get the position Jacobian hstacked (1 x N_JOINTS*3)
-            self._J6N[i][:3] = self._J3NP[jac_indices].reshape((3, int (self.N_JOINTS / self.N_ROBOTS)))
+            self._J6N[i][:3] = self._J3NP[jac_indices].reshape((3, self.N_JOINTS))
             # get the rotation Jacobian hstacked (1 x N_JOINTS*3)
-            self._J6N[i][3:] = self._J3NR[jac_indices].reshape((3, int (self.N_JOINTS / self.N_ROBOTS)))
+            self._J6N[i][3:] = self._J3NR[jac_indices].reshape((3, self.N_JOINTS))
 
             if not self.use_sim_state and q is not None:
                 self._load_state(old_q, old_dq, old_u)
         
-        print("self.J6N: ",self._J6N)
+        if debug:
+            print("self.J6N: ",self._J6N)
 
         return np.copy(self._J6N)
 
@@ -338,27 +342,20 @@ class MujocoConfig:
 
         # stored in mjData.qM, stored in custom sparse format,
         # convert qM to a dense matrix with mj_fullM    
-        print("self.sim.data.qM_1: ",self.sim.data.qM[:66])
-        print("self.sim.data.qM_2: ",self.sim.data.qM[66:])
-        print("qM length: ",len(self.sim.data.qM))
+        #print("self.sim.data.qM_1: ",self.sim.data.qM[:66])
+        #print("self.sim.data.qM_2: ",self.sim.data.qM[66:132])
+        #print("qM length: ",len(self.sim.data.qM))
         mjp.cymj._mj_fullM(self.model, self._MNN_vector, self.sim.data.qM)
-        print("self.M_indices: ",self.M_indices)
-        print("self._MNN_vector (decomposed): ")
-        for i in range(48):
-            if i <= 23:
-                if i%2==0:
-                    print(self._MNN_vector[12*i:12*(i+1)])
-            else:
-                if i%2==1:
-                    print(self._MNN_vector[12*i:12*(i+1)])
-        print("self._MNN_vector: ",self._MNN_vector)
-        print("length M_indices, _MNN_vector: ",len(self.M_indices), len(self._MNN_vector))
+        #print("self.M_indices: ",self.M_indices)
+        #print("self._MNN_vector (decomposed): ")
+        #print("self._MNN_vector: ",self._MNN_vector)
+        #print("length M_indices, _MNN_vector: ",len(self.M_indices), len(self._MNN_vector))
         M = self._MNN_vector[self.M_indices]
-        M = M.reshape((self.N_JOINTS, self.N_JOINTS))
-        print("M: ",M)
+        M = M.reshape((self.N_ROBOTS, self.N_JOINTS, self.N_JOINTS))
+        if debug:
+            print("M: ",M)
         if not self.use_sim_state and q is not None:
             self._load_state(old_q, old_dq, old_u)
-        quit()
         return np.copy(M)
 
     def R(self, name, q=None):

@@ -6,7 +6,7 @@ import numpy as np
 import mujoco_py as mjp
 from abr_control.utils import download_meshes
 
-
+debug = False
 class MujocoConfig:
     """ A wrapper on the Mujoco simulator to generate all the kinematics and
     dynamics calculations necessary for controllers.
@@ -136,7 +136,7 @@ class MujocoConfig:
             # 6 because position and rotation Jacobians are 3 x N_JOINTS
             [self.joint_dyn_addrs + (ii * N_ALL_JOINTS) for ii in range(3)]
         )
-        print(self.jac_indices)
+        #print(self.jac_indices)
 
         # for the inertia matrix
         self.M_indices = [
@@ -205,7 +205,8 @@ class MujocoConfig:
 
         if not self.use_sim_state and q is not None:
             self._load_state(old_q, old_dq, old_u)
-
+        if debug:
+            print("g: ",g)
         return g
 
     def dJ(self, name, q=None, dq=None, x=None):
@@ -278,9 +279,8 @@ class MujocoConfig:
         # get the rotation Jacobian hstacked (1 x N_JOINTS*3)
         self._J6N[3:] = self._J3NR[self.jac_indices].reshape((3, self.N_JOINTS))
 
-        print("self._J3NP: ",self._J3NP)
-        print("self._J3NR: ",self._J3NR)
-        print("self.J6N: ",self._J6N)
+        if debug:
+            print("self.J6N: ",self._J6N)
 
         if not self.use_sim_state and q is not None:
             self._load_state(old_q, old_dq, old_u)
@@ -301,16 +301,16 @@ class MujocoConfig:
 
         # stored in mjData.qM, stored in custom sparse format,
         # convert qM to a dense matrix with mj_fullM
-        print("self.sim.data.qM: ",self.sim.data.qM)
-        print("qM length: ",len(self.sim.data.qM))
+        #print("self.sim.data.qM: ",self.sim.data.qM)
+        #print("qM length: ",len(self.sim.data.qM))
         mjp.cymj._mj_fullM(self.model, self._MNN_vector, self.sim.data.qM)
-        print("self.M_indices: ",self.M_indices)
-        print("self._MNN_vector: \n",self._MNN_vector)
-        print("length M_indices, _MNN_vector: ",len(self.M_indices), len(self._MNN_vector))
+        #print("self.M_indices: ",self.M_indices)
+        #print("self._MNN_vector: \n",self._MNN_vector)
+        #print("length M_indices, _MNN_vector: ",len(self.M_indices), len(self._MNN_vector))
         M = self._MNN_vector[self.M_indices]
         M = M.reshape((self.N_JOINTS, self.N_JOINTS))
-        print("M: ",M)
-        quit()
+        if debug:
+            print("M: ",M)
         if not self.use_sim_state and q is not None:
             self._load_state(old_q, old_dq, old_u)
 
