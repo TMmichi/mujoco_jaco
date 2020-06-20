@@ -1,6 +1,6 @@
-stable_baselines
 tensorboard_log
 .vscode
+.DS_Store
 */.DS_Store
 
 .vscode/*
