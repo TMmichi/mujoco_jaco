@@ -1,12 +1,12 @@
 tensorflow==1.14.0
 numpy
-matplot
+cloudpickle
 gym
 scipy
 joblib
 opencv-python
 pandas
 matplotlib
-cloudpickle
 cython
 sympy
+mpi4py
