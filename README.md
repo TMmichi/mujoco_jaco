@@ -15,7 +15,6 @@ in your anaconda environment and run::
 git clone https://github.com/studywolf/mujoco-py.git
 cd mujoco-py
 pip install -e .
-pip install glfw>=1.8.3
 pip install requests
 ```
 After installing Mujoco-py, install additional requirements via:
