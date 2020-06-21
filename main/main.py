@@ -1,17 +1,17 @@
-6#!/usr/bin/env python
+#!/usr/bin/env python
 
-import os
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-from sys import platform
+import os, sys
+import path_config
 import math
+
 import stable_baselines.common.tf_util as tf_util
 from stable_baselines.trpo_mpi import TRPO
 from stable_baselines.common.policies import MlpPolicy
 from stable_baselines.sac import SAC
 from stable_baselines.sac.policies import MlpPolicy as MlpPolicy_sac, LnMlpPolicy as LnMlpPolicy_sac
 from stable_baselines.gail import generate_expert_traj
-from state_gen.state_generator import State_generator
 from env_script.env_mujoco import JacoMujocoEnv
+from state_gen.state_generator import State_generator
 
 #from env.env_real import Real
 from argparser import ArgParser
@@ -41,12 +41,14 @@ class RL_controller:
         args.reward_module = self.reward_module
 
         # If resume training on pre-trained models with episodes, else None
-        if platform == "linux" or platform == "linux2":
+        if sys.platform in ["linux", "linux2"]:
             self.model_path = "/home/ljh/Project/mujoco_jaco/src/models_baseline/"
             self.tb_dir = "/home/ljh/Project/mujoco_jaco/src/tensorboard_log"
-        elif platform == "darwin":
+        elif sys.platform == "darwin":
             self.model_path = "/Users/jeonghoon/Google_drive/Workspace/MLCS/mujoco_jaco/src/models_baseline/"
             self.tb_dir = "/Users/jeonghoon/Google_drive/Workspace/MLCS/mujoco_jaco/src/tensorboard_log"
+        else:
+            raise NotImplementedError
         args.model_path = self.model_path
         args.tb_dir = self.tb_dir
         self.steps_per_batch = 100
