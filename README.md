@@ -23,3 +23,9 @@ After installing mujoco-py, install additional requirements via:
 ```
 pip install -r requirements.txt
 ```
+
+## Usage
+```
+cd main
+python main.py
+```
