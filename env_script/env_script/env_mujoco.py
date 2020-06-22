@@ -43,9 +43,9 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
 
         ### ------------  LOGGING  ------------ ###
         if platform == 'linux' or platform == 'linux2':
-            log_dir = "/home/ljh/Project/vrep_jaco/vrep_jaco/src/vrep_jaco/rl_controller/logs"
+            log_dir = "/home/ljh/Project/mujoco_jaco/logs"
         elif platform == 'darwin':
-            log_dir = "/Users/jeonghoon/  Google_drive/Workspace/MLCS/mujoco_jaco/src"
+            log_dir = "/Users/jeonghoon/Google_drive/Workspace/MLCS/mujoco_jaco/src"
         os.makedirs(log_dir, exist_ok=True)
         self.joint_angle_log = open(log_dir+"/log.txt", 'w')
 

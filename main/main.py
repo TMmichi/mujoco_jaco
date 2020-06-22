@@ -42,8 +42,8 @@ class RL_controller:
 
         # If resume training on pre-trained models with episodes, else None
         if sys.platform in ["linux", "linux2"]:
-            self.model_path = "/home/ljh/Project/mujoco_jaco/src/models_baseline/"
-            self.tb_dir = "/home/ljh/Project/mujoco_jaco/src/tensorboard_log"
+            self.model_path = "/home/ljh/Project/mujoco_jaco/models_baseline/"
+            self.tb_dir = "/home/ljh/Project/mujoco_jaco/tensorboard_log"
         elif sys.platform == "darwin":
             self.model_path = "/Users/jeonghoon/Google_drive/Workspace/MLCS/mujoco_jaco/src/models_baseline/"
             self.tb_dir = "/Users/jeonghoon/Google_drive/Workspace/MLCS/mujoco_jaco/src/tensorboard_log"
