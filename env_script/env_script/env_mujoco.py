@@ -91,7 +91,7 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
         write_str += "\t| Obs:" 
         for i in range(len(obs)):
             write_str += self._colored_string(obs[i],prev_obs[i],action[i])
-        write_str += "\t| wb = {0:2.3f} | \033[92mReward:\t{1:1.5f}\033[0m".format(wb,total_reward)
+        write_str += "\t| wb = {0:2.3f} | \033[92mReward:\t{1:1.5f}\033[0m".format(wb,reward)
         print(write_str, end='\r')
         self.joint_angle_log.writelines(write_str+"\n")
 

@@ -8,6 +8,7 @@ import stable_baselines.common.tf_util as tf_util
 from stable_baselines.trpo_mpi import TRPO
 from stable_baselines.common.policies import MlpPolicy
 from stable_baselines.sac import SAC
+from stable_baselines.sac_multi import SAC_MULTI
 from stable_baselines.sac.policies import MlpPolicy as MlpPolicy_sac, LnMlpPolicy as LnMlpPolicy_sac
 from stable_baselines.gail import generate_expert_traj
 from env_script.env_mujoco import JacoMujocoEnv
@@ -68,8 +69,9 @@ class RL_controller:
             math.ceil(self.num_episodes / self.train_num)
         # self.trainer = TRPO(MlpPolicy, self.env, cg_damping=0.1, vf_iters=5, vf_stepsize=1e-3, timesteps_per_batch=self.steps_per_batch,
         #                    tensorboard_log=args.tb_dir, full_tensorboard_log=True)
+        layers = {"policy":[128,128],"value":[256,256,128]}
         self.trainer = SAC(
-            LnMlpPolicy_sac, self.env, tensorboard_log=self.tb_dir, full_tensorboard_log=True)
+            LnMlpPolicy_sac, self.env, layers=layers, tensorboard_log=self.tb_dir, full_tensorboard_log=True)
         with self.sess:
             for train_iter in range(self.train_num):
                 print("\033[91mTraining Iter: ", train_iter,"\033[0m")
