@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
-import os
-from sys import platform
+import os, sys
 import numpy as np
 import time
 
@@ -23,7 +22,9 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
             self.max_steps = kwargs['steps_per_batch'] * \
                 kwargs['batches_per_episodes']
         except Exception:
+            print("Using default max_steps: 500")
             self.max_steps = 500
+
         try:
             self.state_shape = kwargs['stateGen'].get_state_shape()
         except Exception:
@@ -38,16 +39,18 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
         # x,y,z,r,p,y, finger {1,2}, finger 3
         act = np.array([self.action_space_max]*6)
         self.action_space = spaces.Box(-act, act)  # Action space: [-1.4, 1.4]
-        self.target = [0, 0, 0, 0, 0, 0]
         self.seed()
 
         ### ------------  LOGGING  ------------ ###
-        if platform == 'linux' or platform == 'linux2':
+        if sys.platform in ['linux', 'linux2']:
             log_dir = "/home/ljh/Project/vrep_jaco/vrep_jaco/src/vrep_jaco/rl_controller/logs"
-        elif platform == 'darwin':
+        elif sys.platform == 'darwin':
             log_dir = "/Users/jeonghoon/  Google_drive/Workspace/MLCS/mujoco_jaco/src"
+        else:
+            raise NotImplementedError
         os.makedirs(log_dir, exist_ok=True)
         self.joint_angle_log = open(log_dir+"/log.txt", 'w')
+
 
     def reset(self):
         self.current_steps = 0
@@ -63,14 +66,6 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
         return self.action_space_max
 
     def step(self, action, log=True):
-        #then = datetime.datetime.now()
-        #print("Within the step at: ",then)
-        '''
-            if not self.trajAS_.execute_thread.is_alive():
-                print("Thread Dead")
-            else:
-                print( "Thread alive")
-        '''
         # TODO: Determine how many time steps should be proceed when called
         # moveit trajectory planning (0.15) + target angle following (0.3 - 0.15?)
         # -> In real world, full timesteps are used for conducting action (No need for finding IK solution)
@@ -80,27 +75,27 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
         self.take_action(action)
         for _ in range(num_step_pass):
             self._step_simulation()
-        #print("Sim stepping takes: ",datetime.datetime.now() - then)
+
         self.make_observation()
-        #print("Making observation takes: ",datetime.datetime.now() - then)
         reward_val = self._get_reward()
-        #print("Receiving rew takes: ",datetime.datetime.now() - then)
-        #print("Printing takes: ",datetime.datetime.now() - then)
         done, additional_reward, wb = self.terminal_inspection()
         total_reward = reward_val + additional_reward
+
+        self.logging(self.obs, self.prev_obs, action, wb, total_reward) if log else None
+        self.prev_obs = self.obs
+
+        return self.obs, total_reward, done, {0: 0}
+
+    def logging(self, obs, prev_obs, action, wb, reward):
         write_str = "Act:"
         for i in range(len(action)):
             write_str += "\t{0:2.3f}".format(action[i])
         write_str += "\t| Obs:" 
-        for i in range(len(self.obs)):
-            write_str += self._colored_string(self.obs[i],self.prev_obs[i],action[i])
+        for i in range(len(obs)):
+            write_str += self._colored_string(obs[i],prev_obs[i],action[i])
         write_str += "\t| wb = {0:2.3f} | \033[92mReward:\t{1:1.5f}\033[0m".format(wb,total_reward)
-        if log:
-            print(write_str, end='\r')
-            self.joint_angle_log.writelines(write_str+"\n")
-        self.prev_obs = self.obs
-        #print("\033[31mWhole step takes: ",datetime.datetime.now() - then,"\033[0m")
-        return self.obs, total_reward, done, {0: 0}
+        print(write_str, end='\r')
+        self.joint_angle_log.writelines(write_str+"\n")
 
     def _colored_string(self, obs_val, prev_obs_val, action):
         if int(np.sign(obs_val-prev_obs_val)) == int(np.sign(action)):
