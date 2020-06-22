@@ -42,9 +42,9 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
         self.seed()
 
         ### ------------  LOGGING  ------------ ###
-        if platform == 'linux' or platform == 'linux2':
+        if sys.platform in ['linux', 'linux2']:
             log_dir = "/home/ljh/Project/mujoco_jaco/logs"
-        elif platform == 'darwin':
+        elif sys.platform == 'darwin':
             log_dir = "/Users/jeonghoon/Google_drive/Workspace/MLCS/mujoco_jaco/src"
         os.makedirs(log_dir, exist_ok=True)
         self.joint_angle_log = open(log_dir+"/log.txt", 'w')
