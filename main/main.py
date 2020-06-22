@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 
-import os, sys
+import os
+import sys
 import path_config
+import time
 import math
 
 import stable_baselines.common.tf_util as tf_util
@@ -16,6 +18,7 @@ from state_gen.state_generator import State_generator
 
 #from env.env_real import Real
 from argparser import ArgParser
+
 
 class RL_controller:
     def __init__(self):
@@ -52,44 +55,59 @@ class RL_controller:
             raise NotImplementedError
         args.model_path = self.model_path
         args.tb_dir = self.tb_dir
+        os.makedirs(self.model_path, exist_ok=True)
+        os.makedirs(self.tb_dir, exist_ok=True)
         self.steps_per_batch = 100
         self.batches_per_episodes = 5
         args.steps_per_batch = self.steps_per_batch
         args.batches_per_episodes = self.batches_per_episodes
-        self.num_episodes = 10000
+        self.num_episodes = 3
         self.train_num = 1
 
         self.args = args
 
-
     def train_from_scratch(self):
         print("Training from scratch called")
-        self.env = JacoMujocoEnv(**vars(self.args))
+        env = JacoMujocoEnv(**vars(self.args))
         self.num_timesteps = self.steps_per_batch * self.batches_per_episodes * \
             math.ceil(self.num_episodes / self.train_num)
         # self.trainer = TRPO(MlpPolicy, self.env, cg_damping=0.1, vf_iters=5, vf_stepsize=1e-3, timesteps_per_batch=self.steps_per_batch,
         #                    tensorboard_log=args.tb_dir, full_tensorboard_log=True)
-        layers = {"policy":[128,128],"value":[256,256,128]}
+        layers = {"policy": [128, 128], "value": [256, 256, 128]}
         self.trainer = SAC(
-            LnMlpPolicy_sac, self.env, layers=layers, tensorboard_log=self.tb_dir, full_tensorboard_log=True)
+            LnMlpPolicy_sac, env, layers=layers, tensorboard_log=self.tb_dir, full_tensorboard_log=True)
         with self.sess:
             for train_iter in range(self.train_num):
-                print("\033[91mTraining Iter: ", train_iter,"\033[0m")
-                model_dir=self.model_path + str(self.train_num)
-                os.makedirs(model_dir, exist_ok = True)
-                self.trainer.learn(total_timesteps = self.num_timesteps)
+                print("\033[91mTraining Iter: ", train_iter, "\033[0m")
+                model_dir = self.model_path + "policy_at_" + str(time.localtime().tm_year) + "_" + str(time.localtime().tm_mon) + "_" + str(
+                    time.localtime().tm_mday) + "_" + str(time.localtime().tm_hour) + ":" + str(time.localtime().tm_min)
+                self.trainer.learn(total_timesteps=self.num_timesteps)
                 print("Train Finished")
                 self.trainer.save(model_dir)
-        
-    def train_from_expert(self,n_episodes=10):
+    
+    def train_continue(self, model_dir):
+        env = JacoMujocoEnv(**vars(self.args))
+        self.num_timesteps = self.steps_per_batch * self.batches_per_episodes * \
+            math.ceil(self.num_episodes / self.train_num)
+        with self.sess:
+            try:
+                self.trainer = SAC.load(self.model_path + model_dir, env=env)
+                self.trainer.learn(total_timesteps=self.num_timesteps)
+                print("Train Finished")
+                self.trainer.save(model_dir)
+            except Exception as e:
+                print(e)
+
+    def train_from_expert(self, n_episodes=10):
         print("Training from expert called")
-        self.env = JacoMujocoEnv(**vars(self.args))
-        generate_expert_traj(self._expert, 'expert_traj', self.env, n_episodes=n_episodes)
-        
-    def _expert(self,_obs):
+        env = JacoMujocoEnv(**vars(self.args))
+        generate_expert_traj(self._expert, 'expert_traj',
+                             env, n_episodes=n_episodes)
+
+    def _expert(self, _obs):
         action = []
         return action
-    
+
     def test(self):
         print("Testing called")
         self.env = JacoMujocoEnv(**vars(self.args))
@@ -103,30 +121,36 @@ class RL_controller:
                 done = False
                 while not done:
                     action, state = self.model.predict(obs)
-                    obs,rewards,done,_ = self.env.step(action,log=False)
-                    print(rewards,end='\r')
+                    obs, rewards, done, _ = self.env.step(action, log=False)
+                    print(rewards, end='\r')
 
 
 if __name__ == "__main__":
     controller = RL_controller()
     iter = 0
     while True:
-        opt = input("Train/Test (1/2): ")
+        opt = input("Train / Test (1/2): ")
         if opt == "1":
             iter_train = 0
             while True:
                 iter_train += 1
-                opt2 = input("Train_from_scratch/Train_from_expert (1/2): ")
+                opt2 = input("Train_from_scratch / Train_from_pre_model / Train_from_expert (1/2/3): ")
                 if opt2 == "1":
                     controller.train_from_scratch()
                     break
                 elif opt2 == "2":
-                    n_episodes = int(input("How many trials do you want to record?"))
+                    model_dir = input("Enter model name: ")
+                    controller.train_continue(model_dir+".zip")
+                    break
+                elif opt2 == "3":
+                    n_episodes = int(
+                        input("How many trials do you want to record?"))
                     controller.train_from_expert(n_episodes)
                     break
                 else:
                     if iter_train <= 5:
-                        print("Wront input, press 1 or 2 (Wrong trials: {0})".format(iter_train))
+                        print(
+                            "Wront input, press 1 or 2 (Wrong trials: {0})".format(iter_train))
                     else:
                         print("Wront input, Abort")
                         break
@@ -137,8 +161,8 @@ if __name__ == "__main__":
         else:
             iter += 1
             if iter <= 5:
-                print("Wront input, press 1 or 2 (Wrong trials: {0})".format(iter))
+                print(
+                    "Wront input, press 1 or 2 (Wrong trials: {0})".format(iter))
             else:
                 print("Wront input, Abort")
                 break
-
