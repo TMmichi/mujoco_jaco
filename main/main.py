@@ -108,6 +108,17 @@ class RL_controller:
         action = []
         return action
 
+    def train_with_additional_layer(self, mode_dir):
+        env = JacoMujocoEnv(**vars(self.args))
+        concat_layer = []
+        with self.sess:
+            try:
+                self.trainer = SAC.load(self.model_path + model_dir, env=env)
+                
+            except Exception as e:
+                print(e)
+
+
     def test(self):
         print("Testing called")
         self.env = JacoMujocoEnv(**vars(self.args))
@@ -120,16 +131,19 @@ class RL_controller:
                 obs = self.env.reset()
                 done = False
                 while not done:
-                    action, state = self.model.predict(obs)
+                    action, _ = self.model.predict(obs)
                     obs, rewards, done, _ = self.env.step(action, log=False)
-                    print(rewards, end='\r')
+                    print("{0:2.3f}".format(rewards), end='\r')
+    
+    def generate(self):
+        pass
 
 
 if __name__ == "__main__":
     controller = RL_controller()
     iter = 0
     while True:
-        opt = input("Train / Test (1/2): ")
+        opt = input("Train / Test / Generate (1/2/3): ")
         if opt == "1":
             iter_train = 0
             while True:
@@ -157,6 +171,9 @@ if __name__ == "__main__":
             break
         elif opt == "2":
             controller.test()
+            break
+        elif opt == "3":
+            controller.generate()
             break
         else:
             iter += 1
