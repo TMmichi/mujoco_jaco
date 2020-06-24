@@ -1,13 +1,24 @@
 Note
 
     Problem specification:
-        keywords: 
-            - Dexterous manipulation
-            - Strategic (time dependent) manipulation
-            - Human data learning
-            - Safe to interact
-            - Dual (multi) arm
-            - 
+        Keywords:
+            1. Dexterous manipulation
+            2. Strategic (time-dependent) manipulation
+            3. Human data learning
+            4. Multi-modal sensory data
+            5. Safe to interact (torque control)
+            6. Robot independent (worspace independent)
+            7. Dual (multi) arm
+            8. Reaching
+            9. Grasping
+            10. 
+
+        Task specification:
+            {
+                Keywords: 
+                Title:
+            }
+
 
 
     Research Details
