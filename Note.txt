@@ -11,21 +11,60 @@ Note
             7. Dual (multi) arm
             8. Reaching
             9. Grasping
-            10. 
+            10. State representation
+            11. Sim-to-Real
+            12. Learning from Demonstration
+            13. Reusable policies
+            14. Explainable actions from policy
+            15. Sample efficient learning
+
 
         Task specification:
-            {
+            1. {
                 Keywords: 
-                Title:
+                Title: Screw-fixing
+                Goal:
+                Motivation:
             }
-
+            2. {
+                Keywords:
+                Title: Plugging with sample-efficient policy by composing primitives
+                Goal:
+                Motivation:
+            }
+            3. {
+                Keywords:
+                Title: Guess What I'm doing: Dexterous manipulation via composing known primitives
+                Goal: Make policies explainable while mimicking human-like behavior
+                Motivation:
+                    - Shall let the users what it's doing with human-interpretable information
+                    - Behave in a way human brain does -> composing complicated behavior with basic structures of primitives
+                    - MCPs uses primitives that are not identifiable
+                    (WILL NOT USE: - most of the techniques uses joint angles -> restricted to the specific configuration of a robot)
+                To do: 
+                    - Train primitives that are identified for certain tasks
+                    - Set task which requires multiple primitives
+                        -> 
+                    - State representation learning of required / orthogonal sensor data
+                        -> check orthogonality of each sensors
+                            - image, pressure, joint angles
+                    - Provide auxilary networks when training in an End-to-End fashion / do a PCA analysis for actions under states to validate the need for an extra primitive.
+                    - Identify unknown primitives with (forward propagation - collect state/action sets)
+            }
+            4. {
+                Keywords: 
+                Title: Who cares who I am: Policy transfer between robots without fine-tuning
+                Goal: Make policies that can be transfered to different robot models without fine-tuning
+                Motivation:
+                    - most of the techniques uses joint angles -> restricted to the specific configuration of a robot
+            }
 
 
     Research Details
         Making proper observations
 
 
-
+                              
         Sub-primitives
             Questions:
                 1. Why have sub-primitives?
@@ -57,6 +96,4 @@ Note
                     - May not have to finetune for primitives -> composite policies
                     Reason: 
                         1. ?
-                    
-        
-        
+                            
