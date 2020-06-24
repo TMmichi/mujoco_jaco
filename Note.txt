@@ -21,48 +21,73 @@ Note
 
         Task specification:
             1. {
-                Keywords: 
-                Title: Screw-fixing
-                Goal:
-                Motivation:
-            }
-            2. {
                 Keywords:
-                Title: Plugging with sample-efficient policy by composing primitives
-                Goal:
-                Motivation:
-            }
-            3. {
-                Keywords:
-                Title: Guess What I'm doing: Dexterous manipulation via composing known primitives
-                Goal: Make policies explainable while mimicking human-like behavior
+                Title: Guess What I'm doing: Manipulation of a robot arm with known primitives
+                Goal: Make policies explainable (and mimick human-like behavior - if incorporating human data while TRAINING PRIMITIVES)
                 Motivation:
                     - Shall let the users what it's doing with human-interpretable information
                     - Behave in a way human brain does -> composing complicated behavior with basic structures of primitives
                     - MCPs uses primitives that are not identifiable
                     (WILL NOT USE: - most of the techniques uses joint angles -> restricted to the specific configuration of a robot)
+                Contributions:
+                    - making policy explainable
+                    - Increase sample efficiency (incorporate human data while TRAINING WHOLE TASK)
+                    - learn auxilary primitives that have not been told/trained (if possible)
                 To do: 
-                    - Train primitives that are identified for certain tasks
-                    - Set task which requires multiple primitives
-                        -> 
-                    - State representation learning of required / orthogonal sensor data
-                        -> check orthogonality of each sensors
-                            - image, pressure, joint angles
-                    - Provide auxilary networks when training in an End-to-End fashion / do a PCA analysis for actions under states to validate the need for an extra primitive.
-                    - Identify unknown primitives with (forward propagation - collect state/action sets)
+                    - Train primitives that are identified for certain tasks (from either expert trajectory or reward engineered RL scheme)
+                    - Set task which requires multiple primitives:
+                        Options: {
+                            1. {
+                                Task: Grap a glass of water and pour to a specific destination
+                                Required features (primitive):
+                                    - Reaching to a glass (Reaching)
+                                    - Make a good grip when holding a glass (Reaching + Grasping)
+                                    - Take it to a goal position when holding a glass (Reaching + Grasping + Auxilary - stabilizing glass?)
+                                    - Pouring it to a goal position (Reching + Grasping + Auxilary - Pouring)
+                            }
+                            2. {
+                                Task: 
+                                Goal: 
+                            }
+                        }
+                    - State representation learning of required & orthogonal sensor data: image, pressure, joint angles
+                        -> check orthogonality of each sensors using [PCA? suggestions????]
+                    - Provide auxilary dummy primitive networks when training in an End-to-End fashion -> do a PCA analysis for actions under states to validate the need for an extra primitive.
+                    - Identify unknown primitives via (examining state/action sets from forward propagations)
             }
-            4. {
+            2. {
                 Keywords: 
                 Title: Who cares who I am: Policy transfer between robots without fine-tuning
                 Goal: Make policies that can be transfered to different robot models without fine-tuning
                 Motivation:
-                    - most of the techniques uses joint angles -> restricted to the specific configuration of a robot
+                    - Most of the techniques uses joint angles -> restricted to the specific configuration of a robot
+                Contributions:
+                    - Can transfer policy without the need of fine-tuning within the simulated env
+                    - Can transfer policy to a real robot (if possible)
+                To Do:
+                    - Use actions as ∆p ∆v of an End Effecor instead of joint angles or joint velocities
+                    - Use action/observation scaling with respect to the workbound of each robots (NOT FINETUNING! CAN EASILY BE DONE)
+                        (if the scale of jaco : mini jaco = 10 : 1, multiply 10 to each obs/action when using the policy trained from mini jaco to apply to a jaco)
+                    - transfer policy without fine-tuning and compare episode rewards at test time
+            }
+            3. {
+                Keywords: 
+                Title: Screw-fixing
+                Goal:
+                Motivation:
+            }
+            4. {
+                Keywords:
+                Title: Plugging with sample-efficient policy by composing primitives
+                Goal:
+                Motivation:
             }
 
 
     Research Details
         Making proper observations
-
+            Note: Target position of a reaching primitive - Should explicitly be known to the user
+                    -> User do know where it's reaching to
 
                               
         Sub-primitives
@@ -97,3 +122,4 @@ Note
                     Reason: 
                         1. ?
                             
+    
