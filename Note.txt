@@ -1,0 +1,51 @@
+Note
+
+    Problem specification:
+        keywords: 
+            - Dexterous manipulation
+            - Strategic (time dependent) manipulation
+            - Human data learning
+            - Safe to interact
+            - Dual (multi) arm
+            - 
+
+
+    Research Details
+        Making proper observations
+
+
+
+        Sub-primitives
+            Questions:
+                1. Why have sub-primitives?
+                    - To construct primitives, observation spaces for each should be matched among all.
+                        Reason: each primitives shall have an idea with the full knowledge of a current state
+                        Question: Doesn't weight network determine how to composite primitives?
+                        Defence: 
+                    - But there is no need to train each primitives with full observation spaces
+                    where they can acheive their goal with much simpler observations.
+                    - pretrain sub-primitives with simple observation spaces, and modify them with 
+                    full observation placeholders
+                
+                2. Did X.Peng pretrained their policies with full observation spaces?
+                    - ?
+
+            Actions:
+                -> Need to select:
+                    1. RL-trained sub-primitives and finetune them with full obs space
+                    2. Not using sub-primitives and policy transfer with expert data directly with full obs space
+            
+            Consequences:
+                1. if select sub-primitives:
+                    Csq: Finetune twice for sub-primitives -> primitives and for primitives -> composite policy
+                    Result: Complicated/Time consuming to pretrain and finetune twice
+                2. 
+            
+            Defences for Consequences:
+                Def for 1: To avoid complicated / time consumption problem
+                    - May not have to finetune for primitives -> composite policies
+                    Reason: 
+                        1. ?
+                    
+        
+        
