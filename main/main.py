@@ -108,6 +108,17 @@ class RL_controller:
         action = []
         return action
 
+    def train_with_additional_layer(self, mode_dir):
+        env = JacoMujocoEnv(**vars(self.args))
+        concat_layer = []
+        with self.sess:
+            try:
+                self.trainer = SAC.load(self.model_path + model_dir, env=env)
+                
+            except Exception as e:
+                print(e)
+
+
     def test(self):
         print("Testing called")
         self.env = JacoMujocoEnv(**vars(self.args))
