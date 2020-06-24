@@ -46,14 +46,21 @@ Note
                                     - Pouring it to a goal position (Reching + Grasping + Auxilary - Pouring)
                             }
                             2. {
-                                Task: 
-                                Goal: 
+                                Task: ?
+                                Goal: ?
                             }
                         }
                     - State representation learning of required & orthogonal sensor data: image, pressure, joint angles
+                        -> want to show that those data has some information that does not overlap with each other
                         -> check orthogonality of each sensors using [PCA? suggestions????]
                     - Provide auxilary dummy primitive networks when training in an End-to-End fashion -> do a PCA analysis for actions under states to validate the need for an extra primitive.
+                        -> How to check / avoid a single auxilary network from taking over all the auxiliary primitives?
+                             - by training policy with enough of aux policies and then optimize the numbers?
                     - Identify unknown primitives via (examining state/action sets from forward propagations)
+                References:
+                    - MLSH (Frans, 2017)
+                    - MCP (Peng, 2019)
+                    - Options (Sutten, 1999)
             }
             2. {
                 Keywords: 
