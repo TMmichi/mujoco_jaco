@@ -45,6 +45,10 @@ Note
                                     - Make a good grip when holding a glass (Reaching + Grasping)
                                     - Take it to a goal position when holding a glass (Reaching + Grasping + Auxilary - stabilizing glass?)
                                     - Pouring it to a goal position (Reching + Grasping + Auxilary - Pouring)
+                                Thoughts:
+                                    - Pouring: 
+                                    - Moveit! -> variance = 0인 distribution
+                                    - Optimal state representation -> No need to do these shits
                             }
                             2. {
                                 Task: TBD
@@ -57,6 +61,8 @@ Note
                     - Provide auxilary dummy primitive networks when training in an End-to-End fashion -> do a PCA analysis for actions under states to validate the need for an extra primitive.
                         -> How to check / avoid a single auxilary network from taking over all the auxiliary primitives?
                              - by training policy with enough of aux policies and then optimize the numbers?
+                        -> time: 언제 primitive가 activate 될 지??
+                        -> Non-Markovian 
                     - Identify unknown primitives via (examining state/action sets from forward propagations)
                 References:
                     - MLSH (Frans, 2017)
@@ -76,12 +82,18 @@ Note
                 Contributions:
                     - Can transfer policy without the need of fine-tuning within the simulated env
                     - Can transfer policy to a real robot (if possible)
+                Limitation:
+                    - IK algorithm should be embedded
                 To Do:
                     - Use actions as ∆p ∆v of an End Effecor instead of joint angles or joint velocities
                     - Use action/observation scaling with respect to the workbound of each robots (NOT FINETUNING! CAN EASILY BE DONE)
                         (if the scale of jaco : mini jaco = 10 : 1, multiply 10 to each obs/action when using the policy trained from mini jaco to apply to a jaco)
                     - transfer policy without fine-tuning and compare episode rewards at test time
-            }
+                Thoughts:
+                    - Put vision/PC to EE
+                    - How to handle vision/PC
+                    - If DOF gets to be differ?
+            }   
             3. {
                 Keywords: 
                 Title: Dexterous Dual-Arm Manipulation via Compositive Primitives
@@ -93,6 +105,8 @@ Note
                 Title: Screw-fixing
                 Goal: TBD
                 Motivation: TBD
+                To Do:
+                    - time-dependent 
             }
             5. {
                 Keywords: 
@@ -145,5 +159,3 @@ Note
             2. {
 
             }
-
-적용 분야 - 20 / 19년도 논문 찾아서 ref
