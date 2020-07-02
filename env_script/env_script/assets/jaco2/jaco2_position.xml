@@ -156,15 +156,22 @@
     </worldbody>
 
     <actuator>
-        <position name="joint0_motor" joint="joint0"/>
-        <position name="joint1_motor" joint="joint1"/>
-        <position name="joint2_motor" joint="joint2"/>
-        <position name="joint3_motor" joint="joint3"/>
-        <position name="joint4_motor" joint="joint4"/>
-        <position name="joint5_motor" joint="joint5"/>
+        <position name="joint0_motor" joint="joint0" kp="300" forcelimited="true" forcerange="-30 30"/>
+        <position name="joint1_motor" joint="joint1" kp="300" forcelimited="true" forcerange="-30 30"/>
+        <position name="joint2_motor" joint="joint2" kp="500" forcelimited="true" forcerange="-30 30"/>
+        <position name="joint3_motor" joint="joint3" kp="500" forcelimited="true" forcerange="-15 15"/>
+        <position name="joint4_motor" joint="joint4" kp="300" forcelimited="true" forcerange="-15 15"/>
+        <position name="joint5_motor" joint="joint5" kp="300" forcelimited="true" forcerange="-15 15"/>
+        <velocity name="joint0_motor_vel" joint="joint0" kv="50" forcelimited="true" forcerange="-30 30"/>
+        <velocity name="joint1_motor_vel" joint="joint1" kv="50" forcelimited="true" forcerange="-30 30"/>
+        <velocity name="joint2_motor_vel" joint="joint2" kv="50" forcelimited="true" forcerange="-30 30"/>
+        <velocity name="joint3_motor_vel" joint="joint3" kv="50" forcelimited="true" forcerange="-15 15"/>
+        <velocity name="joint4_motor_vel" joint="joint4" kv="50" forcelimited="true" forcerange="-15 15"/>
+        <velocity name="joint5_motor_vel" joint="joint5" kv="50" forcelimited="true" forcerange="-15 15"/>
         <position name="joint_thumb_motor" joint="joint_thumb"/>
         <position name="joint_index_motor" joint="joint_index"/>
         <position name="joint_pinky_motor" joint="joint_pinky"/>
+        
     </actuator>
 
 </mujoco>

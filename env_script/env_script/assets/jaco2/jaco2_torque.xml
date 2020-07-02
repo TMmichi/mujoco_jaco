@@ -156,12 +156,12 @@
     </worldbody>
 
     <actuator>
-        <motor name="joint0_motor" joint="joint0"/>
-        <motor name="joint1_motor" joint="joint1"/>
-        <motor name="joint2_motor" joint="joint2"/>
-        <motor name="joint3_motor" joint="joint3"/>
-        <motor name="joint4_motor" joint="joint4"/>
-        <motor name="joint5_motor" joint="joint5"/>
+        <motor name="joint0_motor" joint="joint0" forcelimited="true" forcerange="-30 30"/>
+        <motor name="joint1_motor" joint="joint1" forcelimited="true" forcerange="-30 30"/>
+        <motor name="joint2_motor" joint="joint2" forcelimited="true" forcerange="-30 30"/>
+        <motor name="joint3_motor" joint="joint3" forcelimited="true" forcerange="-15 15"/>
+        <motor name="joint4_motor" joint="joint4" forcelimited="true" forcerange="-15 15"/>
+        <motor name="joint5_motor" joint="joint5" forcelimited="true" forcerange="-15 15"/>
         <motor name="joint_thumb_motor" joint="joint_thumb"/>
         <motor name="joint_index_motor" joint="joint_index"/>
         <motor name="joint_pinky_motor" joint="joint_pinky"/>
