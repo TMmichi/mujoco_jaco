@@ -4,7 +4,6 @@ import os
 import numpy as np
 
 import mujoco_py as mjp
-from abr_control.utils import download_meshes
 
 debug = False
 class MujocoConfig:
@@ -55,6 +54,7 @@ class MujocoConfig:
         else:
             self.xml_dir = "%s" % (folder)
             self.xml_file = os.path.join(self.xml_dir, xml_file)
+        print(self.xml_file)
         self.N_ROBOTS = n_robots
         self.N_GRIPPEPR_JOINTS = 0
 
@@ -69,8 +69,8 @@ class MujocoConfig:
             elif name == "N_GRIPPER_JOINTS":
                 self.N_GRIPPER_JOINTS = int(custom.get("data"))
 
-        self.model = mjp.load_model_from_path(self.xml_file)
         # TODO: Check whether the control type of the model xml matches with the desired control type
+        self.model = mjp.load_model_from_path(self.xml_file)
         self.use_sim_state = use_sim_state
 
     def _connect(self, sim, joint_pos_addrs, joint_vel_addrs, joint_dyn_addrs):

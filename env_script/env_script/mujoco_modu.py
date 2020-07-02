@@ -3,7 +3,6 @@ import numpy as np
 import mujoco_py as mjp
 
 from mujoco_py.generated import const
-from abr_control.utils import transformations
 
 
 class Mujoco:
@@ -117,25 +116,19 @@ class Mujoco:
         # get the kinematic tree for the arm
         joint_ids = []
         joint_names = []
-        body_id_list = []
-        if self.robot_config.N_ROBOTS == 1:
-            body_id_list.append(model.body_name2id("EE"))
-        else:
-            for i in range(self.robot_config.N_ROBOTS):
-                body_id_list.append(model.body_name2id("EE_"+str(self.robot_config.N_ROBOTS-i)))
+        id = model.body_name2id("EE")
 
         # start with the end-effector and work back to the world body
-        for id in body_id_list:
-            while model.body_parentid[id] != 0:
-                jntadrs_start = model.body_jntadr[id]
-                tmp_ids = []
-                tmp_names = []
-                for ii in range(model.body_jntnum[id]):
-                    tmp_ids.append(jntadrs_start + ii)
-                    tmp_names.append(model.joint_id2name(tmp_ids[-1]))
-                joint_ids += tmp_ids[::-1]
-                joint_names += tmp_names[::-1]
-                id = model.body_parentid[id]
+        while model.body_parentid[id] != 0:
+            jntadrs_start = model.body_jntadr[id]
+            tmp_ids = []
+            tmp_names = []
+            for ii in range(model.body_jntnum[id]):
+                tmp_ids.append(jntadrs_start + ii)
+                tmp_names.append(model.joint_id2name(tmp_ids[-1]))
+            joint_ids += tmp_ids[::-1]
+            joint_names += tmp_names[::-1]
+            id = model.body_parentid[id]
         
         # flip the list so it starts with the base of the arm / first joint
         joint_names = joint_names[::-1]
@@ -158,12 +151,6 @@ class Mujoco:
             quat = self.sim.data.get_mocap_quat(name)
         elif object_type == "body":
             quat = self.sim.data.get_body_xquat(name)
-        elif object_type == "geom":
-            xmat = self.sim.data.get_geom_xmat(name)
-            quat = transformations.quaternion_from_matrix(xmat.reshape((3, 3)))
-        elif object_type == "site":
-            xmat = self.sim.model.get_site_xmat(name)
-            quat = transformations.quaternion_from_matrix(xmat.reshape((3, 3)))
         else:
             raise Exception(
                 "get_orientation for %s object type not supported" % object_type
@@ -239,16 +226,11 @@ class Mujoco:
         self.sim.step()
 
         # Update position of hand object
-        for i in range(self.robot_config.N_ROBOTS):
-            if self.robot_config.N_ROBOTS == 1:
-                prefix = ""
-            else:
-                prefix = "_"+str(i+1)
-            hand_xyz = self.robot_config.Tx(name="EE"+prefix)
-            self.set_mocap_xyz("hand"+prefix, hand_xyz)
-            # Update orientation of hand object
-            hand_quat = self.robot_config.quaternion(name="EE"+prefix)
-            self.set_mocap_orientation("hand"+prefix, hand_quat)
+        hand_xyz = self.robot_config.Tx(name="EE")
+        self.set_mocap_xyz("hand", hand_xyz)
+        # Update orientation of hand object
+        hand_quat = self.robot_config.quaternion(name="EE")
+        self.set_mocap_orientation("hand", hand_quat)
 
         if self.visualize and update_display:
             self.viewer.render()
