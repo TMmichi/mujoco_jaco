@@ -26,11 +26,18 @@ class JacoMujocoEnvUtil:
             xml_name = 'jaco2_dual_include'
         elif self.n_robots == 3:
             xml_name = 'jaco2_tri'
+        else:
+            raise NotImplementedError("[ERROR] xml_file of the given number of robots doesn't exist")
         self.jaco = MujocoConfig(xml_name,n_robots=self.n_robots)
         self.interface = Mujoco(self.jaco, dt=0.005)
         self.interface.connect()
-        self.ctr = OSC(self.jaco, kp=50, ko=180, kv=20, vmax=[0.2,0.5236], ctrlr_dof=[
+
+        self.controller = True
+        self.control_type = self.jaco.ctrl_type
+        if self.controller and self.control_type == "torque":
+            self.ctr = OSC(self.jaco, kp=50, ko=180, kv=20, vmax=[0.2,0.5236], ctrlr_dof=[
                        True, True, True, True, True, True])
+
         self.target_pos = self._reset()
         self.base_position = self._get_property('link1','position')
 
@@ -62,12 +69,23 @@ class JacoMujocoEnvUtil:
     def _step_simulation(self):
         fb = self.interface.get_feedback()
         self.current_jointstate_1 = fb['q']
-        u = self.ctr.generate(
+        if self.controller:
+            u = self._controller_generate(fb)
+            self.interface.send_forces(np.hstack([u, [0, 0, 0]]))
+        else:
+            if self.control_type == "torque":
+                self.interface.send_signal(np.hstack([self.target_torque, [0, 0, 0]]))
+            elif self.control_type == "velocity":
+                self.interface.send_signal(np.hstack([self.target_velocity, [0, 0, 0]]))
+            elif self.control_type == "position":
+                self.interface.send_signal(np.hstack([self.target_position, [0, 0, 0]]))
+    
+    def _controller_generate(self, fb):
+        return self.ctr.generate(
             q=fb['q'],
             dq=fb['dq'],
             target=self.target_pos
         )
-        self.interface.send_forces(np.hstack([u, [0, 0, 0]]))
     
     def _reset(self, target_angle=None):
         self.num_episodes = 0
@@ -86,12 +104,7 @@ class JacoMujocoEnvUtil:
         self.interface.set_joint_state(random_init_angle, [0]*6*self.n_robots)
         for _ in range(3):
             fb = self.interface.get_feedback()
-            _ = self.ctr.generate(
-                q=fb['q'],
-                dq=fb['dq'],
-                target=np.hstack([[-0.25, 0, -0.15, 0, 0, 0]*self.n_robots])
-                #target=np.hstack([[-0.25, 0, -0.15, 0, 0, 0],[0.25, 0, -0.15, 0, 0, 0]])
-            )
+            _ = self._controller_generate(fb)
             self.interface.send_forces([0]*9*self.n_robots)
         self.current_jointstate = fb['q']
         self.goal = self._sample_goal()
