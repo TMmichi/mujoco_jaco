@@ -42,12 +42,8 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
         self.seed()
 
         ### ------------  LOGGING  ------------ ###
-        if sys.platform in ['linux', 'linux2']:
-            log_dir = "/home/ljh/Project/mujoco_jaco/logs"
-        elif sys.platform == 'darwin':
-            log_dir = "/Users/jeonghoon/Google_drive/Workspace/MLCS/mujoco_jaco"
-        os.makedirs(log_dir, exist_ok=True)
-        self.joint_angle_log = open(log_dir+"/log.txt", 'w')
+        log_dir = kwargs['log_dir']
+        self.joint_angle_log = open(log_dir+"/training_log.txt", 'w')
 
 
     def reset(self):
@@ -89,11 +85,14 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
         for i in range(len(action)):
             write_str += "\t{0:2.3f}".format(action[i])
         write_str += "\t| Obs:" 
+        write_log = write_str
         for i in range(len(obs)):
             write_str += self._colored_string(obs[i],prev_obs[i],action[i])
+            write_log += "\t{0:2.3f}".format(obs[i])
         write_str += "\t| wb = {0:2.3f} | \033[92mReward:\t{1:1.5f}\033[0m".format(wb,reward)
+        write_log += "\t| wb = {0:2.3f} | Reward:\t{1:1.5f}".format(wb,reward)
         print(write_str, end='\r')
-        self.joint_angle_log.writelines(write_str+"\n")
+        self.joint_angle_log.writelines(write_log+"\n")
 
     def _colored_string(self, obs_val, prev_obs_val, action):
         if int(np.sign(obs_val-prev_obs_val)) == int(np.sign(action)):

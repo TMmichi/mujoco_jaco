@@ -4,3 +4,27 @@
 4. set_joint_state(angles)
 5. get_xyz('name') -> get xyz position
 6. get_orientation('name') -> get quaternion angle
+
+
+root.xml
+    shared.xml 
+        <asset> all the meshes with stl
+        <asset> all the objects with stl + png
+        <contact> excluding contacts
+        <default> colors under class
+
+    <worldbody> environments
+    <worldbody> mobile robots
+        <body> mocap def
+        <body> links with childclass="dual_ur5_husky"
+        ur5_l.xml
+        ur5_r.xml
+
+    <worldbody> objects
+
+    <actuator> base joints
+
+    gripper.xml
+        <tendon> joints
+        <actuator> tendons-joints
+
