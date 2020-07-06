@@ -25,6 +25,8 @@ class JacoMujocoEnvUtil:
             xml_name = 'jaco2'+n_robot_postfix[self.n_robots-1]
         except Exception:
             raise NotImplementedError("\n\t\033[91m[ERROR]: xml_file of the given number of robots doesn't exist\033[0m")
+        xml_name = 'mobilejaco'
+        print(xml_name)
         self.jaco = MujocoConfig(xml_name,n_robots=self.n_robots)
         self.interface = Mujoco(self.jaco, dt=0.005)
         self.interface.connect()
@@ -234,18 +236,86 @@ if __name__ == "__main__":
     from abr_control.controllers import OSC
     from abr_control.utils import transformations
 
-    pos = True
-    vel = not pos
-    controller = False
-    if pos:
-        jaco = MujocoConfig('jaco2_position')
-    elif vel:
-        jaco = MujocoConfig('jaco2_velocity')
-    #jaco = MujocoConfig('jaco2')
-    interface = Mujoco(jaco, dt=0.005)
-    interface.connect()
-    
-    if controller:
+
+    mobile = True
+    if not mobile:
+        pos = True
+        vel = not pos
+        controller = False
+        if pos:
+            jaco = MujocoConfig('jaco2_position')
+        elif vel:
+            jaco = MujocoConfig('jaco2_velocity')
+        #jaco = MujocoConfig('jaco2')
+        interface = Mujoco(jaco, dt=0.005)
+        interface.connect()
+        
+        if controller:
+            ctr = OSC(jaco, kp=2, ctrlr_dof=[True, True, True, True, True, True])
+            interface.set_joint_state([1, 2, 1, 1, 1, 1], [0, 0, 0, 0, 0, 0])
+            for _ in range(2):
+                fb = interface.get_feedback()
+                u = ctr.generate(
+                    q=fb['q'],
+                    dq=fb['dq'],
+                    target=np.hstack([0, 0, -0.15, 0, 0, 0])
+                )
+                interface.send_forces([0, 0, 0, 0, 0, 0, 0, 0, 0])
+            print(interface.get_xyz('hand'))
+            target_pos = interface.get_xyz('hand')
+            target_or = np.array([0, 0, 0], dtype=np.float16)
+            for _ in range(10):
+                while True:
+                    fb = interface.get_feedback()
+                    u = ctr.generate(
+                        q=fb['q'],
+                        dq=fb['dq'],
+                        target=np.hstack([target_pos, target_or])
+                    )
+                    a = interface.get_xyz('hand')
+                    b = interface.get_orientation('hand')
+                    # print(a)1
+                    interface.send_forces(np.hstack([u, [0, 0, 0]]))
+                    if np.linalg.norm(a[:] - target_pos[:]) < 0.01:
+                        print("Reached")
+                        break
+                target_pos += np.array([0.01, 0.01, 0.01])
+                target_or += np.array([0.1, 0.1, 0.1])
+        else:
+            interface.set_joint_state([1, 2, 1.5, 1.5, 1.5, 1.5], [0, 0, 0, 0, 0, 0])
+            fb = interface.get_feedback()
+            if vel:
+                inc = .1
+                fb['dq'] += np.array([inc] * 6)
+                print(fb['dq'])
+                mod = True
+                fb_new = np.array([0]*6)
+                while True:
+                    fb_pos = interface.get_feedback()
+                    interface.send_signal(np.hstack([fb_pos['q'], fb['dq'], [0, 0, 0]]))
+                    if mod == False:    
+                        fb_new += np.array(interface.get_feedback()['dq'])
+                        print(fb_new/2)
+                    else:
+                        fb_new = np.array(interface.get_feedback()['dq'])
+                    mod = not mod
+            elif pos:
+                inc = 0.1
+                fb['q'] += np.array([inc] * 6)
+                print(fb['q'])
+                iter = 0
+                while True:
+                    iter += 1
+                    interface.send_signal(np.hstack([fb['q'], fb['dq'], [0, 0, 0]]))
+                    if np.linalg.norm(fb['q'] - interface.get_feedback()['q']) < 0.1:
+                        print(iter * 0.005)
+                        break
+                        #print(interface.get_feedback()['q'])
+
+    else:
+        jaco = MujocoConfig('mobilejaco')
+        interface = Mujoco(jaco, dt=0.005)
+        interface.connect()
         ctr = OSC(jaco, kp=2, ctrlr_dof=[True, True, True, True, True, True])
         interface.set_joint_state([1, 2, 1, 1, 1, 1], [0, 0, 0, 0, 0, 0])
         for _ in range(2):
@@ -255,56 +325,25 @@ if __name__ == "__main__":
                 dq=fb['dq'],
                 target=np.hstack([0, 0, -0.15, 0, 0, 0])
             )
-            interface.send_forces([0, 0, 0, 0, 0, 0, 0, 0, 0])
-        print(interface.get_xyz('hand'))
-        target_pos = interface.get_xyz('hand')
+            interface.send_forces([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])       
+        target_pos = interface.get_xyz('EE') - interface.get_xyz('base_link')
         target_or = np.array([0, 0, 0], dtype=np.float16)
-        for _ in range(10):
+        vel = 100
+        for i in range(10):
+            vel *= -1
             while True:
                 fb = interface.get_feedback()
                 u = ctr.generate(
                     q=fb['q'],
                     dq=fb['dq'],
-                    target=np.hstack([target_pos, target_or])
+                    target=np.hstack([target_pos + interface.get_xyz('base_link'), target_or])
                 )
-                a = interface.get_xyz('hand')
-                b = interface.get_orientation('hand')
-                # print(a)1
-                interface.send_forces(np.hstack([u, [0, 0, 0]]))
+                a = interface.get_xyz('EE') - interface.get_xyz('base_link')
+                b = interface.get_orientation('EE')
+                # print(a)
+                interface.send_forces(np.hstack([[vel, vel, vel, vel], u, [0, 0, 0]]))
                 if np.linalg.norm(a[:] - target_pos[:]) < 0.01:
                     print("Reached")
                     break
             target_pos += np.array([0.01, 0.01, 0.01])
             target_or += np.array([0.1, 0.1, 0.1])
-    else:
-        interface.set_joint_state([1, 2, 1.5, 1.5, 1.5, 1.5], [0, 0, 0, 0, 0, 0])
-        fb = interface.get_feedback()
-        if vel:
-            inc = .1
-            fb['dq'] += np.array([inc] * 6)
-            print(fb['dq'])
-            mod = True
-            fb_new = np.array([0]*6)
-            while True:
-                fb_pos = interface.get_feedback()
-                interface.send_signal(np.hstack([fb_pos['q'], fb['dq'], [0, 0, 0]]))
-                if mod == False:    
-                    fb_new += np.array(interface.get_feedback()['dq'])
-                    print(fb_new/2)
-                else:
-                    fb_new = np.array(interface.get_feedback()['dq'])
-                mod = not mod
-        elif pos:
-            inc = 0.1
-            fb['q'] += np.array([inc] * 6)
-            print(fb['q'])
-            iter = 0
-            while True:
-                iter += 1
-                interface.send_signal(np.hstack([fb['q'], fb['dq'], [0, 0, 0]]))
-                if np.linalg.norm(fb['q'] - interface.get_feedback()['q']) < 0.1:
-                    print(iter * 0.005)
-                    break
-                    #print(interface.get_feedback()['q'])
-
-

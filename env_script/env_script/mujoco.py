@@ -245,10 +245,10 @@ class Mujoco:
             else:
                 prefix = "_"+str(i+1)
             hand_xyz = self.robot_config.Tx(name="EE"+prefix)
-            self.set_mocap_xyz("hand"+prefix, hand_xyz)
+            #self.set_mocap_xyz("hand"+prefix, hand_xyz)
             # Update orientation of hand object
             hand_quat = self.robot_config.quaternion(name="EE"+prefix)
-            self.set_mocap_orientation("hand"+prefix, hand_quat)
+            #self.set_mocap_orientation("hand"+prefix, hand_quat)
 
         if self.visualize and update_display:
             self.viewer.render()

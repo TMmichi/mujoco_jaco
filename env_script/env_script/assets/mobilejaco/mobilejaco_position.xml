@@ -1,0 +1,135 @@
+<mujoco model="mobile_jaco">
+
+    <size njmax="8000" nconmax="4000"/>
+    <compiler angle="radian" meshdir="meshes" texturedir="texture" balanceinertia="true"/>
+    
+    <default>
+        <light castshadow="false" diffuse="1 1 1" />
+        <camera fovy="60" />
+    </default>
+
+    <default class="dual_ur5_husky">
+        <!-- Default Colours -->
+        <default class="husky:orange">
+            <geom rgba="0.996 0.941 0.412 1.0"></geom>
+        </default>
+        <default class="husky:black">
+            <geom rgba="0.192 0.192 0.192 1.0"></geom>
+        </default>
+        <default class="wheel">
+            <geom rgba="0.231 0.231 0.231 1.0"></geom>
+        </default>
+    </default>
+
+    <asset>
+        <mesh name="base_link" file="base_link.stl" />
+        <mesh name="wheel" file="wheel.stl" />
+        <mesh name="top_chassis" file="top_chassis.stl" />
+        <mesh name="bumper" file="bumper.stl" />
+        <mesh name="base" file="base.stl" />
+
+        <mesh file="link0.STL" />
+        <mesh file="link1.STL"/>
+        <mesh file="link2.STL"/>
+        <mesh file="link3.STL"/>
+        <mesh file="link4_5.STL"/>
+        <mesh file="hand_3finger.STL"/>
+        <mesh file="finger_distal.STL"/>
+        <mesh file="finger_proximal.STL"/>
+        <mesh file="ring_big.STL"/>
+        <mesh file="ring_big_joint0.stl"/>
+        <mesh file="ring_small.STL"/>
+
+        <material name="MatPlane" reflectance="0.5" shininess="1" specular="1" texrepeat="60 60" texture="texplane"/>
+        <texture builtin="checker" height="512" name="texplane" rgb1=".2 .3 .4" rgb2=".1 0.15 0.2" type="2d" width="512"/>
+        <material name="floorplane" reflectance="0.5" texrepeat="1 1" texture="texplane" texuniform="true"/>
+        <material name="carbon" specular="1" shininess="1" reflectance="1" rgba="0.05 0.05 0.05 1" emission="1" />
+        <material name="grey_plastic" specular="0.5" shininess="0" reflectance="0" rgba="0.12 0.14 0.14 1" emission="1" />
+    </asset>
+
+    <worldbody>
+        <light directional="true" ambient="0.2 0.2 0.2" diffuse="0.8 0.8 0.8" specular="0.3 0.3 0.3" castshadow="false" pos="0 0 4" dir="0 0 -1" name="light0"/>
+        <body name="floor0" pos="0.8 0.75 0">
+			<site name="target0" pos="0 0 0.5" size="0.02 0.02 0.02" rgba="1 0 0 0" type="sphere"></site>
+		</body>
+
+		<geom condim="3" material="floorplane" name="floor" pos="0 0 0" size="3 3 .125" type="plane"/>
+
+        <body name="robot0:base_link" pos="0 0 0.061875" childclass="dual_ur5_husky">
+            <geom type="mesh" contype="0" conaffinity="0" group="1" mesh="base_link" />
+            <geom size="0.4937 0.2 0.061875" type="box" material="carbon" />
+
+            <joint armature="0.0001" axis="1 0 0" damping="1e+11" name="robot0:slide0" pos="0 0 0" type="slide"></joint>
+            <joint armature="0.0001" axis="0 1 0" damping="1e+11" name="robot0:slide1" pos="0 0 0" type="slide"></joint>
+            <joint armature="0.0001" axis="0 0 1" damping="1e+4" name="robot0:slide2" pos="0 0 0" type="slide"></joint>
+            <inertial diaginertia="1.2869 1.2236 0.9868" mass="70.1294" pos="-0.0036 0 0.0014" quat="0.7605 -0.0133 -0.0061 0.6491"></inertial>
+
+            <!-- control the husky base -->
+            <joint name="base_x_slide_joint" type="slide" pos="0 0 0" axis="1 0 0" limited="true" range="0 0.2" damping="3000" />
+            <joint name="base_z_hinge_joint" type="hinge" pos="0 0 0" axis="0 0 1" limited="true" range="-0.57 0.57" damping="3000" />
+
+            <!-- husky mobile robot body -->
+            <geom size="0.2 0.2 0.061875" pos="0 0 0.185625" type="box" material="carbon" />
+            <geom type="mesh" contype="0" conaffinity="0" group="1" mesh="top_chassis" class="husky:orange" />
+            <geom pos="0.48 0 0.091" type="mesh" contype="0" conaffinity="0" group="1" mesh="bumper" />
+            <geom pos="-0.48 0 0.091" quat="1.32679e-06 0 0 1" type="mesh" contype="0" conaffinity="0" group="1" mesh="bumper" />
+            
+
+            <!-- husky wheels -->
+            <body name="front_left_wheel_link" pos="0.256 0.2854 0.03282">
+                <inertial pos="0 0 0" quat="0.5 0.5 -0.5 0.5" mass="200.637" diaginertia="0.04411 0.02467 0.02467" />
+                <geom type="mesh" contype="0" conaffinity="0" group="1" mesh="wheel" class="wheel"/>
+                <geom size="0.17 0.05" quat="0.707107 0.707106 0 0" type="cylinder" material="carbon"/>
+                <joint name="front_left_wheel_link_joint" pos="0 0 0" axis="0 1 0"  ref="3.14" />
+            </body>
+            
+            
+            <body name="front_right_wheel_link" pos="0.256 -0.2854 0.03282">
+                <inertial pos="0 0 0" quat="0.5 0.5 -0.5 0.5" mass="200.637" diaginertia="0.04411 0.02467 0.02467" />
+                <geom type="mesh" contype="0" conaffinity="0" group="1" mesh="wheel" class="wheel"/>
+                <geom size="0.17 0.05" quat="0.707107 0.707106 0 0" type="cylinder" material="carbon" />
+                <joint name="front_right_wheel_link_joint" pos="0 0 0" axis="0 1 0"  ref="3.14" />
+            </body>
+            
+            
+            <body name="rear_left_wheel_link" pos="-0.256 0.2854 0.03282">
+                <inertial pos="0 0 0" quat="0.5 0.5 -0.5 0.5" mass="200.637" diaginertia="0.04411 0.02467 0.02467" />
+                <geom type="mesh" contype="0" conaffinity="0" group="1" mesh="wheel" class="wheel"/>
+                <geom size="0.17 0.05" quat="0.707107 0.707106 0 0" type="cylinder" material="carbon" />
+                <joint name="rear_left_wheel_link_joint" pos="0 0 0" axis="0 1 0"  ref="3.14" />
+            </body>
+            
+            
+            <body name="rear_right_wheel_link" pos="-0.256 -0.2854 0.03282">
+                <inertial pos="0 0 0" quat="0.5 0.5 -0.5 0.5" mass="200.637" diaginertia="0.04411 0.02467 0.02467" />
+                <geom type="mesh" contype="0" conaffinity="0" group="1" mesh="wheel" class="wheel"/>
+                <geom size="0.17 0.05" quat="0.707107 0.707106 0 0" type="cylinder" material="carbon" />
+                <joint name="rear_right_wheel_link_joint" pos="0 0 0" axis="0 1 0"  ref="3.14" />
+            </body>
+
+            <!-- Jaco Arm -->
+            <include file="jaco2.xml"/>
+
+        </body>
+    </worldbody>
+
+     <actuator>
+        <!-- husky base position control -->
+		<motor name="front_left_wheel_link_joint_motor" joint="front_left_wheel_link_joint"/>
+        <motor name="front_right_wheel_link_joint_motor" joint="front_right_wheel_link_joint"/>
+        <motor name="rear_left_wheel_link_joint_motor" joint="rear_left_wheel_link_joint"/>
+        <motor name="rear_right_wheel_link_joint_motor" joint="rear_right_wheel_link_joint"/>
+		<!-- husky base velocity control -->
+		<!-- <velocity ctrllimited="true" ctrlrange="-0.01 0.01" joint="base_x_slide_joint" kp="3000" name="base_x_slide_joint" user="1" ></velocity> -->
+        <motor name="joint0_motor" joint="joint0"/>
+        <motor name="joint1_motor" joint="joint1"/>
+        <motor name="joint2_motor" joint="joint2"/>
+        <motor name="joint3_motor" joint="joint3"/>
+        <motor name="joint4_motor" joint="joint4"/>
+        <motor name="joint5_motor" joint="joint5"/>
+        <motor name="joint_thumb_motor" joint="joint_thumb"/>
+        <motor name="joint_index_motor" joint="joint_index"/>
+        <motor name="joint_pinky_motor" joint="joint_pinky"/>
+	</actuator>
+
+</mujoco>
