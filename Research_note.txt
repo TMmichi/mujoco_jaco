@@ -71,7 +71,7 @@ Note
                     - MCP (Peng, 2019)
                     - Options (Sutten, 1999)
                     If using LofD for primitives:
-                    - Learning Agile Robotic Locomotion Skills by Imitating Animals (2020)
+                    - Learning Agile Robotic Locomotion Skills by Imitating Animals (Peng, 2020)
             }
             2. {
                 Keywords: 
@@ -113,6 +113,26 @@ Note
                 Title: Plugging with sample-efficient policy by composing primitives
                 Goal: TBD
                 Motivation: TBD
+            }
+            6. {
+                Keywords: 
+                Title: 
+                Goal: Fully express the intention while doing a task by proper / mixture of methods
+                Motivation: 
+                Notes:
+                    - Feature Importance, Permutation:
+                        - Determine which feature is the most import one by randomly replacing values for each feature
+                        - Importance by error measurement
+                        - Cons: No direction, Scale independent, Feature independent
+                    - Partial Dependence Plots
+                        - Determine the most import feature by 'linearly' replacing values
+                        - Pros: Directions, Scale dependent
+                        - Cons: Computationally expensive
+                    - Global Surrogate
+                    - Local Interpretable Model-agnostic Explanations (LIME)
+                    - Shapley Additive exPlanations (SHAP)
+                    - Filter Visualization
+                    - Layer-wise Relevane Propagation (LRP)
             }
 
 
@@ -159,3 +179,20 @@ Note
             2. {
 
             }
+            6. {
+                XAI
+            }
+
+    
+    Conflicts:
+        1. {
+            Primitives - control variables can be differ wrt. tasks when using same hardware
+            (e.g. reaching tasks given position is redundant for balancing while walking
+                -> motion of arm is required, but not regarding the position of the hand, but to stabilize inertia by moving shoulder joint)
+            Task specific primitives:
+                Controlling arm when reaching / balancing [Q: uses different part of the brain -> and thus, should be trained separately.]
+        } 
+        -> Is our brain made out of cascading weight layers of neurons? -> then, by visualizi ng each weights to a series of layers can explain the intention of the AI
+        -> How does it incorporate external information to the existing layers of neurons?
+        Physical memory vs Simulated memory
+        
