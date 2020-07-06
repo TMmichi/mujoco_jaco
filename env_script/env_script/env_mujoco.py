@@ -45,7 +45,7 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
         if sys.platform in ['linux', 'linux2']:
             log_dir = "/home/ljh/Project/mujoco_jaco/logs"
         elif sys.platform == 'darwin':
-            log_dir = "/Users/jeonghoon/Google_drive/Workspace/MLCS/mujoco_jaco/src"
+            log_dir = "/Users/jeonghoon/Google_drive/Workspace/MLCS/mujoco_jaco"
         os.makedirs(log_dir, exist_ok=True)
         self.joint_angle_log = open(log_dir+"/log.txt", 'w')
 

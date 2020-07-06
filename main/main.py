@@ -49,8 +49,8 @@ class RL_controller:
             self.model_path = "/home/ljh/Project/mujoco_jaco/models_baseline/"
             self.tb_dir = "/home/ljh/Project/mujoco_jaco/tensorboard_log"
         elif sys.platform == "darwin":
-            self.model_path = "/Users/jeonghoon/Google_drive/Workspace/MLCS/mujoco_jaco/src/models_baseline/"
-            self.tb_dir = "/Users/jeonghoon/Google_drive/Workspace/MLCS/mujoco_jaco/src/tensorboard_log"
+            self.model_path = "/Users/jeonghoon/Google_drive/Workspace/MLCS/mujoco_jaco/models_baseline/"
+            self.tb_dir = "/Users/jeonghoon/Google_drive/Workspace/MLCS/mujoco_jaco/tensorboard_log"
         else:
             raise NotImplementedError
         args.model_path = self.model_path
@@ -92,6 +92,7 @@ class RL_controller:
         with self.sess:
             try:
                 self.trainer = SAC.load(self.model_path + model_dir, env=env)
+                quit()
                 self.trainer.learn(total_timesteps=self.num_timesteps)
                 print("Train Finished")
                 self.trainer.save(model_dir)
@@ -114,7 +115,7 @@ class RL_controller:
         with self.sess:
             try:
                 self.trainer = SAC.load(self.model_path + model_dir, env=env)
-                
+
             except Exception as e:
                 print(e)
 

@@ -1,0 +1,68 @@
+<mujoco model="jaco2_dual">
+    <compiler angle="radian" meshdir="meshes" balanceinertia="true"/>
+
+    <default>
+        <light castshadow="false" diffuse="1 1 1" />
+        <camera fovy="60" />
+    </default>
+
+    <custom>
+        <numeric name="START_ANGLES" data="2.0 3.14 1.57 4.71 0.0 3.04" />
+        <numeric name="N_GRIPPER_JOINTS" data="3" />
+        <text name="google_id" data="1doam-DgkW7OSPnwWZQM84edzX84ot-GK" />
+    </custom>
+
+    <asset>
+        <mesh file="link0.STL" />
+        <mesh file="link1.STL"/>
+        <mesh file="link2.STL"/>
+        <mesh file="link3.STL"/>
+        <mesh file="link4_5.STL"/>
+        <mesh file="hand_3finger.STL"/>
+        <mesh file="finger_distal.STL"/>
+        <mesh file="finger_proximal.STL"/>
+        <mesh file="ring_big.STL"/>
+        <mesh file="ring_big_joint0.stl"/>
+        <mesh file="ring_small.STL"/>
+
+        <texture name="floor_tile" file="meshes/floor_tile.png" width="3000" height="3000" type="2d"/>
+        <material name="tile" texture="floor_tile" specular="0" shininess="0" reflectance="0" emission="1" />
+
+        <material name="carbon" specular="1" shininess="1" reflectance="1" rgba="0.05 0.05 0.05 1" emission="1" />
+        <material name="grey_plastic" specular="0.5" shininess="0" reflectance="0" rgba="0.12 0.14 0.14 1" emission="1" />
+
+        <texture name="foam_blocks" file="meshes/foam_blocks.png" width="2744" height="2744" type="2d"/>
+        <material name="foam" texture="foam_blocks" specular="0" shininess="0" reflectance="0" emission="1" />
+    </asset>
+
+    <worldbody>
+        <geom name="floor_foam_block" pos="0 0 0" size="0.5 0.5 0.05" type="plane" rgba="1 0.83 0.61 1" material="foam"/>
+        <geom name="floor_grey_tile" pos="0 0 -0.001" size="0.75 0.75 0.05" type="plane" material="tile"/>
+    </worldbody>
+
+    <worldbody>
+        <include file="jaco2_ind_1.xml"/>
+        <include file="jaco2_ind_2.xml"/>
+    </worldbody>
+
+    <actuator>
+        <motor name="joint0_motor_1" joint="joint0_1"/>
+        <motor name="joint1_motor_1" joint="joint1_1"/>
+        <motor name="joint2_motor_1" joint="joint2_1"/>
+        <motor name="joint3_motor_1" joint="joint3_1"/>
+        <motor name="joint4_motor_1" joint="joint4_1"/>
+        <motor name="joint5_motor_1" joint="joint5_1"/>
+        <motor name="joint_thumb_motor_1" joint="joint_thumb_1"/>
+        <motor name="joint_index_motor_1" joint="joint_index_1"/>
+        <motor name="joint_pinky_motor_1" joint="joint_pinky_1"/>
+        <motor name="joint0_motor_2" joint="joint0_2"/>
+        <motor name="joint1_motor_2" joint="joint1_2"/>
+        <motor name="joint2_motor_2" joint="joint2_2"/>
+        <motor name="joint3_motor_2" joint="joint3_2"/>
+        <motor name="joint4_motor_2" joint="joint4_2"/>
+        <motor name="joint5_motor_2" joint="joint5_2"/>
+        <motor name="joint_thumb_motor_2" joint="joint_thumb_2"/>
+        <motor name="joint_index_motor_2" joint="joint_index_2"/>
+        <motor name="joint_pinky_motor_2" joint="joint_pinky_2"/>
+    </actuator>
+</mujoco>
