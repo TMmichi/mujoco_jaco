@@ -25,8 +25,6 @@ class JacoMujocoEnvUtil:
             xml_name = 'jaco2'+n_robot_postfix[self.n_robots-1]
         except Exception:
             raise NotImplementedError("\n\t\033[91m[ERROR]: xml_file of the given number of robots doesn't exist\033[0m")
-        xml_name = 'mobilejaco'
-        print(xml_name)
         self.jaco = MujocoConfig(xml_name,n_robots=self.n_robots)
         self.interface = Mujoco(self.jaco, dt=0.005)
         self.interface.connect()
@@ -328,9 +326,10 @@ if __name__ == "__main__":
             interface.send_forces([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])       
         target_pos = interface.get_xyz('EE') - interface.get_xyz('base_link')
         target_or = np.array([0, 0, 0], dtype=np.float16)
-        vel = 100
+        vel_left = 10
+        vel_right = 10
         for i in range(10):
-            vel *= -1
+            vel_left *= -1
             while True:
                 fb = interface.get_feedback()
                 u = ctr.generate(
@@ -341,7 +340,7 @@ if __name__ == "__main__":
                 a = interface.get_xyz('EE') - interface.get_xyz('base_link')
                 b = interface.get_orientation('EE')
                 # print(a)
-                interface.send_forces(np.hstack([[vel, vel, vel, vel], u, [0, 0, 0]]))
+                interface.send_forces(np.hstack([[vel_left, vel_right, vel_left, vel_right], u, [0, 0, 0]]))
                 if np.linalg.norm(a[:] - target_pos[:]) < 0.01:
                     print("Reached")
                     break
