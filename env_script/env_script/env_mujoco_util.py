@@ -18,26 +18,26 @@ if __name__ != "__main__":
 
 class JacoMujocoEnvUtil:
     def __init__(self, controller=True, **kwargs):
-        n_robot_postfix = ['','_dual','_tri']
+        n_robot_postfix = ['', '_dual', '_tri']
         ### ------------  MODEL CONFIGURATION  ------------ ###
         self.n_robots = 1
         try:
             xml_name = 'jaco2'+n_robot_postfix[self.n_robots-1]
         except Exception:
             raise NotImplementedError("\n\t\033[91m[ERROR]: xml_file of the given number of robots doesn't exist\033[0m")
-        self.jaco = MujocoConfig(xml_name,n_robots=self.n_robots)
+        self.jaco = MujocoConfig(xml_name, n_robots=self.n_robots)
         self.interface = Mujoco(self.jaco, dt=0.005)
         self.interface.connect()
         self.ctrl_type = self.jaco.ctrl_type
-        self.base_position = self._get_property('link1','position')
+        self.base_position = self._get_property('link1', 'position')
 
         ### ------------  CONTROLLER SETUP  ------------ ###
         self.controller = controller
         if self.controller:
-            self.ctr = OSC(self.jaco, kp=50, ko=180, kv=20, vmax=[0.2,0.5236], ctrlr_dof=[
-                       True, True, True, True, True, True])
+            self.ctr = OSC(self.jaco, kp=50, ko=180, kv=20, vmax=[0.2, 0.5236], ctrlr_dof=[
+                True, True, True, True, True, True])
             self.target_pos = self._reset()
-        else: 
+        else:
             _ = self._reset()
 
         ### ------------  STATE GENERATION  ------------ ###
@@ -65,7 +65,6 @@ class JacoMujocoEnvUtil:
             self.reward_method = None
             self.reward_module = None
 
-
     def _step_simulation(self):
         fb = self.interface.get_feedback()
         self.current_jointstate_1 = fb['q']
@@ -79,14 +78,14 @@ class JacoMujocoEnvUtil:
                 self.interface.send_signal(np.hstack([fb['q'], self.target_signal, [0, 0, 0]]))
             elif self.ctrl_type == "position":
                 self.interface.send_signal(np.hstack([fb['q'] + self.target_signal, fb['dq'], [0, 0, 0]]))
-    
+
     def _controller_generate(self, fb):
         return self.ctr.generate(
             q=fb['q'],
             dq=fb['dq'],
             target=self.target_pos
         )
-    
+
     def _reset(self, target_angle=None):
         self.num_episodes = 0
         self.gripper_angle_1 = 0.35
@@ -104,13 +103,13 @@ class JacoMujocoEnvUtil:
         self.interface.set_joint_state(random_init_angle, [0]*6*self.n_robots)
         for _ in range(3):
             fb = self.interface.get_feedback()
-            self.target_pos=np.hstack([[-0.25, 0, -0.15, 0, 0, 0]*self.n_robots])
+            self.target_pos = np.hstack([[-0.25, 0, -0.15, 0, 0, 0]*self.n_robots])
             _ = self._controller_generate(fb)
             self.interface.send_forces([0]*9*self.n_robots)
         self.current_jointstate = fb['q']
         self.goal = self._sample_goal()
         obs = self._get_observation()
-        #TODO: additional term for dist_diff
+        # TODO: additional term for dist_diff
         dist_diff = np.linalg.norm(obs[0][:3] - self.goal[0])
         self.ref_reward = (3 - dist_diff * 1.3)
         return obs[0]
@@ -118,10 +117,10 @@ class JacoMujocoEnvUtil:
     def _get_observation(self):
         test = True  # TODO: Remove test
         if test:
-            self.gripper_pose = self._get_property('hand','pose')
+            self.gripper_pose = self._get_property('EE', 'pose')
             observation = []
             for i in range(self.n_robots):
-                observation.append(self.gripper_pose[i] - np.hstack([self.goal[i],[0,0,0]]))
+                observation.append(self.gripper_pose[i] - np.hstack([self.goal[i], [0, 0, 0]]))
         else:
             data_from_callback = []
             observation = self.state_gen.generate(data_from_callback)
@@ -145,16 +144,17 @@ class JacoMujocoEnvUtil:
     def _sample_goal(self):
         goal = []
         for _ in range(self.n_robots):
-            target_pos = [uniform(0.25, 0.35) * sample([-1, 1], 1)[0]
-                        for i in range(2)] + [uniform(0.1, 0.4)]
-            goal.append(target_pos)
+            goal_pos = [uniform(0.25, 0.35) * sample([-1, 1], 1)[0]
+                          for i in range(2)] + [uniform(0.1, 0.4)]
+            goal.append(goal_pos)
+            self.interface.set_mocap_xyz("target", goal_pos[:3])
         # TODO: Target pose -> make object in Mujoco
         return np.array(goal)
 
     def _get_terminal_inspection(self):
         self.num_episodes += 1
         dist_diff = np.linalg.norm(self.gripper_pose[0][:3] - self.goal[0])
-        wb = np.linalg.norm(self._get_property('hand','position')[0] - self.base_position[0])
+        wb = np.linalg.norm(self._get_property('EE', 'position')[0] - self.base_position[0])
         if pi - 0.1 < self.interface.get_feedback()['q'][2] < pi + 0.1:
             print("\033[91m \nUn wanted joint angle - possible singular state \033[0m")
             return True, -5, wb
@@ -174,7 +174,10 @@ class JacoMujocoEnvUtil:
         if self.controller:
             # NOTE
             # Action: Gripper Pose Increments (m,rad)
-            self.target_pos = self.gripper_pose[0] + np.hstack([a[:3]/100,a[3:]/20])
+            self.target_pos = self.gripper_pose[0] + np.hstack([a[:3]/100, a[3:]/20])
+            self.interface.set_mocap_xyz("hand", self.target_pos[:3])
+            self.interface.set_mocap_orientation("hand", transformations.quaternion_from_euler(
+                self.target_pos[3], self.target_pos[4], self.target_pos[5], axes="rxyz"))
         else:
             # NOTE
             # If Position: Joint Angle Increments (rad)
@@ -195,25 +198,26 @@ class JacoMujocoEnvUtil:
             elif prop == 'orientation':
                 if self.n_robots == 1:
                     orientation_quat = self.interface.get_orientation(subject)
-                    out.append(transformations.euler_from_quaternion(orientation_quat,'rxyz'))
+                    out.append(transformations.euler_from_quaternion(
+                        orientation_quat, 'rxyz'))
                 else:
                     prefix = "_"+str(i+1)
                     orientation_quat = self.interface.get_orientation(subject+prefix)
-                    out.append(transformations.euler_from_quaternion(orientation_quat,'rxyz'))
+                    out.append(transformations.euler_from_quaternion(orientation_quat, 'rxyz'))
                 return np.copy(out)
             elif prop == 'pose':
                 if self.n_robots == 1:
                     pos = self.interface.get_xyz(subject)
                     orientation_quat = self.interface.get_orientation(subject)
-                    ori = transformations.euler_from_quaternion(orientation_quat,'rxyz')
-                    pose = np.append(pos,ori)
+                    ori = transformations.euler_from_quaternion(orientation_quat, 'rxyz')
+                    pose = np.append(pos, ori)
                     out.append(pose)
                 else:
                     prefix = "_"+str(i+1)
                     pos = self.interface.get_xyz(subject+prefix)
                     orientation_quat = self.interface.get_orientation(subject+prefix)
-                    ori = transformations.euler_from_quaternion(orientation_quat,'rxyz')
-                    pose = np.append(pos,ori)
+                    ori = transformations.euler_from_quaternion(orientation_quat, 'rxyz')
+                    pose = np.append(pos, ori)
                     out.append(pose)
                 return np.copy(out)
 
@@ -234,7 +238,6 @@ if __name__ == "__main__":
     from abr_control.controllers import OSC
     from abr_control.utils import transformations
 
-
     mobile = True
     if not mobile:
         pos = True
@@ -247,7 +250,7 @@ if __name__ == "__main__":
         #jaco = MujocoConfig('jaco2')
         interface = Mujoco(jaco, dt=0.005)
         interface.connect()
-        
+
         if controller:
             ctr = OSC(jaco, kp=2, ctrlr_dof=[True, True, True, True, True, True])
             interface.set_joint_state([1, 2, 1, 1, 1, 1], [0, 0, 0, 0, 0, 0])
@@ -259,8 +262,8 @@ if __name__ == "__main__":
                     target=np.hstack([0, 0, -0.15, 0, 0, 0])
                 )
                 interface.send_forces([0, 0, 0, 0, 0, 0, 0, 0, 0])
-            print(interface.get_xyz('hand'))
-            target_pos = interface.get_xyz('hand')
+            print(interface.get_xyz('EE'))
+            target_pos = interface.get_xyz('EE')
             target_or = np.array([0, 0, 0], dtype=np.float16)
             for _ in range(10):
                 while True:
@@ -270,8 +273,8 @@ if __name__ == "__main__":
                         dq=fb['dq'],
                         target=np.hstack([target_pos, target_or])
                     )
-                    a = interface.get_xyz('hand')
-                    b = interface.get_orientation('hand')
+                    a = interface.get_xyz('EE')
+                    b = interface.get_orientation('EE')
                     # print(a)1
                     interface.send_forces(np.hstack([u, [0, 0, 0]]))
                     if np.linalg.norm(a[:] - target_pos[:]) < 0.01:
@@ -291,7 +294,7 @@ if __name__ == "__main__":
                 while True:
                     fb_pos = interface.get_feedback()
                     interface.send_signal(np.hstack([fb_pos['q'], fb['dq'], [0, 0, 0]]))
-                    if mod == False:    
+                    if mod == False:
                         fb_new += np.array(interface.get_feedback()['dq'])
                         print(fb_new/2)
                     else:
@@ -308,7 +311,7 @@ if __name__ == "__main__":
                     if np.linalg.norm(fb['q'] - interface.get_feedback()['q']) < 0.1:
                         print(iter * 0.005)
                         break
-                        #print(interface.get_feedback()['q'])
+                        # print(interface.get_feedback()['q'])
 
     else:
         jaco = MujocoConfig('mobilejaco')
@@ -323,7 +326,7 @@ if __name__ == "__main__":
                 dq=fb['dq'],
                 target=np.hstack([0, 0, -0.15, 0, 0, 0])
             )
-            interface.send_forces([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])       
+            interface.send_forces([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
         target_pos = interface.get_xyz('EE') - interface.get_xyz('base_link')
         target_or = np.array([0, 0, 0], dtype=np.float16)
         vel_left = 10

@@ -42,8 +42,9 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
         self.seed()
 
         ### ------------  LOGGING  ------------ ###
-        log_dir = kwargs['log_dir']
-        self.joint_angle_log = open(log_dir+"/training_log.txt", 'w')
+        if kwargs['train']:
+            log_dir = kwargs['log_dir']
+            self.joint_angle_log = open(log_dir+"/training_log.txt", 'w')
 
 
     def reset(self):

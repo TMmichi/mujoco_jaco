@@ -42,15 +42,15 @@
 
         <!-- control visualizations -->
         <body name="hand" pos="0 0 -0.15" mocap="true">
-            <geom type="box" size=".002 .004 .006" rgba="0 .9 0 .5" contype="2" conaffinity="2"/>
+            <geom type="box" size=".01 .02.03" rgba="0 .9 0 .5" contype="2" conaffinity="2"/>
         </body>
 
         <body name="target" pos="0 0 -0.15" mocap="true">
-            <geom name="target" type="sphere" size="0.05" rgba=".9 0 0 .5" contype="4" conaffinity="4"/>
+            <geom name="target" type="sphere" size="0.025" rgba=".9 0 0 .5" contype="4" conaffinity="4"/>
         </body>
 
         <body name="target_orientation" pos="0 0 -0.15" mocap="true">
-            <geom type="box" size=".02 .04 .06" rgba=".9 0 0 .5" contype="8" conaffinity="8"/>
+            <geom type="box" size=".01 .02 .03" rgba=".9 0 0 .5" contype="8" conaffinity="8"/>
         </body>
 
         <body name="path_planner" pos="0 0 -0.15" mocap="true">

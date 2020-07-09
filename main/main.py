@@ -63,6 +63,7 @@ class RL_controller:
 
     def train_from_scratch(self):
         print("Training from scratch called")
+        self.args.train = True
         prefix = "trained_at_" + str(time.localtime().tm_year) + "_" + str(time.localtime().tm_mon) + "_" + str(
                 time.localtime().tm_mday) + "_" + str(time.localtime().tm_hour) + ":" + str(time.localtime().tm_min)
         model_dir = self.model_path + prefix
@@ -72,7 +73,7 @@ class RL_controller:
         self.num_timesteps = self.steps_per_batch * self.batches_per_episodes * self.num_episodes
         # self.trainer = TRPO(MlpPolicy, self.env, cg_damping=0.1, vf_iters=5, vf_stepsize=1e-3, timesteps_per_batch=self.steps_per_batch,
         #                    tensorboard_log=args.tb_dir, full_tensorboard_log=True)
-        layers = {"policy": [32, 32], "value": [128, 128, 64]}
+        layers = {"policy": [32, 32], "value": [128, 128]}
         env = JacoMujocoEnv(**vars(self.args))
         self.trainer = SAC(
             LnMlpPolicy_sac, env, layers=layers, tensorboard_log=tb_path, full_tensorboard_log=True)
@@ -107,6 +108,7 @@ class RL_controller:
         model_log.writelines("Total number of episodes:\t{0}\n".format(self.steps_per_batch * self.batches_per_episodes * self.num_episodes))
     
     def train_continue(self, model_dir):
+        self.args.train = True
         env = JacoMujocoEnv(**vars(self.args))
         self.num_timesteps = self.steps_per_batch * self.batches_per_episodes * self.num_episodes 
         with self.sess:
@@ -121,6 +123,8 @@ class RL_controller:
 
     def train_from_expert(self, n_episodes=10):
         print("Training from expert called")
+        self.args.train = True
+
         env = JacoMujocoEnv(**vars(self.args))
         generate_expert_traj(self._expert, 'expert_traj',
                              env, n_episodes=n_episodes)
@@ -130,6 +134,8 @@ class RL_controller:
         return action
 
     def train_with_additional_layer(self, mode_dir):
+        self.args.train = True
+
         env = JacoMujocoEnv(**vars(self.args))
         concat_layer = []
         with self.sess:
@@ -139,11 +145,11 @@ class RL_controller:
             except Exception as e:
                 print(e)
 
-    def test(self):
+    def test(self, policy):
         print("Testing called")
+        self.args.train = False
         self.env = JacoMujocoEnv(**vars(self.args))
-        model_name = str(1) + ".zip"
-        model_dir = self.model_path + model_name
+        model_dir = self.model_path + policy + "/policy.zip"
         test_iter = 100
         with self.sess:
             self.model = SAC.load(model_dir)
@@ -190,7 +196,8 @@ if __name__ == "__main__":
                         break
             break
         elif opt == "2":
-            controller.test()
+            policy = input("Enter trained policy: ")
+            controller.test(policy)
             break
         elif opt == "3":
             controller.generate()
