@@ -29,7 +29,7 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
             self.state_shape = kwargs['stateGen'].get_state_shape()
         except Exception:
             self.state_shape = [6]
-        self.obs_max = 2
+        self.obs_max = 4
         obs = np.array([self.obs_max]*self.state_shape[0])
         self.observation_space = spaces.Box(-obs, obs)
         self.prev_obs = [0,0,0,0,0,0]
