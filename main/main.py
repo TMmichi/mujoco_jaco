@@ -14,8 +14,8 @@ from stable_baselines.sac.policies import MlpPolicy as MlpPolicy_sac, LnMlpPolic
 from stable_baselines.gail import generate_expert_traj
 from env_script.env_mujoco import JacoMujocoEnv
 from state_gen.state_generator import State_generator
+#from reward_module.reward_module import *
 
-#from env.env_real import Real
 from argparser import ArgParser
 
 
@@ -61,6 +61,7 @@ class RL_controller:
         self.num_episodes = 10000
         self.args = args
 
+
     def train_from_scratch(self):
         print("Training from scratch called")
         self.args.train = True
@@ -73,17 +74,17 @@ class RL_controller:
         self.num_timesteps = self.steps_per_batch * self.batches_per_episodes * self.num_episodes
         # self.trainer = TRPO(MlpPolicy, self.env, cg_damping=0.1, vf_iters=5, vf_stepsize=1e-3, timesteps_per_batch=self.steps_per_batch,
         #                    tensorboard_log=args.tb_dir, full_tensorboard_log=True)
-        layers = {"policy": [32, 32], "value": [128, 128]}
+        layers = {"policy": [32, 32], "value": [128, 128, 64]}
         env = JacoMujocoEnv(**vars(self.args))
         self.trainer = SAC(
             LnMlpPolicy_sac, env, layers=layers, tensorboard_log=tb_path, full_tensorboard_log=True)
         with self.sess:
             print("\033[91mTraining\033[0m")
+            model_log = open(model_dir+"/model_log.txt", 'w')
+            self._write_log(model_log, layers)
             self.trainer.learn(total_timesteps=self.num_timesteps)
             print("\033[91mTrain Finished\033[0m")
             self.trainer.save(model_dir+"/policy")
-            model_log = open(model_dir+"/model_log.txt", 'w')
-            self._write_log(model_log, layers)
     
     def _write_log(self, model_log, layers):
         model_log.writelines("Layers:\n")

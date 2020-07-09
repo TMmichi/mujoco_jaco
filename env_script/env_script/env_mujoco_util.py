@@ -29,7 +29,7 @@ class JacoMujocoEnvUtil:
         self.interface = Mujoco(self.jaco, dt=0.005)
         self.interface.connect()
         self.ctrl_type = self.jaco.ctrl_type
-        self.base_position = self._get_property('link1', 'position')
+        self.base_position = self.__get_property('link1', 'position')
 
         ### ------------  CONTROLLER SETUP  ------------ ###
         self.controller = controller
@@ -56,7 +56,7 @@ class JacoMujocoEnvUtil:
         self.data_buff_temp = [0, 0, 0]
 
         ### ------------  REWARD  ------------ ###
-        self.goal = self._sample_goal()
+        self.goal = self.__sample_goal()
         self.num_episodes = 0
         try:
             self.reward_method = kwargs['reward_method']
@@ -65,11 +65,12 @@ class JacoMujocoEnvUtil:
             self.reward_method = None
             self.reward_module = None
 
+
     def _step_simulation(self):
         fb = self.interface.get_feedback()
         self.current_jointstate_1 = fb['q']
         if self.controller:
-            u = self._controller_generate(fb)
+            u = self.__controller_generate(fb)
             self.interface.send_forces(np.hstack([u, [0, 0, 0]]))
         else:
             if self.ctrl_type == "torque":
@@ -79,7 +80,7 @@ class JacoMujocoEnvUtil:
             elif self.ctrl_type == "position":
                 self.interface.send_signal(np.hstack([fb['q'] + self.target_signal, fb['dq'], [0, 0, 0]]))
 
-    def _controller_generate(self, fb):
+    def __controller_generate(self, fb):
         return self.ctr.generate(
             q=fb['q'],
             dq=fb['dq'],
@@ -104,10 +105,10 @@ class JacoMujocoEnvUtil:
         for _ in range(3):
             fb = self.interface.get_feedback()
             self.target_pos = np.hstack([[-0.25, 0, -0.15, 0, 0, 0]*self.n_robots])
-            _ = self._controller_generate(fb)
+            _ = self.__controller_generate(fb)
             self.interface.send_forces([0]*9*self.n_robots)
         self.current_jointstate = fb['q']
-        self.goal = self._sample_goal()
+        self.goal = self.__sample_goal()
         obs = self._get_observation()
         # TODO: additional term for dist_diff
         dist_diff = np.linalg.norm(obs[0][:3] - self.goal[0])
@@ -117,7 +118,7 @@ class JacoMujocoEnvUtil:
     def _get_observation(self):
         test = True  # TODO: Remove test
         if test:
-            self.gripper_pose = self._get_property('EE', 'pose')
+            self.gripper_pose = self.__get_property('EE', 'pose')
             observation = []
             for i in range(self.n_robots):
                 observation.append(self.gripper_pose[i] - np.hstack([self.goal[i], [0, 0, 0]]))
@@ -141,7 +142,7 @@ class JacoMujocoEnvUtil:
             print("\033[31mConstant Reward. SHOULD BE FIXED\033[0m")
             return 30
 
-    def _sample_goal(self):
+    def __sample_goal(self):
         goal = []
         for _ in range(self.n_robots):
             goal_pos = [uniform(0.25, 0.35) * sample([-1, 1], 1)[0]
@@ -154,7 +155,7 @@ class JacoMujocoEnvUtil:
     def _get_terminal_inspection(self):
         self.num_episodes += 1
         dist_diff = np.linalg.norm(self.gripper_pose[0][:3] - self.goal[0])
-        wb = np.linalg.norm(self._get_property('EE', 'position')[0] - self.base_position[0])
+        wb = np.linalg.norm(self.__get_property('EE', 'position')[0] - self.base_position[0])
         if pi - 0.1 < self.interface.get_feedback()['q'][2] < pi + 0.1:
             print("\033[91m \nUn wanted joint angle - possible singular state \033[0m")
             return True, -5, wb
@@ -185,7 +186,7 @@ class JacoMujocoEnvUtil:
             # If Torque: Joint Torque (Nm)
             self.target_signal = a
 
-    def _get_property(self, subject, prop):
+    def __get_property(self, subject, prop):
         out = []
         for i in range(self.n_robots):
             if prop == 'position':
