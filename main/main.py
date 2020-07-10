@@ -114,7 +114,7 @@ class RL_controller:
         self.num_timesteps = self.steps_per_batch * self.batches_per_episodes * self.num_episodes 
         with self.sess:
             try:
-                self.trainer = SAC.load(self.model_path + model_dir, env=env)
+                self.trainer = SAC.load(self.model_path + model_dir + "/policy.zip", env=env)
                 print(self.trainer)
                 quit()
                 self.trainer.learn(total_timesteps=self.num_timesteps)
@@ -182,7 +182,7 @@ if __name__ == "__main__":
                     break
                 elif opt2 == "2":
                     model_dir = input("Enter model name: ")
-                    controller.train_continue(model_dir+".zip")
+                    controller.train_continue(model_dir)
                     break
                 elif opt2 == "3":
                     n_episodes = int(
