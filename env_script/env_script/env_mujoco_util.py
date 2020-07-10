@@ -26,7 +26,7 @@ class JacoMujocoEnvUtil:
         except Exception:
             raise NotImplementedError("\n\t\033[91m[ERROR]: xml_file of the given number of robots doesn't exist\033[0m")
         self.jaco = MujocoConfig(xml_name, n_robots=self.n_robots)
-        self.interface = Mujoco(self.jaco, dt=0.005)
+        self.interface = Mujoco(self.jaco, dt=0.005, visualize=False)
         self.interface.connect()
         self.ctrl_type = self.jaco.ctrl_type
         self.base_position = self.__get_property('link1', 'position')
