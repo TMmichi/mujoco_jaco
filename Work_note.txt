@@ -29,7 +29,6 @@ SAC policies
     (
         layers: layers
         policy: LnMlpPolicy(FeedForwardPolicy(SACPolicy(BasePolicy)))
-
     )
 
     policy

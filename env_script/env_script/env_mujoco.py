@@ -29,16 +29,16 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
             self.state_shape = kwargs['stateGen'].get_state_shape()
         except Exception:
             self.state_shape = [6]
-        self.obs_max = 2
+        self.obs_max = 4
         obs = np.array([self.obs_max]*self.state_shape[0])
-        self.observation_space = spaces.Box(-obs, obs)
+        self.observation_space = spaces.Box(-obs, obs, dtype=np.float32)
         self.prev_obs = [0,0,0,0,0,0]
         # 0.007 (m) -> multiplied by factor of 2, will later be divided into 2 @ step
         self.action_space_max = 0.7 * 2
         # unit action (1) from the policy = 0.5 (cm) in real world
         # x,y,z,r,p,y, finger {1,2}, finger 3
         act = np.array([self.action_space_max]*6)
-        self.action_space = spaces.Box(-act, act)  # Action space: [-1.4, 1.4]
+        self.action_space = spaces.Box(-act, act, dtype=np.float32)  # Action space: [-1.4, 1.4]
         self.seed()
 
         ### ------------  LOGGING  ------------ ###
