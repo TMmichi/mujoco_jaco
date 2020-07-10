@@ -42,7 +42,7 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
         self.seed()
 
         ### ------------  LOGGING  ------------ ###
-        if kwargs['train']:
+        if kwargs['train_log']:
             log_dir = kwargs['log_dir']
             self.joint_angle_log = open(log_dir+"/training_log.txt", 'w')
 
