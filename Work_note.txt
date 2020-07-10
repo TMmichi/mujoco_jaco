@@ -23,32 +23,85 @@ Mobile robot + jaco
             <actuator> tendons-joints
 }
 
+SAC policies
+{
+    SAC(OffPolicyRLModel(BaseRLModel))
+    (
+        layers: layers
+        policy: LnMlpPolicy(FeedForwardPolicy(SACPolicy(BasePolicy)))
+
+    )
+
+    policy
+        if not deterministic:
+            mu = dense(mlp(flatten(obs_ph),layer_structure),ac_space)
+            std = exp(clip(dense(mlp(flatten(obs_ph),layer_structure),ac_space),min=-20,max=2))
+            policy = tanh(mu + normal*std)
+        else:
+            mu = dense(mlp(flatten(obs_ph),layer_structure),ac_space)
+            policy = mu
+}
+
+
 aux network + fine tuning
 {
-    model.set_env(env)
-        compare env.action_space and policy_list action_space
-        compare obs space
+    M. total layer structure def required.
+    {
+        1. def structure of aux networks by dict
+        e.g: layers = {}
+                layers['weight1'] = [256, 256]
+                layers['weight2'] = [128, 256, 128]
+                layers['aux1'] = [128, 128, 64]
+                layers['aux2'] = [128, 128]
+
+        2. stack layers by task-specific str (structure of each prims are pre-defined/pre-trained)
+        e.g: 
+            [['weight1','weight2'],['reaching','mobile','grasping', 'aux1', 'aux2']]
+            total network:
+                                        weight1     weight2
+                                    reach mob grasp aux1  aux2
+
+        3. should recognize the structure for each primitives
+
+    }
+    M. temp param ops buffer for primitives required.
+
+    M. Action space btw auxilaries and primitives should be correlated somehow
+    {
+        1. task-specific auxilary:
+    }
+    M. Mixture density network of each composite primitives
+    {
+
+    }
+
+    (for SAC or other algos)
+    SAC.load(model_path) + M. total_policy_structure + M. temp_param_load_ops_buffer for all primitives
+        model = cls(policy=data["policy"], env=None, _init_setup_model=False) + M. layer structure
+
+        model.set_env(env)
+            compare env.action_space and policy_list action_space
+            compare obs space
 
 
-    model.setup_model() -> model structure setup
-        initialize tf.Graph()
-        variable_scope: make_actor / make_critics (task specific)
+        model.setup_model() -> model structure setup
+            initialize tf.Graph()
+            variable_scope: make_actor / make_critics (task specific)
+
+
+        load_parameters in base_class -> exact_match=False
+        model.load_parameters(params -> policy.zip)
+            BaseRLModel._setup_load_operations()
+                loadable_params = SAC.get_parameter_list()
+                    (loadable_params -> [tf.Variable(name, shape, dtype)]) = self.params + self.target_params (Q. self.params, self.target_params -> from where? A. from setup_model())
+                placeholder = tf.ph(param.dype, param.shape)
+                (self._param_load_ops -> OrderedDict()) = map(loadable_params.name, loadable_params.assign(placeholder)) : for each params by name, (ph, tf.Variable.assign(ph))
+                # self._param_load_ops: dict of param names with ph, tf.variable(ph)
+            for each param: sess.run of variable.assign(ph) with dict = {ph: each value}
         
+        Q: model structure? A: Maybe from somewhere else which have defined self.params/target_params
 
-
-
-    load_parameters in base_class -> exact_match=False
-    model.load_parameters(params -> policy.zip)
-        BaseRLModel._setup_load_operations()
-            loadable_params = SAC.get_parameter_list()
-                (loadable_params -> [tf.Variable(name, shape, dtype)]) = self.params + self.target_params (Q. self.params, self.target_params -> from where?)
-            placeholder = tf.ph(param.dype, param.shape)
-            (self._param_load_ops -> OrderedDict()) = map(loadable_params.name, loadable_params.assign(placeholder)) : for each params by name, (ph, tf.Variable.assign(ph))
-            # self._param_load_ops: dict of param names with ph, tf.variable(ph)
-        for each param: sess.run of variable.assign(ph) with dict = {ph: each value}
-    
-    Q: model structure? A: Maybe from somewhere else which have defined self.params/target_params
-
+    M. standard deviation @ predict -> should be alive : deterministic = False
 
 }
     

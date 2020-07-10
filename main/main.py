@@ -82,6 +82,7 @@ class RL_controller:
             print("\033[91mTraining\033[0m")
             model_log = open(model_dir+"/model_log.txt", 'w')
             self._write_log(model_log, layers)
+            model_log.close()
             self.trainer.learn(total_timesteps=self.num_timesteps)
             print("\033[91mTrain Finished\033[0m")
             self.trainer.save(model_dir+"/policy")
@@ -102,8 +103,8 @@ class RL_controller:
                 model_log.write(", ")
             else:
                 model_log.writelines("]\n")
-        model_log.writelines("Reward Method:\t\t{0}\n".format(self.reward_method))
-        model_log.writelines("Steps per batch:\t\t{0}\n".format(self.steps_per_batch))
+        model_log.writelines("Reward Method:\t\t\t\t{0}\n".format(self.reward_method))
+        model_log.writelines("Steps per batch:\t\t\t{0}\n".format(self.steps_per_batch))
         model_log.writelines("Batches per episodes:\t\t{0}\n".format(self.batches_per_episodes))
         model_log.writelines("Numbers of episodes:\t\t{0}\n".format(self.num_episodes))
         model_log.writelines("Total number of episodes:\t{0}\n".format(self.steps_per_batch * self.batches_per_episodes * self.num_episodes))
@@ -114,7 +115,8 @@ class RL_controller:
         self.num_timesteps = self.steps_per_batch * self.batches_per_episodes * self.num_episodes 
         with self.sess:
             try:
-                self.trainer = SAC.load(self.model_path + model_dir + "/policy.zip", env=env)
+                self.trainer = SAC_MULTI.load(self.model_path + model_dir + "/policy.zip", env=env)
+                #self.trainer = SAC.load(self.model_path + model_dir + "/policy.zip", env=env)
                 print(self.trainer)
                 quit()
                 self.trainer.learn(total_timesteps=self.num_timesteps)
