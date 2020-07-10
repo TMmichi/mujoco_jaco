@@ -14,4 +14,4 @@ tensorboard_log
 .history/
 
 *.pyc
-*/training_log.txt
+models_baseline/*/training_log.txt
