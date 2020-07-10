@@ -64,7 +64,7 @@ class RL_controller:
 
     def train_from_scratch(self):
         print("Training from scratch called")
-        self.args.train = True
+        self.args.train_log = True
         prefix = "trained_at_" + str(time.localtime().tm_year) + "_" + str(time.localtime().tm_mon) + "_" + str(
                 time.localtime().tm_mday) + "_" + str(time.localtime().tm_hour) + ":" + str(time.localtime().tm_min)
         model_dir = self.model_path + prefix
@@ -102,19 +102,20 @@ class RL_controller:
                 model_log.write(", ")
             else:
                 model_log.writelines("]\n")
-        model_log.writelines("Reward Method:\t{0}\n".format(self.reward_method))
-        model_log.writelines("Steps per batch:\t{0}\n".format(self.steps_per_batch))
-        model_log.writelines("Batches per episodes:\t{0}\n".format(self.batches_per_episodes))
-        model_log.writelines("Numbers of episodes:\t{0}\n".format(self.num_episodes))
+        model_log.writelines("Reward Method:\t\t{0}\n".format(self.reward_method))
+        model_log.writelines("Steps per batch:\t\t{0}\n".format(self.steps_per_batch))
+        model_log.writelines("Batches per episodes:\t\t{0}\n".format(self.batches_per_episodes))
+        model_log.writelines("Numbers of episodes:\t\t{0}\n".format(self.num_episodes))
         model_log.writelines("Total number of episodes:\t{0}\n".format(self.steps_per_batch * self.batches_per_episodes * self.num_episodes))
     
     def train_continue(self, model_dir):
-        self.args.train = True
+        self.args.train_log = False
         env = JacoMujocoEnv(**vars(self.args))
         self.num_timesteps = self.steps_per_batch * self.batches_per_episodes * self.num_episodes 
         with self.sess:
             try:
                 self.trainer = SAC.load(self.model_path + model_dir, env=env)
+                print(self.trainer)
                 quit()
                 self.trainer.learn(total_timesteps=self.num_timesteps)
                 print("Train Finished")
@@ -124,7 +125,7 @@ class RL_controller:
 
     def train_from_expert(self, n_episodes=10):
         print("Training from expert called")
-        self.args.train = True
+        self.args.train_log = False
 
         env = JacoMujocoEnv(**vars(self.args))
         generate_expert_traj(self._expert, 'expert_traj',
@@ -135,7 +136,7 @@ class RL_controller:
         return action
 
     def train_with_additional_layer(self, mode_dir):
-        self.args.train = True
+        self.args.train_log = False
 
         env = JacoMujocoEnv(**vars(self.args))
         concat_layer = []
@@ -148,7 +149,7 @@ class RL_controller:
 
     def test(self, policy):
         print("Testing called")
-        self.args.train = False
+        self.args.train_log = False
         self.env = JacoMujocoEnv(**vars(self.args))
         model_dir = self.model_path + policy + "/policy.zip"
         test_iter = 100

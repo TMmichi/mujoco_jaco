@@ -25,6 +25,30 @@ Mobile robot + jaco
 
 aux network + fine tuning
 {
+    model.set_env(env)
+        compare env.action_space and policy_list action_space
+        compare obs space
+
+
+    model.setup_model() -> model structure setup
+        initialize tf.Graph()
+        variable_scope: make_actor / make_critics (task specific)
+        
+
+
+
+    load_parameters in base_class -> exact_match=False
+    model.load_parameters(params -> policy.zip)
+        BaseRLModel._setup_load_operations()
+            loadable_params = SAC.get_parameter_list()
+                (loadable_params -> [tf.Variable(name, shape, dtype)]) = self.params + self.target_params (Q. self.params, self.target_params -> from where?)
+            placeholder = tf.ph(param.dype, param.shape)
+            (self._param_load_ops -> OrderedDict()) = map(loadable_params.name, loadable_params.assign(placeholder)) : for each params by name, (ph, tf.Variable.assign(ph))
+            # self._param_load_ops: dict of param names with ph, tf.variable(ph)
+        for each param: sess.run of variable.assign(ph) with dict = {ph: each value}
     
+    Q: model structure? A: Maybe from somewhere else which have defined self.params/target_params
+
+
 }
     
