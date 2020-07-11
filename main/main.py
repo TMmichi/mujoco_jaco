@@ -58,7 +58,7 @@ class RL_controller:
         self.batches_per_episodes = 5
         args.steps_per_batch = self.steps_per_batch
         args.batches_per_episodes = self.batches_per_episodes
-        self.num_episodes = 10000
+        self.num_episodes = 1
         self.args = args
 
 
@@ -74,10 +74,14 @@ class RL_controller:
         self.num_timesteps = self.steps_per_batch * self.batches_per_episodes * self.num_episodes
         # self.trainer = TRPO(MlpPolicy, self.env, cg_damping=0.1, vf_iters=5, vf_stepsize=1e-3, timesteps_per_batch=self.steps_per_batch,
         #                    tensorboard_log=args.tb_dir, full_tensorboard_log=True)
-        layers = {"policy": [32, 32], "value": [128, 128, 64]}
+        layers = {"policy": [32, 32, 16], "value": [128, 128, 64]}
         env = JacoMujocoEnv(**vars(self.args))
+
+        # NOTE: Layer Normalization for RNNs, but for just fc..?
+        #self.trainer = SAC(
+        #    LnMlpPolicy_sac, env, layers=layers, tensorboard_log=tb_path, full_tensorboard_log=True)
         self.trainer = SAC(
-            LnMlpPolicy_sac, env, layers=layers, tensorboard_log=tb_path, full_tensorboard_log=True)
+            MlpPolicy_sac, env, layers=layers, tensorboard_log=tb_path, full_tensorboard_log=True)
         with self.sess:
             print("\033[91mTraining\033[0m")
             model_log = open(model_dir+"/model_log.txt", 'w')

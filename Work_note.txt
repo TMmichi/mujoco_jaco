@@ -44,6 +44,103 @@ SAC policies
 
 aux network + fine tuning
 {
+    def train_continue(self, model_dir):        
+        env = JacoMujocoEnv(**vars(self.args))
+        layers = {}
+        layers['weight'] = [256, 256]   # list
+        layers['aux1'] = [256, 256]     # list
+        layers['aux2'] = [128, 128]     # list
+
+        # tuple (data -> OrderedDict, param -> OrderedDict)
+        # param = {'name': value (np.array)}
+        layers['reaching'] = BaseRLModel._load_from_file(policy_zip_path, custom_object=None)   
+
+        def init_layers(layers):
+            '''
+            receive layers, convert to np.array with given size if list
+            1. loadable_parameters = [tf.Variables with name, shape, dtype]
+            2. self._param_load_ops = {'name':(ph, tf.Variable.assign(ph))}
+            3. params = {'name': np.array with shape}
+
+            4. feed_dict = {self._param_load_ops[name] -> ph : params[name] -> np.array}
+            5. param_update_ops = [tf.Variable.assign(ph)]
+
+            But to make tf.Variable, need to construct a graph with session
+            
+
+            '''
+            # Q. Can Layer Normalized policies be mixed with unNormalized policies?
+            # Assume: No Layer Normalization for just a fc policy
+            # name: e.g. 'aux1/model/pi/fc0/kernel:0
+            # tf.graph -> Use the one in SAC_MULTI.setup_model()
+            # then, first to setup a graph with variables of a total structure
+            # second to call and store existing params and/or to init aux/weight variables
+            # 
+
+            for name, item in layers.items():
+                if isinstance(item, list):
+                    layer_od = OrderedDict()
+                    networks = ['model/pi', 'model/values_fn/vf', 'model/values_fn/qf1', 'model/values_fn/qf2', 'target/values_fn/vf']
+                    for network in networks:
+                        # First layer
+                        kernel_layer_name = name + "/{0}/fc{1}/kernel:0".format(network,0)
+                        bias_layer_name = name + "/{0}/fc{1}/bias:0".format(network,0)
+                        obs_space_size = ?
+                        # TODO: replace np.zeros with random init module
+                        kernel_value = np.array(np.zeros([obs_space_size, item[0]]))
+                        bias_value = np.array(np.zeros([item[0]]))
+                        layer_od[kernel_layer_name] = kernel_value
+                        layer_od[bias_layer_name] = bias_value
+
+                        # Hidden layer
+                        for i in range(len(item)-1):
+                            # append np.array
+                            kernel_layer_name = name + "/{0}/fc{1}/kernel:0".format(network,i+1)
+                            bias_layer_name = name + "/{0}/fc{1}/bias:0".format(network,i+1)
+                            # TODO: replace np.zeros with random init module
+                            kernel_value = np.array(np.zeros([item[i], item[i+1]]))
+                            bias_value = np.array([item[i+1]])
+                            layer_od[kernel_layer_name] = kernel_value
+                            layer_od[bias_layer_name] = bias_value
+
+                        # Output layer
+                        if network == 'model/pi':
+                            output = 'dense'
+                            mu_kernel_layer_name = name + "/{0}/{1}/kernel:0".format(network, output)
+                            mu_bias_layer_name = name + "/{0}/{1}/bias:0".format(network, output)
+                            std_kernel_layer_name = name + "/{0}/{1}_1/kernel:0".format(network, output)
+                            std_bias_layer_name = name + "/{0}/{1}_1/bias:0".format(network, output)
+                            # TODO: replace np.zeros with random init module
+                            mu_kernel_value = np.array(np.zeros([item[-1], 1]))
+                            mu_bias_value = np.array([1])
+                            std_kernel_value = np.array(np.zeros([item[-1], 1]))
+                            std_bias_value = np.array([1])
+                            layer_od[mu_kernel_layer_name] = mu_kernel_value
+                            layer_od[mu_bias_layer_name] = mu_bias_value
+                            layer_od[std_kernel_layer_name] = std_kernel_value
+                            layer_od[std_bias_layer_name] = std_bias_value
+                        else:
+                            output = network.split("/")[-1]
+                            kernel_layer_name = name + "/{0}/{1}/kernel:0".format(network, output)
+                            bias_layer_name = name + "/{0}/{1}/bias:0".format(network, output)
+                            # TODO: replace np.zeros with random init module
+                            kernel_value = np.array(np.zeros([item[-1], 1]))
+                            bias_value = np.array([1])
+                            layer_od[kernel_layer_name] = kernel_value
+                            layer_od[bias_layer_name] = bias_value
+                                        
+                else:
+                    pass
+
+
+        with self.sess:
+            try:
+                self.trainer = SAC_MULTI.load(self.model_path + model_dir + "/policy.zip", env=env)
+                self.trainer.learn(total_timesteps=self.num_timesteps)
+                self.trainer.save(model_dir)
+            except Exception:
+                pass
+
     M. total layer structure def required.
     {
         1. def structure of aux networks by dict
@@ -74,10 +171,12 @@ aux network + fine tuning
 
     }
 
+    
     (for SAC or other algos)
-    SAC.load(model_path) + M. total_policy_structure + M. temp_param_load_ops_buffer for all primitives
+    SAC.load(model_path, env) + M. total_policy_structure + M. temp_param_load_ops_buffer for all primitives
         model = cls(policy=data["policy"], env=None, _init_setup_model=False) + M. layer structure
-
+        model.__dict__.update(data)
+        model.__dict__.update(kwargs)
         model.set_env(env)
             compare env.action_space and policy_list action_space
             compare obs space
@@ -88,8 +187,7 @@ aux network + fine tuning
             variable_scope: make_actor / make_critics (task specific)
 
 
-        load_parameters in base_class -> exact_match=False
-        model.load_parameters(params -> policy.zip)
+        model.load_parameters(params -> policy.zip, exact_match=False)
             BaseRLModel._setup_load_operations()
                 loadable_params = SAC.get_parameter_list()
                     (loadable_params -> [tf.Variable(name, shape, dtype)]) = self.params + self.target_params (Q. self.params, self.target_params -> from where? A. from setup_model())
