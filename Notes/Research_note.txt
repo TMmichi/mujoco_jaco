@@ -184,6 +184,47 @@ Note
                 {    
                     Questions:
                         1. How to fuse primitives with different action space?
+                            - maybe weight is all reponsible of fusing action spaces.
+                            - if actions from both arm and wheels are important, then the weight will equally be distributed
+                            - if actions from arm is more important than that of the wheels, then the weight will focus more on arms
+                            - since weight incorporates total states, it can fully observe the space and provide decisions
+                }
+                1-4. Brain Functionality
+                {
+                    References:
+                        - Hierarchical modularity in human brain functional networks (Meunier, 2009)
+                        {
+                            - modular decomposition, measured using fMRI
+                            - human brain functional networks have a hierarchical modular organization
+                            - 5-largest, highest: medial occipital (visual), lateral occipital, central, parieto-frontal, fronto-temporal
+                            ** Simon’s original hypothesis that hierarchy or near-decomposability of physical symbol systems is a critical design feature for their fast adaptivity to changing environmental conditions.
+                            ** stable intermediate forms (component modules) -> allow the system to adapt one module at a time without risking loss of function in other, already-adapted modules
+                            -> Need of auxilary network, not to destruct already-trained primitive 
+                                - Overcoming catastrophic forgetting in neural networks Kirkpatrick, 2017)
+                                - Progressive neural networks (Rusu, 2016)
+                                - Sim-to-real robot learning from pixerls with progressive nets (Rusu, 2017)
+                            ** modularity -> Can it measure similarity btw NN primitives? -> btw pretrained primitives and aux networks
+                                - how well a given partition concentrates the edges within the modules based on the topological connectivity
+                                - For Neural Network, ...?
+                            - 
+                        }
+                        - The Architecture of Complexity (Simon, 1062)
+                        {
+                            - Nearly-decomposable systems
+                            - most interactions with subsets close to them, and less with elemtns outside this subset
+                            -> then, behavior part should located at the center - require fastest response with all the other processes
+                        }
+                        - Functional Network Organization of the Human Brain (Power, 2011)
+                        {
+
+                        }
+                        - Multi-scale brain networks (Betzel, 2017)
+                        - The economy of brain network organization (Bullmore, 2012)
+                        - Dynamic reconfiguration of human brain networks during learning (Bassett, 2011)
+                        - Structural and Functional Brain Networks: From Connections to Cognition (Park, 2013)
+                        - Organization and hierarchy of the human functional brain network lead to a chain-like core (Mastrandrea, 2017)
+                        - Modeling functional resting-state brain networks through neural message passing on the human connectome (Peraza-Goicolea, 2019)
+                        - Deep Learning on Graph-structured Data (Lee, 2019)
                 }
             }
             2. Title: Who cares who I am: Policy transfer between robots without fine-tuning

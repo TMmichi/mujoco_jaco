@@ -1,4 +1,4 @@
-Mobile robot + jaco
+Mobile robot + jaco mujoco model
 {
     root.xml
         shared.xml 
@@ -44,38 +44,33 @@ SAC policies
 
 aux network + fine tuning
 {
-    def train_continue(self, model_dir):        
+    from stable_baselines.sac.policies import MlpPolicy
+
+    def train_with_additional_layer(self, model_dir):        
         env = JacoMujocoEnv(**vars(self.args))
-        layers = {}
-        layers['weight'] = [256, 256]   # list
-        layers['aux1'] = [256, 256]     # list
-        layers['aux2'] = [128, 128]     # list
 
-        # tuple (data -> OrderedDict, param -> OrderedDict)
-        # param = {'name': value (np.array)}
-        layers['reaching'] = BaseRLModel._load_from_file(policy_zip_path, custom_object=None)   
-
-        def init_layers(layers):
+        # tf.graph -> Use the one in SAC_MULTI.setup_model()
+        # 1. set the structure of unknown layers -> []
+        # 2. define name of the unknown layers -> {'name': np.array}
+        # 3. call pretrained policies and extract the structure of layers by name / store paramters in a temp buffer -> {'name': (structure -> [], parameters -> np.array)}
+        # 4. compose total structure of the total policy -> []
+        # 5. update model policy with the structure of the total policy
+        # 6. setup a graph with variables
+        # 7. 
+        # 
+        def init_layers(layers: dict) -> dict:
             '''
             receive layers, convert to np.array with given size if list
             1. loadable_parameters = [tf.Variables with name, shape, dtype]
             2. self._param_load_ops = {'name':(ph, tf.Variable.assign(ph))}
             3. params = {'name': np.array with shape}
-
             4. feed_dict = {self._param_load_ops[name] -> ph : params[name] -> np.array}
             5. param_update_ops = [tf.Variable.assign(ph)]
-
             But to make tf.Variable, need to construct a graph with session
-            
-
             '''
             # Q. Can Layer Normalized policies be mixed with unNormalized policies?
             # Assume: No Layer Normalization for just a fc policy
             # name: e.g. 'aux1/model/pi/fc0/kernel:0
-            # tf.graph -> Use the one in SAC_MULTI.setup_model()
-            # then, first to setup a graph with variables of a total structure
-            # second to call and store existing params and/or to init aux/weight variables
-            # 
 
             for name, item in layers.items():
                 if isinstance(item, list):
@@ -127,19 +122,89 @@ aux network + fine tuning
                             kernel_value = np.array(np.zeros([item[-1], 1]))
                             bias_value = np.array([1])
                             layer_od[kernel_layer_name] = kernel_value
-                            layer_od[bias_layer_name] = bias_value
-                                        
+                            layer_od[bias_layer_name] = bias_value        
                 else:
                     pass
 
 
-        with self.sess:
-            try:
-                self.trainer = SAC_MULTI.load(self.model_path + model_dir + "/policy.zip", env=env)
-                self.trainer.learn(total_timesteps=self.num_timesteps)
-                self.trainer.save(model_dir)
-            except Exception:
-                pass
+        # TODO: Need to decide how to property reserve input placeholders for each primitives
+        layers = {}
+        layers['weight'] = [256, 256]   # list
+        layers['aux1'] = [256, 256]     # list
+        layers['aux2'] = [128, 128]     # list
+
+        # tuple (data -> OrderedDict, param -> OrderedDict)
+        # param = {'name': value (np.array)}
+        layers['reaching'] = BaseRLModel._load_from_file(policy_zip_path)
+        layers['grasping'] = BaseRLModel._load_from_file(policy_zip_path)
+
+        policy = MlpPolicy
+        policy_dict = init_layers(layers)
+        self.trainer = SAC_MULTI.init_with_structure(policy, policy_dict, env)
+
+        @classmethod
+        def init_with_structure(cls, policy, policy_dict, env, **kwargs) -> SAC_MULTI:
+            """
+            Construct trainer from policy structure
+            :param policy: (Policy Class) class of SAC policy
+            :param policy_dict: (dict) structure of the policy
+            :param env: (Gym Environment) the new environment to run the loaded model on
+            :param kwargs: extra arguments to change the model when loading
+            """
+
+            # TODO: policy_kwargs?
+            if 'policy_kwargs' in kwargs and kwargs['policy_kwargs'] != data['policy_kwargs']:
+                raise ValueError("The specified policy kwargs do not equal the stored policy kwargs. "
+                                "Stored kwargs: {}, specified kwargs: {}".format(data['policy_kwargs'],
+                                                                                kwargs['policy_kwargs']))
+
+            # SAC_MULTI
+            model = cls(policy=policy, env=None, _init_setup_model=False)
+
+            # NOTE: Once loaded, type of policy is fixed
+            model.__dict__.update(data) 
+            # TODO: self.obs_space, self.act_space should be updated here
+            # obs_space and act_space -> Box, but should be separable
+
+            # Nothing updated
+            model.__dict__.update(kwargs)
+            
+            # check env is a VecEnv -> always False. (Only train our policy with 1 environment)
+            model.set_env(env)
+            # TODO: env.ob_space and env.ac_space should match with the one from __dict__update(data)
+
+            # make self.graph
+            # with graph: init self.sess
+            # with tf.Variable_scope('input), make:
+            #   self.policy = self.policy(self.sess, self.ob_space, self.ac_space, self.layers)
+            #   self.target_policy = self.policy(self.sess, self.ob_space, self.ac_space, self.layers)
+            #   initialize input placeholders
+            # with tf.Variable_scope('model'), make:
+            #   det_policy, sto_policy, logp_pi = self.policy.make_actor(input_ph)
+            #   qf1, qf2, value = self.policy.make_critics(input_ph, actions_ph)
+            #   qf1_pi, qf2_pi, _ = self.policy.make_critics(input_ph, sto_policy, vf=False, reuse=True)
+            # with tf.Variable_scope('target'), make:
+            #   _, _, value_target = self.target_policy.make_critics(next_input_ph, qf=False)
+            # with tf.Variable_scope('loss'), make:
+            # policy_train_op
+            # train_value_op
+            # target_init_op
+            # initialize Values and target network
+            model.setup_model()
+            # TODO: 
+
+            # from self.tf_Variables of network:
+            #   make load_ops -> {'name from self.variables': (ph, tf.Variable.assign(ph))}
+            # for each layer name:
+            #   make feed_dict -> {'ph of the name': value of the name}
+            #   make param_update_ops -> [tf.Variable.assign(ph)]
+            # after building feed_dict, update_ops, run update_ops with feed_dict
+            model.load_parameters(params, exact_match=False)
+            # TODO: 
+
+            # return SAC trainer
+            return model
+
 
     M. total layer structure def required.
     {
@@ -168,7 +233,6 @@ aux network + fine tuning
     }
     M. Mixture density network of each composite primitives
     {
-
     }
 
     

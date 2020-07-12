@@ -10,7 +10,7 @@ from stable_baselines.trpo_mpi import TRPO
 from stable_baselines.common.policies import MlpPolicy
 from stable_baselines.sac import SAC
 from stable_baselines.sac_multi import SAC_MULTI
-from stable_baselines.sac.policies import MlpPolicy as MlpPolicy_sac, LnMlpPolicy as LnMlpPolicy_sac
+from stable_baselines.sac_multi.policies import MlpPolicy as MlpPolicy_sac, LnMlpPolicy as LnMlpPolicy_sac
 from stable_baselines.gail import generate_expert_traj
 from env_script.env_mujoco import JacoMujocoEnv
 from state_gen.state_generator import State_generator
@@ -29,9 +29,10 @@ class RL_controller:
         args.debug = True
         print("DEBUG = ", args.debug)
 
-        # TensorFlow Setting
-        self.sess = tf_util.single_threaded_session()
-        args.sess = self.sess
+        # TensorFlow Setting for State Representation Module
+        # NOTE: RL trainer will use its own tf.Session
+        self.sess_SRL = tf_util.single_threaded_session()
+        args.sess = self.sess_SRL
 
         # State Generation Module defined here
         #self.stateGen = State_generator(**vars(args))
@@ -72,24 +73,23 @@ class RL_controller:
         os.makedirs(model_dir, exist_ok=True)
         tb_path = self.tb_dir + prefix
         self.num_timesteps = self.steps_per_batch * self.batches_per_episodes * self.num_episodes
-        # self.trainer = TRPO(MlpPolicy, self.env, cg_damping=0.1, vf_iters=5, vf_stepsize=1e-3, timesteps_per_batch=self.steps_per_batch,
-        #                    tensorboard_log=args.tb_dir, full_tensorboard_log=True)
-        layers = {"policy": [32, 32, 16], "value": [128, 128, 64]}
+        layers = {"policy": [64, 64], "value": [256, 256, 128]}
         env = JacoMujocoEnv(**vars(self.args))
 
         # NOTE: Layer Normalization for RNNs, but for just fc..?
-        #self.trainer = SAC(
-        #    LnMlpPolicy_sac, env, layers=layers, tensorboard_log=tb_path, full_tensorboard_log=True)
-        self.trainer = SAC(
-            MlpPolicy_sac, env, layers=layers, tensorboard_log=tb_path, full_tensorboard_log=True)
-        with self.sess:
-            print("\033[91mTraining\033[0m")
-            model_log = open(model_dir+"/model_log.txt", 'w')
-            self._write_log(model_log, layers)
-            model_log.close()
-            self.trainer.learn(total_timesteps=self.num_timesteps)
-            print("\033[91mTrain Finished\033[0m")
-            self.trainer.save(model_dir+"/policy")
+        #self.trainer = TRPO(MlpPolicy, self.env, cg_damping=0.1, vf_iters=5, vf_stepsize=1e-3, timesteps_per_batch=self.steps_per_batch,
+        #                   tensorboard_log=tb_path, full_tensorboard_log=True)
+        #self.trainer = SAC(LnMlpPolicy_sac, env, layers=layers,
+        #                   tensorboard_log=tb_path, full_tensorboard_log=True)
+        self.trainer = SAC(MlpPolicy_sac, env, layers=layers, 
+                            tensorboard_log=tb_path, full_tensorboard_log=True)
+        model_log = open(model_dir+"/model_log.txt", 'w')
+        self._write_log(model_log, layers)
+        model_log.close()
+        print("\033[91mTraining Starts\033[0m")
+        self.trainer.learn(total_timesteps=self.num_timesteps)
+        print("\033[91mTrain Finished\033[0m")
+        self.trainer.save(model_dir+"/policy")
     
     def _write_log(self, model_log, layers):
         model_log.writelines("Layers:\n")
@@ -117,17 +117,16 @@ class RL_controller:
         self.args.train_log = False
         env = JacoMujocoEnv(**vars(self.args))
         self.num_timesteps = self.steps_per_batch * self.batches_per_episodes * self.num_episodes 
-        with self.sess:
-            try:
-                self.trainer = SAC_MULTI.load(self.model_path + model_dir + "/policy.zip", env=env)
-                #self.trainer = SAC.load(self.model_path + model_dir + "/policy.zip", env=env)
-                print(self.trainer)
-                quit()
-                self.trainer.learn(total_timesteps=self.num_timesteps)
-                print("Train Finished")
-                self.trainer.save(model_dir)
-            except Exception as e:
-                print(e)
+        try:
+            # self.trainer = SAC.load(self.model_path + model_dir + "/policy.zip", env=env)
+            self.trainer = SAC_MULTI.load(self.model_path+model_dir+"/policy.zip", env=env)
+            print(self.trainer)
+            quit()
+            self.trainer.learn(total_timesteps=self.num_timesteps)
+            print("Train Finished")
+            self.trainer.save(model_dir)
+        except Exception as e:
+            print(e)
 
     def train_from_expert(self, n_episodes=10):
         print("Training from expert called")
@@ -141,33 +140,28 @@ class RL_controller:
         action = []
         return action
 
-    def train_with_additional_layer(self, mode_dir):
+    def train_with_additional_layer(self, model_dir):
         self.args.train_log = False
-
         env = JacoMujocoEnv(**vars(self.args))
-        concat_layer = []
-        with self.sess:
-            try:
-                self.trainer = SAC.load(self.model_path + model_dir, env=env)
-
-            except Exception as e:
-                print(e)
+        try:
+            self.trainer = SAC.load(self.model_path + model_dir, env=env)
+        except Exception as e:
+            print(e)
 
     def test(self, policy):
         print("Testing called")
         self.args.train_log = False
         self.env = JacoMujocoEnv(**vars(self.args))
-        model_dir = self.model_path + policy + "/policy.zip"
+        model_dir = self.model_path+policy+"/policy.zip"
         test_iter = 100
-        with self.sess:
-            self.model = SAC.load(model_dir)
-            for _ in range(test_iter):
-                obs = self.env.reset()
-                done = False
-                while not done:
-                    action, _ = self.model.predict(obs)
-                    obs, rewards, done, _ = self.env.step(action, log=False)
-                    print("{0:2.3f}".format(rewards), end='\r')
+        self.model = SAC.load(model_dir)
+        for _ in range(test_iter):
+            obs = self.env.reset()
+            done = False
+            while not done:
+                action, _ = self.model.predict(obs)
+                obs, rewards, done, _ = self.env.step(action, log=False)
+                print("{0:2.3f}".format(rewards), end='\r')
     
     def generate(self):
         pass
