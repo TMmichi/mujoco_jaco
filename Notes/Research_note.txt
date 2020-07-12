@@ -1,6 +1,6 @@
 Note
 
-    Problem specification:
+    Problem_specification:
         Keywords:
             1. Dexterous manipulation
             2. Strategic (time-dependent) manipulation
@@ -20,9 +20,9 @@ Note
 
 
         Tasks:
-            1. {
+            1. Title: Guess What I'm doing: Manipulation of a robot arm with known primitives (XAI related)
+            {
                 Keywords:
-                Title: Guess What I'm doing: Manipulation of a robot arm with known primitives (XAI related)
                 Goal: Make policies explainable (and mimick human-like behavior - if incorporating human data while TRAINING PRIMITIVES)
                 Motivation:
                     - Shall let the users know what it's doing with human-interpretable information
@@ -34,11 +34,15 @@ Note
                     - making policy explainable
                     - Increase sample efficiency (incorporate human data while TRAINING WHOLE TASK)
                     - learn auxilary primitives that have not been told/trained (if possible)
-                To do: 
+                    - fuse policies with different action space into a whole
+                    - reduce learning time compared to primitives that has same, whole action space
+                To_do: 
                     - Train primitives that are identified for certain tasks (from either expert trajectory or reward engineered RL scheme)
                     - Set task which requires multiple primitives:
-                        Options: {
-                            1. {
+                        Options: 
+                        {
+                            1. 
+                            {
                                 Task: Grap a glass of water and pour to a specific destination
                                 Required features (primitive):
                                     - Reaching to a glass (Reaching)
@@ -50,7 +54,8 @@ Note
                                     - Moveit! -> variance = 0인 distribution
                                     - Optimal state representation -> No need to do these shits
                             }
-                            2. {
+                            2. 
+                            {
                                 Task: TBD
                                 Goal: TBD
                             }
@@ -64,18 +69,20 @@ Note
                         -> time: 언제 primitive가 activate 될 지??
                         -> Non-Markovian 
                     - Identify unknown primitives via (examining state/action sets from forward propagations)
+                    - primitives with same action space -> MCP // primitives with different action space -> ?
                 References:
                     - MLSH (Frans, 2017)
                     - FeUdal Networks for Hierarchical Reinforcement Learning (2017)
                     - Modular Multitask Reinforcement Learning with Policy Sketches (2017)
                     - MCP (Peng, 2019)
                     - Options (Sutten, 1999)
-                    If using LofD for primitives:
+                    # If using LofD for primitives:
                     - Learning Agile Robotic Locomotion Skills by Imitating Animals (Peng, 2020)
             }
-            2. {
+            2. Title: Who cares who I am: Policy transfer between robots without fine-tuning
+            {
                 Keywords: 
-                Title: Who cares who I am: Policy transfer between robots without fine-tuning
+                
                 Goal: Make policies that can be transfered to different robot models without fine-tuning
                 Motivation:
                     - Most of the techniques uses joint angles -> restricted to the specific configuration of a robot
@@ -94,29 +101,29 @@ Note
                     - How to handle vision/PC
                     - If DOF gets to be differ?
             }   
-            3. {
+            3. Title: Dexterous Dual-Arm Manipulation via Compositive Primitives
+            {
                 Keywords: 
-                Title: Dexterous Dual-Arm Manipulation via Compositive Primitives
                 Goal: TBD
                 Motivation: TBD
             }
-            4. {
-                Keywords: 
-                Title: Screw-fixing
+            4. Title: Screw-fixing
+            {
+                Keywords:     
                 Goal: TBD
                 Motivation: TBD
                 To Do:
                     - time-dependent 
             }
-            5. {
-                Keywords: 
-                Title: Plugging with sample-efficient policy by composing primitives
+            5. Title: Plugging with sample-efficient policy by composing primitives
+            {
+                Keywords:     
                 Goal: TBD
                 Motivation: TBD
             }
-            6. {
-                Keywords: 
-                Title: 
+            6. Title: Fully express the intention
+            {
+                Keywords:     
                 Goal: Fully express the intention while doing a task by proper / mixture of methods
                 Motivation: 
                 Notes:
@@ -136,63 +143,70 @@ Note
             }
 
 
-    Research Details
+    Research_Details:
         Task:
-            1. {
-                Making proper observations
+            1. Title: Guess What I'm doing: Manipulation of a robot arm with known primitives (XAI related)
+            {
+                1-1. Making proper observations 
+                {
                     Note: Target position of a reaching primitive - Should explicitly be known to the user
-                            -> User do know where it's reaching to
-
-                Sub-primitives
+                        -> User do know where it's reaching to
+                }
+                1-2. Sub-primitives 
+                {
                     Questions:
                         1. Why have sub-primitives?
                             - To construct primitives, observation spaces for each should be matched among all.
                                 Reason: each primitives shall have an idea with the full knowledge of a current state
                                 Question: Doesn't weight network determine how to composite primitives?
                                 Defence: 
-                            - But there is no need to train each primitives with full observation spaces
-                            where they can acheive their goal with much simpler observations.
-                            - pretrain sub-primitives with simple observation spaces, and modify them with 
-                            full observation placeholders
+                            - But there is no need to train each primitives with full observation spaces where they can acheive their goal with much simpler observations.
+                            - pretrain sub-primitives with simple observation spaces, and modify them with full observation placeholders
                         
                         2. Did X.Peng pretrained their policies with full observation spaces?
                             - Yes (Did not trained their primitives via RL, but by LofD - simplification not required)
-
-                    Actions:
+                    Do:
                         -> Need to select:
                             1. RL-trained sub-primitives and finetune them with full obs space
                             2. Not using sub-primitives and policy transfer with expert data directly with full obs space
-                    
                     Consequences:
                         1. if select sub-primitives:
                             Csq: Finetune twice for sub-primitives -> primitives and for primitives -> composite policy
                             Result: Complicated/Time consuming to pretrain and finetune twice
                         2.  
-                    
                     Defences for Consequences:
                         Def for 1: To avoid complicated / time consumption problem
                             - May not have to finetune for primitives -> composite policies
                             Reason: 
                                 1. 
-
+                }
+                1-3. Primitive fusing 
+                {    
+                    Questions:
+                        1. How to fuse primitives with different action space?
+                }
             }
-            2. {
-
+            2. Title: Who cares who I am: Policy transfer between robots without fine-tuning
+            {
             }
-            6. {
+            6. Title: Fully express the intention
+            {
                 XAI
             }
 
     
     Conflicts:
-        1. {
-            Primitives - control variables can be differ wrt. tasks when using same hardware
-            (e.g. reaching tasks given position is redundant for balancing while walking
-                -> motion of arm is required, but not regarding the position of the hand, but to stabilize inertia by moving shoulder joint)
-            Task specific primitives:
-                Controlling arm when reaching / balancing [Q: uses different part of the brain -> and thus, should be trained separately.]
-        } 
-        -> Is our brain made out of cascading weight layers of neurons? -> then, by visualizi ng each weights to a series of layers can explain the intention of the AI
-        -> How does it incorporate external information to the existing layers of neurons?
-        Physical memory vs Simulated memory
+        Task:
+            1. Title: Guess What I'm doing: Manipulation of a robot arm with known primitives (XAI related)
+            {
+                Primitives - control variables can be differ wrt. tasks when using same hardware
+                (e.g. reaching tasks given position is redundant for balancing while walking
+                    -> motion of arm is required, but not regarding the position of the hand, but to stabilize inertia by moving shoulder joint)
+                Task specific primitives:
+                    - Controlling arm when reaching / balancing [Q: uses different part of the brain -> and thus, should be trained separately.]
+                -> Is our brain made out of cascading weight layers of neurons? -> then, by visualizing each weights to a series of layers can explain the intention of the AI
+                -> How does it incorporate external information to the existing layers of neurons?
+                -> Physical memory vs Simulated memory
+            } 
+            
         

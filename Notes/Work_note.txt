@@ -82,7 +82,7 @@ aux network + fine tuning
                     layer_od = OrderedDict()
                     networks = ['model/pi', 'model/values_fn/vf', 'model/values_fn/qf1', 'model/values_fn/qf2', 'target/values_fn/vf']
                     for network in networks:
-                        # First layer
+                        # First layer6
                         kernel_layer_name = name + "/{0}/fc{1}/kernel:0".format(network,0)
                         bias_layer_name = name + "/{0}/fc{1}/bias:0".format(network,0)
                         obs_space_size = ?
