@@ -56,8 +56,152 @@ aux network + fine tuning
         # 4. compose total structure of the total policy -> []
         # 5. update model policy with the structure of the total policy
         # 6. setup a graph with variables
-        # 7. 
-        # 
+
+        # Within SAC_MULTI(OffPolicyRLModel(BaseRLModel))               common/base_class.py
+        @classmethod
+        @abstractmethod
+        def construct_primitive_info(obs_dimension, obs_range, obs_index, act_dimension, act_range, act_index, layer_structure):
+            pass
+
+        # Within SAC_MULTI(OffPolicyRLModel)                            common/base_class.py
+        @classmethod
+        def construct_primitive_info(obs_dimension, obs_range, obs_index, act_dimension, act_range, act_index, layer_structure) -> dict:
+            '''
+            Returns info of the primtive as a dictionary
+
+            :param obs_dimension: (int) observation space dimension for the primitive
+            :param obs_range: ([float, float] or [int, int]) observation range
+            :param obs_index: ([int, int]) start and end index of the observation for the primitive
+            :param act_dimension: (int) action space dimension for the primitive
+            :param act_range: ([float, float] or [int, int]) action range
+            :param act_index: ([int, int]) start and end index of the action for the primitive
+            :param layer_structure: ([int, ...]) hidden layer structure of the primitive
+            :return: (dict: {'obs':tuple, 'act':tuple, 'layer':list}) primitive information
+            '''
+            # TODO: assert Error for the wrong type
+            # TODO: wrong obs_dimension size from the size of the obs_index
+            obs_range_max = np.array([max(obs_range)]*obs_dimension)
+            obs_range_min = np.array([min(obs_range)]*obs_dimension)
+            obs = (spaces.Box(obs_range_min, obs_range_max, dtype=np.float32), obs_index)
+
+            act_range_max = np.array([max(act_range)]*act_dimension)
+            act_range_min = np.array([min(act_range)]*act_dimension)
+            act = (spaces.Box(act_range_min, act_range_max, dtype=np.float32), act_index)
+
+            return {'obs': obs, 'act': act, 'layer': layer_structure}
+
+        primitives = dict()
+    
+        # NOTE: newly appointed primitives
+        primitives['aux1'] = construct_primitive_info(obs_dimension=6, obs_range=[-3, 3], obs_index=[0, 5], 
+                                act_dimension=6, act_range=[-1.4, 1.4], layer_structure=[256, 256])
+        primitives['aux2'] = construct_primitive_info(6, [-3, 3], [0, 5], 6, [-1.4, 1.4], [256, 256])
+        # TODO: input space should be compared with the env.obs space
+        primitives['weight'] = construct_primitive_info(total_obs_dim, [-3, 3], [0, total_obs_dim-1], number_of_primitives, [-1.4, 1.4], [256, 256])
+
+        # NOTE: Pretrained primitives
+        # tuple (data -> OrderedDict, param -> OrderedDict)
+        # param = {'name': value (np.array)}
+        primitives['reaching'] = BaseRLModel._load_from_file(policy_zip_path)
+        primitives['grasping'] = BaseRLModel._load_from_file(policy_zip_path)
+
+        policy = MlpPolicy
+        self.trainer = SAC_MULTI.pretrainer_load(policy, policy_dict, env)
+
+        # Within SAC_MULTI(OffPolicyRLModel(BaseRLModel))               common/base_class.py
+        @classmethod
+        @abstractmethod
+        def pretrainer_load(cls, policy, primitives, env, **kwargs):
+            """
+            Construct trainer from policy structure
+
+            :param policy: (Policy Class) class of SAC policy
+            :param policy_dict: (dict) structure of the policy
+            :param env: (Gym Environment) the new environment to run the loaded model on
+            :param kwargs: extra arguments to change the model when loading
+            """
+            raise NotImplementedError()
+
+        # Within SAC_MULTI(OffPolicyRLModel)                            common/base_class.py
+        @classmethod
+        def pretrainer_load(cls, policy, primitives, env, **kwargs) -> SAC_MULTI:
+            """
+            Construct trainer from policy structure
+
+            :param policy: (Policy Class) class of SAC policy
+            :param primitives: (dict) primitives by name with items assigned as an info of obs/act/layer_structure
+            :param env: (Gym Environment) the new environment to run the loaded model on
+            :param kwargs: extra arguments to change the model when loading
+            """
+
+            # TODO: policy_kwargs?
+            if 'policy_kwargs' in kwargs and kwargs['policy_kwargs'] != data['policy_kwargs']:
+                raise ValueError("The specified policy kwargs do not equal the stored policy kwargs. "
+                                "Stored kwargs: {}, specified kwargs: {}".format(data['policy_kwargs'],
+                                                                                kwargs['policy_kwargs']))
+            primitive_layers = init_layers(primitives)
+
+            # SAC_MULTI
+            model = cls(policy=policy, env=None, _init_setup_model=False)
+
+            model.__dict__.update(data)
+                -> 
+                {
+                    # First, deconstruct obs/act of each received primitives
+                    {deconstruct/construct algo here}
+
+                    # NOTE: ob_space/ac_space -> list? -> No. set_env should be mod then.                    
+                    # Define total ob_space, ac_space here
+                    model.observation_space = Box(total obs)
+                    model.action_space = Box(total act)
+                }
+            # TODO: self.obs_space, self.act_space should be updated here
+            # obs_space and act_space -> Box, but should be separable
+
+            # Nothing updated
+            # TODO: find out what kind of keys in kwargs exists
+            model.__dict__.update(kwargs)
+            
+            # check env is a VecEnv -> always False. (Only train our policy with 1 environment)
+            model.set_env(env)
+            # TODO: env.ob_space and env.ac_space should match with the one from __dict__update(data)
+            # -> env.ob_space and env.ac_space should be the total/final obs and acts
+
+            # make self.graph
+            # with graph: init self.sess
+            # with tf.Variable_scope('input), make:
+            #   self.policy = self.policy(self.sess, self.ob_space, self.ac_space, self.layers)
+            #   self.target_policy = self.policy(self.sess, self.ob_space, self.ac_space, self.layers)
+            #   initialize input placeholders
+            # with tf.Variable_scope('model'), make:
+            #   det_policy, sto_policy, logp_pi = self.policy.make_actor(input_ph)
+            #   qf1, qf2, value = self.policy.make_critics(input_ph, actions_ph)
+            #   qf1_pi, qf2_pi, _ = self.policy.make_critics(input_ph, sto_policy, vf=False, reuse=True)
+            # with tf.Variable_scope('target'), make:
+            #   _, _, value_target = self.target_policy.make_critics(next_input_ph, qf=False)
+            # with tf.Variable_scope('loss'), make:
+            # policy_train_op
+            # train_value_op
+            # target_init_op
+            # initialize Values and target network
+            model.setup_custom_model()
+            # TODO: 
+
+            # from self.tf_Variables of network:
+            #   make load_ops -> {'name from self.variables': (ph, tf.Variable.assign(ph))}
+            # for each layer name:
+            #   make feed_dict -> {'ph of the name': value of the name}
+            #   make param_update_ops -> [tf.Variable.assign(ph)]
+            # after building feed_dict, update_ops, run update_ops with feed_dict
+            model.load_parameters(params, exact_match=False)
+            # TODO: 
+
+            # return SAC trainer
+            return model
+
+                # Within SAC_MULTI(OffPolicyRLModel)
+
+        @classmethod
         def init_layers(layers: dict) -> dict:
             '''
             receive layers, convert to np.array with given size if list
@@ -126,84 +270,439 @@ aux network + fine tuning
                 else:
                     pass
 
-
-        # TODO: Need to decide how to property reserve input placeholders for each primitives
-        layers = {}
-        layers['weight'] = [256, 256]   # list
-        layers['aux1'] = [256, 256]     # list
-        layers['aux2'] = [128, 128]     # list
-
-        # tuple (data -> OrderedDict, param -> OrderedDict)
-        # param = {'name': value (np.array)}
-        layers['reaching'] = BaseRLModel._load_from_file(policy_zip_path)
-        layers['grasping'] = BaseRLModel._load_from_file(policy_zip_path)
-
-        policy = MlpPolicy
-        policy_dict = init_layers(layers)
-        self.trainer = SAC_MULTI.init_with_structure(policy, policy_dict, env)
-
-        @classmethod
-        def init_with_structure(cls, policy, policy_dict, env, **kwargs) -> SAC_MULTI:
+        # Within SAC_MULTI                                              sac_multi/sac_multi.py
+        def set_env(self, env):
             """
-            Construct trainer from policy structure
-            :param policy: (Policy Class) class of SAC policy
-            :param policy_dict: (dict) structure of the policy
-            :param env: (Gym Environment) the new environment to run the loaded model on
-            :param kwargs: extra arguments to change the model when loading
+            Checks the validity of the environment, and if it is coherent, set it as the current environment.
+
+            :param env: (Gym Environment) The environment for learning a policy
             """
+            if env is None and self.env is None:
+                if self.verbose >= 1:
+                    print("Loading a model without an environment, "
+                        "this model cannot be trained until it has a valid environment.")
+                return
+            elif env is None:
+                raise ValueError("Error: trying to replace the current environment with None")
 
-            # TODO: policy_kwargs?
-            if 'policy_kwargs' in kwargs and kwargs['policy_kwargs'] != data['policy_kwargs']:
-                raise ValueError("The specified policy kwargs do not equal the stored policy kwargs. "
-                                "Stored kwargs: {}, specified kwargs: {}".format(data['policy_kwargs'],
-                                                                                kwargs['policy_kwargs']))
+            # sanity checking the environment
+            assert self.observation_space == env.observation_space, \
+                "Error: the environment  passed must have at least the same observation space as the model was trained on. self.obs = {0}, env.obs = {1}".format(self.observation_space, env.observation_space)
+            assert self.action_space == env.action_space, \
+                "Error: the environment passed must have at least the same action space as the model was trained on."
+            if self._requires_vec_env:
+                assert isinstance(env, VecEnv), \
+                    "Error: the environment passed is not a vectorized environment, however {} requires it".format(
+                        self.__class__.__name__)
+                assert not self.policy.recurrent or self.n_envs == env.num_envs, \
+                    "Error: the environment passed must have the same number of environments as the model was trained on." \
+                    "This is due to the Lstm policy not being capable of changing the number of environments."
+                self.n_envs = env.num_envs
+            else:
+                # for models that dont want vectorized environment, check if they make sense and adapt them.
+                # Otherwise tell the user about this issue
+                if isinstance(env, VecEnv):
+                    if env.num_envs == 1:
+                        env = _UnvecWrapper(env)
+                        self._vectorize_action = True
+                    else:
+                        raise ValueError("Error: the model requires a non vectorized environment or a single vectorized "
+                                        "environment.")
+                else:
+                    self._vectorize_action = False
 
-            # SAC_MULTI
-            model = cls(policy=policy, env=None, _init_setup_model=False)
+                self.n_envs = 1
 
-            # NOTE: Once loaded, type of policy is fixed
-            model.__dict__.update(data) 
-            # TODO: self.obs_space, self.act_space should be updated here
-            # obs_space and act_space -> Box, but should be separable
+            self.env = env
+            self._vec_normalize_env = unwrap_vec_normalize(env)
 
-            # Nothing updated
-            model.__dict__.update(kwargs)
-            
-            # check env is a VecEnv -> always False. (Only train our policy with 1 environment)
-            model.set_env(env)
-            # TODO: env.ob_space and env.ac_space should match with the one from __dict__update(data)
+            # Invalidated by environment change.
+            self.episode_reward = None
+            self.ep_info_buf = None
 
-            # make self.graph
-            # with graph: init self.sess
-            # with tf.Variable_scope('input), make:
-            #   self.policy = self.policy(self.sess, self.ob_space, self.ac_space, self.layers)
-            #   self.target_policy = self.policy(self.sess, self.ob_space, self.ac_space, self.layers)
-            #   initialize input placeholders
-            # with tf.Variable_scope('model'), make:
-            #   det_policy, sto_policy, logp_pi = self.policy.make_actor(input_ph)
-            #   qf1, qf2, value = self.policy.make_critics(input_ph, actions_ph)
-            #   qf1_pi, qf2_pi, _ = self.policy.make_critics(input_ph, sto_policy, vf=False, reuse=True)
-            # with tf.Variable_scope('target'), make:
-            #   _, _, value_target = self.target_policy.make_critics(next_input_ph, qf=False)
-            # with tf.Variable_scope('loss'), make:
-            # policy_train_op
-            # train_value_op
-            # target_init_op
-            # initialize Values and target network
-            model.setup_model()
-            # TODO: 
+        # Within SAC_MULTI(OffPolicyRLModel(BaseRLModel))               common/base_class.py
+        @abstractmethod
+        def setup_custom_model(self):
+            pass
 
-            # from self.tf_Variables of network:
-            #   make load_ops -> {'name from self.variables': (ph, tf.Variable.assign(ph))}
-            # for each layer name:
-            #   make feed_dict -> {'ph of the name': value of the name}
-            #   make param_update_ops -> [tf.Variable.assign(ph)]
-            # after building feed_dict, update_ops, run update_ops with feed_dict
-            model.load_parameters(params, exact_match=False)
-            # TODO: 
+        # Within SAC_MULTI(OffPolicyRLModel)                            common/base_class.py
+        @abstractmethod
+        def setup_custom_model(self):
+            pass
 
-            # return SAC trainer
-            return model
+        # Within SAC_MULTI                                              sac_multi/sac_multi.py
+        def setup_custom_model(self):
+            with SetVerbosity(self.verbose):
+                self.graph = tf.Graph()
+                with self.graph.as_default():
+                    self.set_random_seed(self.seed)
+                    self.sess = tf_util.make_session(num_cpu=self.n_cpu_tf_sess, graph=self.graph)
+                    self.replay_buffer = ReplayBuffer(self.buffer_size)
+
+                    with tf.variable_scope("input", reuse=False):
+                        # Create policy and target TF objects
+                        self.policy_tf = self.policy(self.sess, self.observation_space, self.action_space, layers=self.layers,
+                                                    **self.policy_kwargs)
+                        self.target_policy = self.policy(self.sess, self.observation_space, self.action_space, layers=self.layers,
+                                                        **self.policy_kwargs)
+
+                        # Initialize Placeholders
+                        self.observations_ph = self.policy_tf.obs_ph
+                        # Normalized observation for pixels
+                        self.processed_obs_ph = self.policy_tf.processed_obs
+                        self.next_observations_ph = self.target_policy.obs_ph
+                        self.processed_next_obs_ph = self.target_policy.processed_obs
+                        self.action_target = self.target_policy.action_ph
+                        self.terminals_ph = tf.placeholder(tf.float32, shape=(None, 1), name='terminals')
+                        self.rewards_ph = tf.placeholder(tf.float32, shape=(None, 1), name='rewards')
+                        self.actions_ph = tf.placeholder(tf.float32, shape=(None,) + self.action_space.shape,
+                                                        name='actions')
+                        self.learning_rate_ph = tf.placeholder(tf.float32, [], name="learning_rate_ph")
+
+                    with tf.variable_scope("model", reuse=False):
+                        # Create the policy
+                        # first return value corresponds to deterministic actions
+                        # policy_out corresponds to stochastic actions, used for training
+                        # logp_pi is the log probability of actions taken by the policy
+                        self.deterministic_action, policy_out, logp_pi = self.policy_tf.make_custom_actor(self.processed_obs_ph)
+                        # Monitor the entropy of the policy,
+                        # this is not used for training
+                        self.entropy = tf.reduce_mean(self.policy_tf.entropy)
+                        #  Use two Q-functions to improve performance by reducing overestimation bias.
+                        qf1, qf2, value_fn = self.policy_tf.make_custom_critics(self.processed_obs_ph, self.actions_ph,
+                                                                        create_qf=True, create_vf=True)
+                        qf1_pi, qf2_pi, _ = self.policy_tf.make_custom_critics(self.processed_obs_ph,
+                                                                        policy_out, create_qf=True, create_vf=False,
+                                                                        reuse=True)
+
+                        # Target entropy is used when learning the entropy coefficient
+                        if self.target_entropy == 'auto':
+                            # automatically set target entropy if needed
+                            self.target_entropy = -np.prod(self.action_space.shape).astype(np.float32)
+                        else:
+                            # Force conversion
+                            # this will also throw an error for unexpected string
+                            self.target_entropy = float(self.target_entropy)
+
+                        # The entropy coefficient or entropy can be learned automatically
+                        # see Automating Entropy Adjustment for Maximum Entropy RL section
+                        # of https://arxiv.org/abs/1812.05905
+                        if isinstance(self.ent_coef, str) and self.ent_coef.startswith('auto'):
+                            # Default initial value of ent_coef when learned
+                            init_value = 1.0
+                            if '_' in self.ent_coef:
+                                init_value = float(self.ent_coef.split('_')[1])
+                                assert init_value > 0., "The initial value of ent_coef must be greater than 0"
+
+                            self.log_ent_coef = tf.get_variable('log_ent_coef', dtype=tf.float32,
+                                                                initializer=np.log(init_value).astype(np.float32))
+                            self.ent_coef = tf.exp(self.log_ent_coef)
+                        else:
+                            # Force conversion to float
+                            # this will throw an error if a malformed string (different from 'auto')
+                            # is passed
+                            self.ent_coef = float(self.ent_coef)
+
+                    with tf.variable_scope("target", reuse=False):
+                        # Create the value network
+                        _, _, value_target = self.target_policy.make_custom_critics(self.processed_next_obs_ph,
+                                                                            create_qf=False, create_vf=True)
+                        self.value_target = value_target
+
+                    with tf.variable_scope("loss", reuse=False):
+                        # Take the min of the two Q-Values (Double-Q Learning)
+                        min_qf_pi = tf.minimum(qf1_pi, qf2_pi)
+
+                        # Target for Q value regression
+                        q_backup = tf.stop_gradient(
+                            self.rewards_ph +
+                            (1 - self.terminals_ph) * self.gamma * self.value_target
+                        )
+
+                        # Compute Q-Function loss
+                        # TODO: test with huber loss (it would avoid too high values)
+                        qf1_loss = 0.5 * tf.reduce_mean((q_backup - qf1) ** 2)
+                        qf2_loss = 0.5 * tf.reduce_mean((q_backup - qf2) ** 2)
+
+                        # Compute the entropy temperature loss
+                        # it is used when the entropy coefficient is learned
+                        ent_coef_loss, entropy_optimizer = None, None
+                        if not isinstance(self.ent_coef, float):
+                            ent_coef_loss = -tf.reduce_mean(
+                                self.log_ent_coef * tf.stop_gradient(logp_pi + self.target_entropy))
+                            entropy_optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate_ph)
+
+                        # Compute the policy loss
+                        # Alternative: policy_kl_loss = tf.reduce_mean(logp_pi - min_qf_pi)
+                        policy_kl_loss = tf.reduce_mean(self.ent_coef * logp_pi - qf1_pi)
+
+                        # NOTE: in the original implementation, they have an additional
+                        # regularization loss for the Gaussian parameters
+                        # this is not used for now
+                        # policy_loss = (policy_kl_loss + policy_regularization_loss)
+                        policy_loss = policy_kl_loss
+
+
+                        # Target for value fn regression
+                        # We update the vf towards the min of two Q-functions in order to
+                        # reduce overestimation bias from function approximation error.
+                        v_backup = tf.stop_gradient(min_qf_pi - self.ent_coef * logp_pi)
+                        value_loss = 0.5 * tf.reduce_mean((value_fn - v_backup) ** 2)
+
+                        values_losses = qf1_loss + qf2_loss + value_loss
+
+                        # Policy train op
+                        # (has to be separate from value train op, because min_qf_pi appears in policy_loss)
+                        policy_optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate_ph)
+                        policy_train_op = policy_optimizer.minimize(policy_loss, var_list=tf_util.get_trainable_vars('model/pi'))
+
+                        # Value train op
+                        value_optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate_ph)
+                        values_params = tf_util.get_trainable_vars('model/values_fn')
+
+                        source_params = tf_util.get_trainable_vars("model/values_fn/vf")
+                        target_params = tf_util.get_trainable_vars("target/values_fn/vf")
+
+                        # Polyak averaging for target variables
+                        self.target_update_op = [
+                            tf.assign(target, (1 - self.tau) * target + self.tau * source)
+                            for target, source in zip(target_params, source_params)
+                        ]
+                        # Initializing target to match source variables
+                        target_init_op = [
+                            tf.assign(target, source)
+                            for target, source in zip(target_params, source_params)
+                        ]
+
+                        # Control flow is used because sess.run otherwise evaluates in nondeterministic order
+                        # and we first need to compute the policy action before computing q values losses
+                        with tf.control_dependencies([policy_train_op]):
+                            train_values_op = value_optimizer.minimize(values_losses, var_list=values_params)
+
+                            self.infos_names = ['policy_loss', 'qf1_loss', 'qf2_loss', 'value_loss', 'entropy']
+                            # All ops to call during one training step
+                            self.step_ops = [policy_loss, qf1_loss, qf2_loss,
+                                            value_loss, qf1, qf2, value_fn, logp_pi,
+                                            self.entropy, policy_train_op, train_values_op]
+
+                            # Add entropy coefficient optimization operation if needed
+                            if ent_coef_loss is not None:
+                                with tf.control_dependencies([train_values_op]):
+                                    ent_coef_op = entropy_optimizer.minimize(ent_coef_loss, var_list=self.log_ent_coef)
+                                    self.infos_names += ['ent_coef_loss', 'ent_coef']
+                                    self.step_ops += [ent_coef_op, ent_coef_loss, self.ent_coef]
+
+                        # Monitor losses and entropy in tensorboard
+                        tf.summary.scalar('policy_loss', policy_loss)
+                        tf.summary.scalar('qf1_loss', qf1_loss)
+                        tf.summary.scalar('qf2_loss', qf2_loss)
+                        tf.summary.scalar('value_loss', value_loss)
+                        tf.summary.scalar('entropy', self.entropy)
+                        if ent_coef_loss is not None:
+                            tf.summary.scalar('ent_coef_loss', ent_coef_loss)
+                            tf.summary.scalar('ent_coef', self.ent_coef)
+
+                        tf.summary.scalar('learning_rate', tf.reduce_mean(self.learning_rate_ph))
+
+                    # Retrieve parameters that must be saved
+                    self.params = tf_util.get_trainable_vars("model")
+                    self.target_params = tf_util.get_trainable_vars("target/values_fn/vf")
+
+                    # Initialize Variables and target network
+                    with self.sess.as_default():
+                        self.sess.run(tf.global_variables_initializer())
+                        self.sess.run(target_init_op)
+
+                    self.summary = tf.summary.merge_all()
+
+        # Within MlpPolicy(FeedForwardPolicy(SACPolicy(BasePolicy)))    common/policies.py
+        def __init__(self, sess, ob_space, ac_space, n_env, n_steps, n_batch, reuse=False, scale=False,
+                 obs_phs=None, add_action_ph=False):
+            self.n_env = n_env
+            self.n_steps = n_steps
+            self.n_batch = n_batch
+            with tf.variable_scope("input", reuse=False):
+                if obs_phs is None:
+                    #self._obs_ph, self._processed_obs = observation_input(ob_space, n_batch, scale=scale)
+                    self._obs_ph, self._processed_obs = custom_observation_input(ob_space, n_batch, scale=scale)
+                else:
+                    self._obs_ph, self._processed_obs = obs_phs
+
+                self._action_ph = None
+                if add_action_ph:
+                    self._action_ph = tf.placeholder(dtype=ac_space.dtype, shape=(n_batch,) + ac_space.shape,
+                                                    name="action_ph")
+            self.sess = sess
+            self.reuse = reuse
+            self.ob_space = ob_space
+            self.ac_space = ac_space
+
+        # Within common/input.py
+        # Receive ob_space as a Box and return corresponding placeholder
+        # For now, do not support image input nor objects other than a Box
+        # TODO 1: support for the image input ph -> sacle with processed_obs
+        # TODO 2: support for Discrete, MultiBinary, MultiDiscrete
+        def custom_observation_input(ob_space, batch_size=None, name='Ob', scale=False):
+            """
+            Build observation input with encoding depending on the observation space type
+
+            When using Box ob_space, the input will be normalized between [1, 0] on the bounds ob_space.low and ob_space.high.
+
+            :param ob_space: (Gym Space) The observation space
+            :param batch_size: (int) batch size for input
+                            (default is None, so that resulting input placeholder can take tensors with any batch size)
+            :param name: (str) tensorflow variable name for input placeholder
+            :param scale: (bool) whether or not to scale the input
+            :return: (TensorFlow Tensor, TensorFlow Tensor) input_placeholder, processed_input_tensor
+            """
+            if isinstance(ob_space, Discrete):
+                observation_ph = tf.placeholder(shape=(batch_size,), dtype=tf.int32, name=name)
+                processed_observations = tf.cast(tf.one_hot(observation_ph, ob_space.n), tf.float32)
+                return observation_ph, processed_observations
+
+            elif isinstance(ob_space, Box):
+                observation_ph = tf.placeholder(shape=(batch_size,) + ob_space.shape, dtype=ob_space.dtype, name=name)
+                processed_observations = tf.cast(observation_ph, tf.float32)
+                # rescale to [1, 0] if the bounds are defined
+                if (scale and
+                not np.any(np.isinf(ob_space.low)) and not np.any(np.isinf(ob_space.high)) and
+                np.any((ob_space.high - ob_space.low) != 0)):
+
+                    # equivalent to processed_observations / 255.0 when bounds are set to [255, 0]
+                    processed_observations = ((processed_observations - ob_space.low) / (ob_space.high - ob_space.low))
+                return observation_ph, processed_observations
+
+            elif isinstance(ob_space, MultiBinary):
+                observation_ph = tf.placeholder(shape=(batch_size, ob_space.n), dtype=tf.int32, name=name)
+                processed_observations = tf.cast(observation_ph, tf.float32)
+                return observation_ph, processed_observations
+
+            elif isinstance(ob_space, MultiDiscrete):
+                observation_ph = tf.placeholder(shape=(batch_size, len(ob_space.nvec)), dtype=tf.int32, name=name)
+                processed_observations = tf.concat([
+                    tf.cast(tf.one_hot(input_split, ob_space.nvec[i]), tf.float32) for i, input_split
+                    in enumerate(tf.split(observation_ph, len(ob_space.nvec), axis=-1))
+                ], axis=-1)
+                return observation_ph, processed_observations
+
+            else:
+                raise NotImplementedError("Error: the model does not support input space of type {}".format(
+                    type(ob_space).__name__))
+
+        # Within MlpPolicy(FeedForwardPolicy(SACPolicy))                sac_multi/policies.py
+        @abstractmethod
+        def make_custom_actor(self, obs=None, reuse=False, scope="pi"):
+            """
+            Creates an actor object
+
+            :param obs: (TensorFlow Tensor) The observation placeholder (can be None for default placeholder)
+            :param reuse: (bool) whether or not to reuse parameters
+            :param scope: (str) the scope name of the actor
+            :return: (TensorFlow Tensor) the output tensor
+            """
+            raise NotImplementedError
+
+        # Within MlpPolicy(FeedForwardPolicy(SACPolicy))                sac_multi/policies.py
+        @abstractmethod
+        def make_custom_critics(self, obs=None, action=None, reuse=False,
+                        scope="values_fn", create_vf=True, create_qf=True):
+            """
+            Creates the two Q-Values approximator along with the Value function
+
+            :param obs: (TensorFlow Tensor) The observation placeholder (can be None for default placeholder)
+            :param action: (TensorFlow Tensor) The action placeholder
+            :param reuse: (bool) whether or not to reuse parameters
+            :param scope: (str) the scope name
+            :param create_vf: (bool) Whether to create Value fn or not
+            :param create_qf: (bool) Whether to create Q-Values fn or not
+            :return: ([tf.Tensor]) Mean, action and log probability
+            """
+            raise NotImplementedError
+
+        # Within MlpPolicy(FeedForwardPolicy)                           sac_multi/policies.py
+        def make_custom_actor(self, obs=None, reuse=False, scope="pi"):
+            if obs is None:
+                obs = self.processed_obs
+
+            with tf.variable_scope(scope, reuse=reuse):
+                print("obs: ",obs)
+                if self.feature_extraction == "cnn":
+                    pi_h = self.cnn_extractor(obs, **self.cnn_kwargs)
+                else:
+                    pi_h = tf.layers.flatten(obs)
+
+                pi_h = mlp(pi_h, self.policy_layers, self.activ_fn, layer_norm=self.layer_norm)
+
+                self.act_mu = mu_ = tf.layers.dense(pi_h, self.ac_space.shape[0], activation=None)
+                # Important difference with SAC and other algo such as PPO:
+                # the std depends on the state, so we cannot use stable_baselines.common.distribution
+                log_std = tf.layers.dense(pi_h, self.ac_space.shape[0], activation=None)
+
+            # Regularize policy output (not used for now)
+            # reg_loss = self.reg_weight * 0.5 * tf.reduce_mean(log_std ** 2)
+            # reg_loss += self.reg_weight * 0.5 * tf.reduce_mean(mu ** 2)
+            # self.reg_loss = reg_loss
+
+            # OpenAI Variation to cap the standard deviation
+            # activation = tf.tanh # for log_std
+            # log_std = LOG_STD_MIN + 0.5 * (LOG_STD_MAX - LOG_STD_MIN) * (log_std + 1)
+            # Original Implementation
+            log_std = tf.clip_by_value(log_std, LOG_STD_MIN, LOG_STD_MAX)
+
+            self.std = std = tf.exp(log_std)
+            # Reparameterization trick
+            pi_ = mu_ + tf.random_normal(tf.shape(mu_)) * std
+            logp_pi = gaussian_likelihood(pi_, mu_, log_std)
+            self.entropy = gaussian_entropy(log_std)
+            # MISSING: reg params for log and mu
+            # Apply squashing and account for it in the probability
+            deterministic_policy, policy, logp_pi = apply_squashing_func(mu_, pi_, logp_pi)
+            self.policy = policy
+            self.deterministic_policy = deterministic_policy
+
+            return deterministic_policy, policy, logp_pi
+
+        # Within MlpPolicy(FeedForwardPolicy)                           sac_multi/policies.py
+        def make_custom_critics(self, obs=None, action=None, reuse=False, scope="values_fn",
+                        create_vf=True, create_qf=True):
+            if obs is None:
+                obs = self.processed_obs
+
+            with tf.variable_scope(scope, reuse=reuse):
+                if self.feature_extraction == "cnn":
+                    critics_h = self.cnn_extractor(obs, **self.cnn_kwargs)
+                else:
+                    critics_h = tf.layers.flatten(obs)
+
+                if create_vf:
+                    # Value function
+                    with tf.variable_scope('vf', reuse=reuse):
+                        vf_h = mlp(critics_h, self.value_layers, self.activ_fn, layer_norm=self.layer_norm)
+                        value_fn = tf.layers.dense(vf_h, 1, name="vf")
+                    self.value_fn = value_fn
+
+                if create_qf:
+                    # Concatenate preprocessed state and action
+                    qf_h = tf.concat([critics_h, action], axis=-1)
+
+                    # Double Q values to reduce overestimation
+                    with tf.variable_scope('qf1', reuse=reuse):
+                        qf1_h = mlp(qf_h, self.value_layers, self.activ_fn, layer_norm=self.layer_norm)
+                        qf1 = tf.layers.dense(qf1_h, 1, name="qf1")
+
+                    with tf.variable_scope('qf2', reuse=reuse):
+                        qf2_h = mlp(qf_h, self.value_layers, self.activ_fn, layer_norm=self.layer_norm)
+                        qf2 = tf.layers.dense(qf2_h, 1, name="qf2")
+
+                    self.qf1 = qf1
+                    self.qf2 = qf2
+
+            return self.qf1, self.qf2, self.value_fn
+        
+
+
+
+        
 
 
     M. total layer structure def required.
