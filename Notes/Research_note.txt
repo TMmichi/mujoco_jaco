@@ -158,7 +158,7 @@ Note
                         1. Why have sub-primitives?
                             - To construct primitives, observation spaces for each should be matched among all.
                                 Reason: each primitives shall have an idea with the full knowledge of a current state
-                                Question: Doesn't weight network determine how to composite primitives?
+                                Question: Doesn't weight function determine how to composite primitives?
                                 Defence: 
                             - But there is no need to train each primitives with full observation spaces where they can acheive their goal with much simpler observations.
                             - pretrain sub-primitives with simple observation spaces, and modify them with full observation placeholders
@@ -225,6 +225,25 @@ Note
                         - Organization and hierarchy of the human functional brain network lead to a chain-like core (Mastrandrea, 2017)
                         - Modeling functional resting-state brain networks through neural message passing on the human connectome (Peraza-Goicolea, 2019)
                         - Deep Learning on Graph-structured Data (Lee, 2019)
+                }
+                1-5. Value selection
+                {
+                    Questions:
+                        1. Does each of the pretrained primitives requires its value function to be preserved?
+                            - 
+                        2. Can the value function of the total policy be another new chunk of network?
+                            - Maybe
+                            - or, Maybe not
+                    Do:
+                        1. Do all:
+                            - 1. Easiest: make whole new value function from scratch as a chunk of parameters
+                            - 2. Hard: construct same value function for each pretrained primitives to get total sum of values, but trained from scratch
+                            - 3. Harder: construct same value function with total sum of values and import parameters to train for complicated task (Fine-tunable)
+                            - 4. Also Harder: same with 3 but parameter be fixed                            
+                        2. For 1, get:
+                            - total episodic reward
+                            - convergence time
+                            - environment timesteps
                 }
             }
             2. Title: Who cares who I am: Policy transfer between robots without fine-tuning

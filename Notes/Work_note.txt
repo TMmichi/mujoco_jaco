@@ -71,10 +71,10 @@ aux network + fine tuning
 
             :param obs_dimension: (int) observation space dimension for the primitive
             :param obs_range: ([float, float] or [int, int]) observation range
-            :param obs_index: ([int, int]) start and end index of the observation for the primitive
+            :param obs_index: ([int, ...]) list of indices of the observation for the primitive
             :param act_dimension: (int) action space dimension for the primitive
             :param act_range: ([float, float] or [int, int]) action range
-            :param act_index: ([int, int]) start and end index of the action for the primitive
+            :param act_index: ([int, ...]) list of indices of the action for the primitive
             :param layer_structure: ([int, ...]) hidden layer structure of the primitive
             :return: (dict: {'obs':tuple, 'act':tuple, 'layer':list}) primitive information
             '''
@@ -82,28 +82,33 @@ aux network + fine tuning
             # TODO: wrong obs_dimension size from the size of the obs_index
             obs_range_max = np.array([max(obs_range)]*obs_dimension)
             obs_range_min = np.array([min(obs_range)]*obs_dimension)
-            obs = (spaces.Box(obs_range_min, obs_range_max, dtype=np.float32), obs_index)
+            obs = (spaces.Box(obs_range_min, obs_range_max, dtype=np.float32), obs_index.sort())
 
             act_range_max = np.array([max(act_range)]*act_dimension)
             act_range_min = np.array([min(act_range)]*act_dimension)
-            act = (spaces.Box(act_range_min, act_range_max, dtype=np.float32), act_index)
+            act = (spaces.Box(act_range_min, act_range_max, dtype=np.float32), act_index.sort())
 
             return {'obs': obs, 'act': act, 'layer': layer_structure}
 
-        primitives = dict()
+        # NOTE: name for primitive
+        # If pretrained, then 'freeze/' must be added in front of the name in order to prevent forgetting
+        # else, put 'train/'
+        primitives = OrderedDict()
     
         # NOTE: newly appointed primitives
-        primitives['aux1'] = construct_primitive_info(obs_dimension=6, obs_range=[-3, 3], obs_index=[0, 5], 
-                                act_dimension=6, act_range=[-1.4, 1.4], layer_structure=[256, 256])
-        primitives['aux2'] = construct_primitive_info(6, [-3, 3], [0, 5], 6, [-1.4, 1.4], [256, 256])
+        primitives['train/aux1'] = construct_primitive_info(obs_dimension=6, obs_range=[-3, 3], obs_index=[0, 1, 2, 4, 5], 
+                                                    act_dimension=6, act_range=[-1.4, 1.4], layer_structure=[256, 256])
+        primitives['train/aux2'] = construct_primitive_info(6, [-3, 3], [3, 4, 5, 8], 
+                                                    6, [-1.4, 1.4], [256, 256])
         # TODO: input space should be compared with the env.obs space
-        primitives['weight'] = construct_primitive_info(total_obs_dim, [-3, 3], [0, total_obs_dim-1], number_of_primitives, [-1.4, 1.4], [256, 256])
+        primitives['train/weight'] = construct_primitive_info(total_obs_dim, [-3, 3], [0:total_obs_dim], 
+                                                    number_of_primitives, [-1.4, 1.4], [256, 256])
 
         # NOTE: Pretrained primitives
         # tuple (data -> OrderedDict, param -> OrderedDict)
         # param = {'name': value (np.array)}
-        primitives['reaching'] = BaseRLModel._load_from_file(policy_zip_path)
-        primitives['grasping'] = BaseRLModel._load_from_file(policy_zip_path)
+        primitives['freeze/reaching'] = BaseRLModel._load_from_file(policy_zip_path)
+        primitives['freeze/grasping'] = BaseRLModel._load_from_file(policy_zip_path)
 
         policy = MlpPolicy
         self.trainer = SAC_MULTI.pretrainer_load(policy, policy_dict, env)
@@ -116,7 +121,7 @@ aux network + fine tuning
             Construct trainer from policy structure
 
             :param policy: (Policy Class) class of SAC policy
-            :param policy_dict: (dict) structure of the policy
+            :param primitives: (dict) primitives by name to which items assigned as an info of obs/act/layer_structure
             :param env: (Gym Environment) the new environment to run the loaded model on
             :param kwargs: extra arguments to change the model when loading
             """
@@ -129,7 +134,7 @@ aux network + fine tuning
             Construct trainer from policy structure
 
             :param policy: (Policy Class) class of SAC policy
-            :param primitives: (dict) primitives by name with items assigned as an info of obs/act/layer_structure
+            :param primitives: (dict) primitives by name to which items assigned as an info of obs/act/layer_structure
             :param env: (Gym Environment) the new environment to run the loaded model on
             :param kwargs: extra arguments to change the model when loading
             """
@@ -139,28 +144,15 @@ aux network + fine tuning
                 raise ValueError("The specified policy kwargs do not equal the stored policy kwargs. "
                                 "Stored kwargs: {}, specified kwargs: {}".format(data['policy_kwargs'],
                                                                                 kwargs['policy_kwargs']))
-            primitive_layers = init_layers(primitives)
-
             # SAC_MULTI
             model = cls(policy=policy, env=None, _init_setup_model=False)
 
+            data = {'observation_space': Box(total_obs_dim,), 'action_space': Box(total_act_dim,)}
             model.__dict__.update(data)
-                -> 
-                {
-                    # First, deconstruct obs/act of each received primitives
-                    {deconstruct/construct algo here}
-
-                    # NOTE: ob_space/ac_space -> list? -> No. set_env should be mod then.                    
-                    # Define total ob_space, ac_space here
-                    model.observation_space = Box(total obs)
-                    model.action_space = Box(total act)
-                }
-            # TODO: self.obs_space, self.act_space should be updated here
-            # obs_space and act_space -> Box, but should be separable
 
             # Nothing updated
-            # TODO: find out what kind of keys in kwargs exists
             model.__dict__.update(kwargs)
+            # TODO: find out what kind of keys in kwargs exists
             
             # check env is a VecEnv -> always False. (Only train our policy with 1 environment)
             model.set_env(env)
@@ -184,7 +176,7 @@ aux network + fine tuning
             # train_value_op
             # target_init_op
             # initialize Values and target network
-            model.setup_custom_model()
+            model.setup_custom_model(primitives)
             # TODO: 
 
             # from self.tf_Variables of network:
@@ -198,8 +190,6 @@ aux network + fine tuning
 
             # return SAC trainer
             return model
-
-                # Within SAC_MULTI(OffPolicyRLModel)
 
         @classmethod
         def init_layers(layers: dict) -> dict:
@@ -322,16 +312,16 @@ aux network + fine tuning
 
         # Within SAC_MULTI(OffPolicyRLModel(BaseRLModel))               common/base_class.py
         @abstractmethod
-        def setup_custom_model(self):
+        def setup_custom_model(self, primitives):
             pass
 
         # Within SAC_MULTI(OffPolicyRLModel)                            common/base_class.py
         @abstractmethod
-        def setup_custom_model(self):
+        def setup_custom_model(self, primitives):
             pass
 
         # Within SAC_MULTI                                              sac_multi/sac_multi.py
-        def setup_custom_model(self):
+        def setup_custom_model(self, primitives):
             with SetVerbosity(self.verbose):
                 self.graph = tf.Graph()
                 with self.graph.as_default():
@@ -340,23 +330,57 @@ aux network + fine tuning
                     self.replay_buffer = ReplayBuffer(self.buffer_size)
 
                     with tf.variable_scope("input", reuse=False):
-                        # Create policy and target TF objects
-                        self.policy_tf = self.policy(self.sess, self.observation_space, self.action_space, layers=self.layers,
-                                                    **self.policy_kwargs)
-                        self.target_policy = self.policy(self.sess, self.observation_space, self.action_space, layers=self.layers,
-                                                        **self.policy_kwargs)
+                        # Create custom policy and target TF objects
 
+                        option 1. {
+                            # Receive ob_space as a Box and return corresponding placeholder
+                            # For now, do not support image input nor objects other than a Box
+                            observation_ph = tf.placeholder(shape=(None,) + ob_space.shape, dtype=ob_space.dtype, name='Ob')
+                            processed_observations = tf.cast(observation_ph, tf.float32)
+                            obs_ph = (observation_ph, processed_observations)
+                            act_ph = tf.placeholder(tf.float32, shape=(None,) + self.action_space.shape, name='actions')
+                            # TODO 1: support for the image input ph -> scale with processed_obs
+                            # TODO 2: support for Discrete, MultiBinary, MultiDiscrete
+
+                            self.policy_tf = self.policy(self.sess, self.observation_space, self.action_space, layers=self.layers, obs_phs=obs_ph,
+                                                        **self.policy_kwargs)
+                            self.target_policy = self.policy(self.sess, self.observation_space, self.action_space, layers=self.layers, obs_phs=obs_ph,
+                                                            **self.policy_kwargs)
+                        }
+
+                        option 2. {
+                            # create policy with obs_space, and act_space with total obs and act
+                            self.policy_tf = self.policy(self.sess, self.observation_space, self.action_space, layers=self.layers,
+                                                        **self.policy_kwargs)
+                            self.target_policy = self.policy(self.sess, self.observation_space, self.action_space, layers=self.layers,
+                                                            **self.policy_kwargs)
+                            
+                            # then tf.variable_scope('model'),
+                            # create policy_tf with make_custom_actor including screening_layer at top
+                            # TODO: Decide,
+                            #           1. critics construct separate network per primitive
+                                            {
+                                                self.deterministic_action, policy_out, logp_pi = self.policy_tf.make_custom_actor(self.processed_obs_ph)
+                                            }
+                            #           2. critics construct network as a whole
+                                            {
+                                                self.deterministic_action, policy_out, logp_pi = self.policy_tf.make_custom_actor(self.processed_obs_ph, primitives)
+                                            }
+                        }
+                        
                         # Initialize Placeholders
                         self.observations_ph = self.policy_tf.obs_ph
                         # Normalized observation for pixels
                         self.processed_obs_ph = self.policy_tf.processed_obs
                         self.next_observations_ph = self.target_policy.obs_ph
                         self.processed_next_obs_ph = self.target_policy.processed_obs
+                        # None
                         self.action_target = self.target_policy.action_ph
                         self.terminals_ph = tf.placeholder(tf.float32, shape=(None, 1), name='terminals')
                         self.rewards_ph = tf.placeholder(tf.float32, shape=(None, 1), name='rewards')
-                        self.actions_ph = tf.placeholder(tf.float32, shape=(None,) + self.action_space.shape,
-                                                        name='actions')
+                        self.action_ph = act_ph
+                        #self.actions_ph = tf.placeholder(tf.float32, shape=(None,) + self.action_space.shape,
+                        #                                name='actions')
                         self.learning_rate_ph = tf.placeholder(tf.float32, [], name="learning_rate_ph")
 
                     with tf.variable_scope("model", reuse=False):
@@ -454,7 +478,8 @@ aux network + fine tuning
                         # Policy train op
                         # (has to be separate from value train op, because min_qf_pi appears in policy_loss)
                         policy_optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate_ph)
-                        policy_train_op = policy_optimizer.minimize(policy_loss, var_list=tf_util.get_trainable_vars('model/pi'))
+                        # NOTE: params of pretrained networks should not be fine-tuned to avoid forgetting
+                        policy_train_op = policy_optimizer.minimize(policy_loss, var_list=tf_util.get_trainable_vars('model/pi/train'))
 
                         # Value train op
                         value_optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate_ph)
@@ -515,83 +540,10 @@ aux network + fine tuning
 
                     self.summary = tf.summary.merge_all()
 
-        # Within MlpPolicy(FeedForwardPolicy(SACPolicy(BasePolicy)))    common/policies.py
-        def __init__(self, sess, ob_space, ac_space, n_env, n_steps, n_batch, reuse=False, scale=False,
-                 obs_phs=None, add_action_ph=False):
-            self.n_env = n_env
-            self.n_steps = n_steps
-            self.n_batch = n_batch
-            with tf.variable_scope("input", reuse=False):
-                if obs_phs is None:
-                    #self._obs_ph, self._processed_obs = observation_input(ob_space, n_batch, scale=scale)
-                    self._obs_ph, self._processed_obs = custom_observation_input(ob_space, n_batch, scale=scale)
-                else:
-                    self._obs_ph, self._processed_obs = obs_phs
-
-                self._action_ph = None
-                if add_action_ph:
-                    self._action_ph = tf.placeholder(dtype=ac_space.dtype, shape=(n_batch,) + ac_space.shape,
-                                                    name="action_ph")
-            self.sess = sess
-            self.reuse = reuse
-            self.ob_space = ob_space
-            self.ac_space = ac_space
-
-        # Within common/input.py
-        # Receive ob_space as a Box and return corresponding placeholder
-        # For now, do not support image input nor objects other than a Box
-        # TODO 1: support for the image input ph -> sacle with processed_obs
-        # TODO 2: support for Discrete, MultiBinary, MultiDiscrete
-        def custom_observation_input(ob_space, batch_size=None, name='Ob', scale=False):
-            """
-            Build observation input with encoding depending on the observation space type
-
-            When using Box ob_space, the input will be normalized between [1, 0] on the bounds ob_space.low and ob_space.high.
-
-            :param ob_space: (Gym Space) The observation space
-            :param batch_size: (int) batch size for input
-                            (default is None, so that resulting input placeholder can take tensors with any batch size)
-            :param name: (str) tensorflow variable name for input placeholder
-            :param scale: (bool) whether or not to scale the input
-            :return: (TensorFlow Tensor, TensorFlow Tensor) input_placeholder, processed_input_tensor
-            """
-            if isinstance(ob_space, Discrete):
-                observation_ph = tf.placeholder(shape=(batch_size,), dtype=tf.int32, name=name)
-                processed_observations = tf.cast(tf.one_hot(observation_ph, ob_space.n), tf.float32)
-                return observation_ph, processed_observations
-
-            elif isinstance(ob_space, Box):
-                observation_ph = tf.placeholder(shape=(batch_size,) + ob_space.shape, dtype=ob_space.dtype, name=name)
-                processed_observations = tf.cast(observation_ph, tf.float32)
-                # rescale to [1, 0] if the bounds are defined
-                if (scale and
-                not np.any(np.isinf(ob_space.low)) and not np.any(np.isinf(ob_space.high)) and
-                np.any((ob_space.high - ob_space.low) != 0)):
-
-                    # equivalent to processed_observations / 255.0 when bounds are set to [255, 0]
-                    processed_observations = ((processed_observations - ob_space.low) / (ob_space.high - ob_space.low))
-                return observation_ph, processed_observations
-
-            elif isinstance(ob_space, MultiBinary):
-                observation_ph = tf.placeholder(shape=(batch_size, ob_space.n), dtype=tf.int32, name=name)
-                processed_observations = tf.cast(observation_ph, tf.float32)
-                return observation_ph, processed_observations
-
-            elif isinstance(ob_space, MultiDiscrete):
-                observation_ph = tf.placeholder(shape=(batch_size, len(ob_space.nvec)), dtype=tf.int32, name=name)
-                processed_observations = tf.concat([
-                    tf.cast(tf.one_hot(input_split, ob_space.nvec[i]), tf.float32) for i, input_split
-                    in enumerate(tf.split(observation_ph, len(ob_space.nvec), axis=-1))
-                ], axis=-1)
-                return observation_ph, processed_observations
-
-            else:
-                raise NotImplementedError("Error: the model does not support input space of type {}".format(
-                    type(ob_space).__name__))
 
         # Within MlpPolicy(FeedForwardPolicy(SACPolicy))                sac_multi/policies.py
         @abstractmethod
-        def make_custom_actor(self, obs=None, reuse=False, scope="pi"):
+        def make_custom_actor(self, primitives, obs=None, reuse=False, scope="pi"):
             """
             Creates an actor object
 
@@ -604,7 +556,7 @@ aux network + fine tuning
 
         # Within MlpPolicy(FeedForwardPolicy(SACPolicy))                sac_multi/policies.py
         @abstractmethod
-        def make_custom_critics(self, obs=None, action=None, reuse=False,
+        def make_custom_critics(self, primitives, obs=None, action=None, reuse=False,
                         scope="values_fn", create_vf=True, create_qf=True):
             """
             Creates the two Q-Values approximator along with the Value function
@@ -620,50 +572,55 @@ aux network + fine tuning
             raise NotImplementedError
 
         # Within MlpPolicy(FeedForwardPolicy)                           sac_multi/policies.py
-        def make_custom_actor(self, obs=None, reuse=False, scope="pi"):
+        def make_custom_actor(self, primitives, obs=None, reuse=False, scope="pi"):
             if obs is None:
                 obs = self.processed_obs
 
-            with tf.variable_scope(scope, reuse=reuse):
-                print("obs: ",obs)
-                if self.feature_extraction == "cnn":
-                    pi_h = self.cnn_extractor(obs, **self.cnn_kwargs)
-                else:
-                    pi_h = tf.layers.flatten(obs)
+            for name, item in primitives.items():
+                with tf.variable_scope(scope + "/" + name, reuse=reuse):
+                    if self.feature_extraction == "cnn":
+                        pi_h = self.cnn_extractor(obs, **self.cnn_kwargs)
+                    else:
+                        pi_h = tf.layers.flatten(obs)
+                    
+                    seive_layer = np.zeros([item['obs_dimension'], len(item['obs_index'])])
+                    for i in range(len(item['obs_index'])):
+                        seive_layer[item['obs_index'][i]][i] = 1
+                    pi_h = tf.matmul(pi_h, seive_layer)
 
-                pi_h = mlp(pi_h, self.policy_layers, self.activ_fn, layer_norm=self.layer_norm)
+                    pi_h = mlp(pi_h, item['layer_structure'], self.activ_fn, layer_norm=self.layer_norm)
 
-                self.act_mu = mu_ = tf.layers.dense(pi_h, self.ac_space.shape[0], activation=None)
-                # Important difference with SAC and other algo such as PPO:
-                # the std depends on the state, so we cannot use stable_baselines.common.distribution
-                log_std = tf.layers.dense(pi_h, self.ac_space.shape[0], activation=None)
+                    self.act_mu = mu_ = tf.layers.dense(pi_h, item['act_dimension'], activation=None)
+                    # Important difference with SAC and other algo such as PPO:
+                    # the std depends on the state, so we cannot use stable_baselines.common.distribution
+                    log_std = tf.layers.dense(pi_h, item['act_dimension'], activation=None)
 
-            # Regularize policy output (not used for now)
-            # reg_loss = self.reg_weight * 0.5 * tf.reduce_mean(log_std ** 2)
-            # reg_loss += self.reg_weight * 0.5 * tf.reduce_mean(mu ** 2)
-            # self.reg_loss = reg_loss
+                # Regularize policy output (not used for now)
+                # reg_loss = self.reg_weight * 0.5 * tf.reduce_mean(log_std ** 2)
+                # reg_loss += self.reg_weight * 0.5 * tf.reduce_mean(mu ** 2)
+                # self.reg_loss = reg_loss
 
-            # OpenAI Variation to cap the standard deviation
-            # activation = tf.tanh # for log_std
-            # log_std = LOG_STD_MIN + 0.5 * (LOG_STD_MAX - LOG_STD_MIN) * (log_std + 1)
-            # Original Implementation
-            log_std = tf.clip_by_value(log_std, LOG_STD_MIN, LOG_STD_MAX)
+                # OpenAI Variation to cap the standard deviation
+                # activation = tf.tanh # for log_std
+                # log_std = LOG_STD_MIN + 0.5 * (LOG_STD_MAX - LOG_STD_MIN) * (log_std + 1)
+                # Original Implementation
+                log_std = tf.clip_by_value(log_std, LOG_STD_MIN, LOG_STD_MAX)
 
-            self.std = std = tf.exp(log_std)
-            # Reparameterization trick
-            pi_ = mu_ + tf.random_normal(tf.shape(mu_)) * std
-            logp_pi = gaussian_likelihood(pi_, mu_, log_std)
-            self.entropy = gaussian_entropy(log_std)
-            # MISSING: reg params for log and mu
-            # Apply squashing and account for it in the probability
-            deterministic_policy, policy, logp_pi = apply_squashing_func(mu_, pi_, logp_pi)
-            self.policy = policy
-            self.deterministic_policy = deterministic_policy
+                self.std = std = tf.exp(log_std)
+                # Reparameterization trick
+                pi_ = mu_ + tf.random_normal(tf.shape(mu_)) * std
+                logp_pi = gaussian_likelihood(pi_, mu_, log_std)
+                self.entropy = gaussian_entropy(log_std)
+                # MISSING: reg params for log and mu
+                # Apply squashing and account for it in the probability
+                deterministic_policy, policy, logp_pi = apply_squashing_func(mu_, pi_, logp_pi)
+                self.policy = policy
+                self.deterministic_policy = deterministic_policy
 
             return deterministic_policy, policy, logp_pi
 
         # Within MlpPolicy(FeedForwardPolicy)                           sac_multi/policies.py
-        def make_custom_critics(self, obs=None, action=None, reuse=False, scope="values_fn",
+        def make_custom_critics(self, primitives, obs=None, action=None, reuse=False, scope="values_fn",
                         create_vf=True, create_qf=True):
             if obs is None:
                 obs = self.processed_obs
@@ -699,11 +656,6 @@ aux network + fine tuning
 
             return self.qf1, self.qf2, self.value_fn
         
-
-
-
-        
-
 
     M. total layer structure def required.
     {
