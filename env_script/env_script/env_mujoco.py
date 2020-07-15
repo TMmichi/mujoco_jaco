@@ -25,6 +25,7 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
             print("Using default max_steps: 500")
             self.max_steps = 500
 
+        # TODO: define obs/act bounds with a separate range per each dimension
         try:
             self.state_shape = kwargs['stateGen'].get_state_shape()
         except Exception:

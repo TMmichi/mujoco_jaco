@@ -59,27 +59,24 @@ aux network + fine tuning
 
         # Within SAC_MULTI(OffPolicyRLModel(BaseRLModel))               common/base_class.py
         @classmethod
-        @abstractmethod
-        def construct_primitive_info(obs_dimension, obs_range, obs_index, act_dimension, act_range, act_index, layer_structure):
-            pass
-
-        # Within SAC_MULTI(OffPolicyRLModel)                            common/base_class.py
-        @classmethod
-        def construct_primitive_info(obs_dimension, obs_range: Union[str, list], obs_index, act_dimension, act_range, act_index, layer_structure) -> dict:
+        def construct_primitive_info(cls, name, primitive_dict, obs_dimension, obs_range: Union[str, list], obs_index, act_dimension, act_range, act_index: Union[str, list], layer_structure) -> dict:
             '''
             Returns info of the primtive as a dictionary
 
+            :param name: (str) name of the primitive
+            :param primitive_dict: (dict) primitive dictionary in which to store data
             :param obs_dimension: (int) observation space dimension for the primitive
             :param obs_range: ([float, float] or [int, int] or int) observation range. If int, then range fixed to 0
             :param obs_index: ([int, ...]) list of indices of the observation for the primitive
             :param act_dimension: (int) action space dimension for the primitive
             :param act_range: ([float, float] or [int, int]) action range
-            :param act_index: ([int, ...]) list of indices of the action for the primitive
+            :param act_index: ([int, ...] or int) list of indices of the action for the primitive. If int, then action_index_array = [0:act_index]
             :param layer_structure: ([int, ...]) hidden layer structure of the primitive
             :return: (dict: {'obs':tuple, 'act':tuple, 'layer':list}) primitive information
             '''
-            # TODO: assert Error for the wrong type
-            # TODO: wrong obs_dimension size from the size of the obs_index
+            assert obs_dimension == len(obs_index), '[ERROR]: observation dimension mismatch with length of obs_index.\
+                                                    obs_dimension = {0}, len(obs_index) = {1}'.format(obs_dim, len(obs_index))
+
             if isinstance(obs_range, list):
                 obs_range_max = np.array([max(obs_range)]*obs_dimension)
                 obs_range_min = np.array([min(obs_range)]*obs_dimension)
@@ -88,13 +85,21 @@ aux network + fine tuning
                 obs_range_array = np.array([0]*obs_dimension)
                 obs = (spaces.Box(obs_range_array, obs_range_array, dtype=np.float32), obs_index.sort())
             else:
-                raise TypeError("[ERROR]: obs_range wrong type - Should be list or int. Received {}".format(type(obs_range)))
+                raise TypeError("[ERROR]: obs_range wrong type - Should be a list or an int. Received {}".format(type(obs_range)))
+            
+            if isinstance(act_index, list):
+                assert act_dimension == len(act_index), '[ERROR]: action dimension mismatch with length of act_index.\
+                                                    act_dimension = {0}, len(act_index) = {1}'.format(act_dimension, len(act_index))
+            elif isinstance(act_index, int):
+                act_index = list(range(act_index))
+            else:
+                raise TypeError("[ERROR]: act_index wrong type - Should be a list or an int. Received {}".format(type(act_index)))
 
             act_range_max = np.array([max(act_range)]*act_dimension)
             act_range_min = np.array([min(act_range)]*act_dimension)
             act = (spaces.Box(act_range_min, act_range_max, dtype=np.float32), act_index.sort())
 
-            return {'obs': obs, 'act': act, 'layer': layer_structure}
+            primitive_dict[name] = {'obs': obs, 'act': act, 'layer': layer_structure}
 
         # NOTE: name for primitive
         # If pretrained, then 'freeze/' must be added in front of the name in order to prevent forgetting
@@ -102,15 +107,13 @@ aux network + fine tuning
         primitives = OrderedDict()
     
         # NOTE: newly appointed primitives
-        # TODO: insert info in primitives dict within the function
-        primitives['train/aux1'] = construct_primitive_info(obs_dimension=6, obs_range=[-3, 3], obs_index=[0, 1, 2, 4, 5], 
-                                                    act_dimension=6, act_range=[-1.4, 1.4], layer_structure=[256, 256])
-        primitives['train/aux2'] = construct_primitive_info(6, [-3, 3], [3, 4, 5, 8], 
-                                                    6, [-1.4, 1.4], [256, 256])
-        # TODO: input space should be compared with the env.obs space
-        primitives['train/weight'] = construct_primitive_info(total_obs_dim, 0, list(range(total_obs_dim)), 
-                                                    number_of_primitives, [0,1], [256, 256])
-
+        BaseRLModel.construct_primitive_info(name='train/aux1', primitive_dict=primitives, obs_dimension=6, obs_range=[-3, 3], obs_index=[0, 1, 2, 4, 5], 
+                                                    act_dimension=6, act_range=[-1.4, 1.4], act_index=[0,1,2,3], layer_structure=[256, 256])
+        BaseRLModel.construct_primitive_info('train/aux2', primitives, 6, [-3, 3], [3, 4, 5, 8], 
+                                                    6, [-1.4, 1.4], [4,5,6,7], [256, 128])
+        BaseRLModel.construct_primitive_info('train/weight', primitives, total_obs_dim, 0, list(range(total_obs_dim)), 
+                                                    number_of_primitives, [0,1], number_of_primitives, [256, 256])
+ 
         # NOTE: Pretrained primitives
         # tuple (data -> OrderedDict, param -> OrderedDict)
         # param = {'name': value (np.array)}
@@ -151,12 +154,15 @@ aux network + fine tuning
                 raise ValueError("The specified policy kwargs do not equal the stored policy kwargs. "
                                 "Stored kwargs: {}, specified kwargs: {}".format(data['policy_kwargs'],
                                                                                 kwargs['policy_kwargs']))
-            # SAC_MULTI
+            # model = SAC_MULTI
             model = cls(policy=policy, env=None, _init_setup_model=False)
+
+            # Check the existence of 'train/weight' in primitives
+            weight_check(primitives)
             
-            # get total_obs_dim, total_act_dim
-            dims = check_primitive(primitives)
-            data = {'observation_space': Box(dims[0][0], dims[0][1], dtype=np.float32), 'action_space': Box(dims[1][0], dims[1][0], dtype=np.float32)}
+            # get total_obs_bound, total_act_bound
+            ranges = range_primitive(primitives)
+            data = {'observation_space': Box(ranges[0][0], ranges[0][1], dtype=np.float32), 'action_space': Box(ranges[1][0], ranges[1][1], dtype=np.float32)}
             model.__dict__.update(data)
 
             # Nothing updated
@@ -186,7 +192,6 @@ aux network + fine tuning
             # target_init_op
             # initialize Values and target network
             model.setup_custom_model(primitives)
-            # TODO: 
 
             # from self.tf_Variables of network:
             #   make load_ops -> {'name from self.variables': (ph, tf.Variable.assign(ph))}
@@ -195,30 +200,44 @@ aux network + fine tuning
             #   make param_update_ops -> [tf.Variable.assign(ph)]
             # after building feed_dict, update_ops, run update_ops with feed_dict
             model.load_parameters(params, exact_match=False)
-            # TODO: 
 
             # return SAC trainer
             return model
         
         # Within SAC_MULTI(OffPolicyRLModel)                            common/base_class.py
         @classmethod
-        def check_primitive(self, primitives: dict) -> list:
+        def weight_check(cls, primitives: dict)
             '''
-            dims[0][0] = obs min np.array, dims[0][1] = obs max np.array
-            dims[1][0] = act min np.array, dims[1][1] = act max np.array
+            Check the existence of 'train/weight' in primitive dict
+
+            :param primitives: (dict) obs/act/structure info of primitives
             '''
-            
-            try:
-                obs_dim = primitives['train/weight']['obs'][1][-1]
-                obs_min_array = np.array([-float('inf')]*obs_dim)
-                obs_max_array = np.array([float('inf')]*obs_dim)
-                act_dim = primitives['train/weight']['act'][1][-1]
-                act_min_array = np.array([-float('inf')]*act_dim)
-                act_max_array = np.array([float('inf')]*act_dim)
-            except Exception:
-                print("[ERROR]: No primitive name train/weight. YOU MUST HAVE IT")
+            assert 'train/weight' in primitives.keys(), '[ERROR]: No primitive name "train/weight". YOU MUST HAVE IT'
+
+        # Within SAC_MULTI(OffPolicyRLModel)                            common/base_class.py
+        @classmethod
+        def range_primitive(cls, primitives: dict) -> list:
+            '''
+            Return range bounds of total observation/action space
+
+            :param primitives: (dict) obs/act/structure info of primitives
+            :return: ([2x2 np.array]): 
+                dims[0][0] = obs min np.array, dims[0][1] = obs max np.array
+                dims[1][0] = act min np.array, dims[1][1] = act max np.array
+            '''
+            obs_dim = primitives['train/weight']['obs'][1][-1] + 1  # dimension = last index + 1
+            obs_min_array = np.array([-float('inf')]*obs_dim)
+            obs_max_array = np.array([float('inf')]*obs_dim)
+
+            act_dim = 0
+            for name, info_dict in primitives.items():
+                if name != 'train/weight'
+                    act_dim = max(act_dim, info_dict['act'][1][-1]+1)
+            act_min_array = np.array([-float('inf')]*act_dim)
+            act_max_array = np.array([float('inf')]*act_dim)
 
             for name, info_dict in primitives.items():
+                # TODO: differenciate min/max bounds of each dimension of obs/act within a single primitive
                 obs_min_prim = info_dict['obs'][0].low.min()
                 obs_max_prim = info_dict['obs'][0].high.max()
                 act_min_prim = info_dict['act'][0].low.min()
@@ -236,12 +255,13 @@ aux network + fine tuning
                     act_max_array[index] = act_max_prim
                     if act_max_array[index] not in [float('inf'), act_max_prim]:
                         print("[WARNING]: You are about to overwrite max bound of obs[{0}] with {1}".format(act_max_array[index], act_max_prim))
-            dims = [[obs_min_array, obs_max_array], [act_min_array, act_max_array]]
+            ranges = [[obs_min_array, obs_max_array], [act_min_array, act_max_array]]
 
-            return dims
+            return ranges
 
+        # Within ?
         @classmethod
-        def init_layers(layers: dict) -> dict:
+        def init_layers(cls, layers: dict) -> dict:
             '''
             receive layers, convert to np.array with given size if list
             1. loadable_parameters = [tf.Variables with name, shape, dtype]
@@ -539,6 +559,11 @@ aux network + fine tuning
                         tf.summary.scalar('qf2_loss', qf2_loss)
                         tf.summary.scalar('value_loss', value_loss)
                         tf.summary.scalar('entropy', self.entropy)
+                        for name, value in primitives.items():
+                            pi_data = tf_util.get_trainable_vars('model/pi/'+name)
+                            #val_data = tf_util.get_trainable_vars('model/pi/'+name)
+                            tf.summary.histogram('model/pi/'+name.split('/')[1], pi_data)
+                            #tf.summary.histogram('model/values_fn/vf/'+name.split('/')[1], val_data)
                         if ent_coef_loss is not None:
                             tf.summary.scalar('ent_coef_loss', ent_coef_loss)
                             tf.summary.scalar('ent_coef', self.ent_coef)
@@ -590,36 +615,42 @@ aux network + fine tuning
         def make_custom_actor(self, primitives, obs=None, reuse=False, scope="pi"):
             if obs is None:
                 obs = self.processed_obs
+            mu_array = []
+            log_std_array = []
+            self.entropy = 0
+
             for name, item in primitives.items():
+
+                # TODO: for case for loaded primitive
                 with tf.variable_scope(scope + "/" + name, reuse=reuse):
                     if self.feature_extraction == "cnn":
                         pi_h = self.cnn_extractor(obs, **self.cnn_kwargs)
                     else:
                         pi_h = tf.layers.flatten(obs)
                     
-                    seive_layer = np.zeros([item['obs_dimension'], len(item['obs_index'])])
-                    for i in range(len(item['obs_index'])):
-                        seive_layer[item['obs_index'][i]][i] = 1
+                    #------------- Input observation seiving layer -------------#
+                    seive_layer = np.zeros([item['obs'][0].shape[0], len(item['obs'][1])])
+                    for i in range(len(item['obs'][1])):
+                        seive_layer[item['obs'][1][i]][i] = 1
                     pi_h = tf.matmul(pi_h, seive_layer)
+                    #------------- Observation seiving layer End -------------#
 
-                    pi_h = mlp(pi_h, item['layer_structure'], self.activ_fn, layer_norm=self.layer_norm)
+                    pi_h = mlp(pi_h, item['layer'], self.activ_fn, layer_norm=self.layer_norm)
 
-                    if name == weight:
-                        weight = tf.layers.dense(pi_h, item['act_dimension'], activation=None)
-                        # TODO: apply softmax to weight
-                        #self.weight_softmax = tf.layers.dense(weight, )
+                    if name == 'train/weight':
+                        weight = tf.layers.dense(pi_h, item['act_dimension'], activation='softmax')
                     else:
-                        self.act_mu = mu_ = tf.layers.dense(pi_h, item['act_dimension'], activation=None)
+                        mu_ = tf.layers.dense(pi_h, item['act_dimension'], activation=None)
+                        mu_array.append(mu_)
+
                         # Important difference with SAC and other algo such as PPO:
                         # the std depends on the state, so we cannot use stable_baselines.common.distribution
                         log_std = tf.layers.dense(pi_h, item['act_dimension'], activation=None)
 
-                if name == weight:
-                    pass
-                else:
+                if name != 'train/weight':
                     log_std = tf.clip_by_value(log_std, LOG_STD_MIN, LOG_STD_MAX)
-
-                    {
+                    log_std_array.append(log_std)
+                    '''
                         self.std = std = tf.exp(log_std)
                         # Reparameterization trick
                         pi_ = mu_ + tf.random_normal(tf.shape(mu_)) * std
@@ -630,19 +661,28 @@ aux network + fine tuning
                         deterministic_policy, policy, logp_pi = apply_squashing_func(mu_, pi_, logp_pi)
                         self.policy = policy
                         self.deterministic_policy = deterministic_policy
-                    }
+                    '''
                     std = tf.exp(log_std)
-                    # Reparameterization trick
-                    pi_ = mu_ + tf.random_normal(tf.shape(mu_)) * std
-                    logp_pi = gaussian_likelihood(pi_, mu_, log_std)
-                    self.entropy = gaussian_entropy(log_std)
-                    # MISSING: reg params for log and mu
-                    # Apply squashing and account for it in the probability
-                    deterministic_policy, policy, logp_pi = apply_squashing_func(mu_, pi_, logp_pi)
-                    self.policy = policy
-                    self.deterministic_policy = deterministic_policy
-            
 
+                    '''
+                        # Reparameterization trick
+                        #pi_ = mu_ + tf.random_normal(tf.shape(mu_)) * std
+                        #logp_pi = gaussian_likelihood(pi_, mu_, log_std)
+                    '''
+                    self.entropy += gaussian_entropy(log_std)
+            
+            # Reparameterization trick for MCP
+            pi_MCP, mu_MCP, log_std_MCP = fuse_networks_MCP(mu_array, log_std_array, weight)
+            logp_pi = gaussian_likelihood(pi_MCP, mu_MCP, log_std_MCP)
+            self.std = tf.exp(log_std_MCP)
+            self.policy_train = pi_MCP
+            self.deterministic_policy_train = self.act_mu = mu_MCP
+
+            # policies with squashing func at test time
+            # TODO: Need to check if these variables are used @ training time
+            deterministic_policy, policy, logp_pi = apply_squashing_func(mu_MCP, pi_MCP, logp_pi)
+            self.policy = policy
+            self.deterministic_policy = deterministic_policy
 
             return deterministic_policy, policy, logp_pi
 
@@ -683,6 +723,20 @@ aux network + fine tuning
 
             return self.qf1, self.qf2, self.value_fn
         
+        # Within                                                        sac_multi/policies.py
+        def fuse_networks_MCP(mu_array, log_std_array, weight):
+            """
+            Fuse distributions of policy into a MCP fashion
+
+            :param mu_array: ([tf.Tensor]) List of means
+            :param log_std_array: ([tf.Tensor]) List of log of the standard deviations
+            :param weight: (tf.Tensor) Weight tensor of each primitives
+            :return: ([tf.Tensor]) Samples of fused policy, fused mean, and fused standard deviations
+            """
+            
+
+            return pi_MCP, mu_MCP, log_std_MCP
+
 
     M. total layer structure def required.
     {
@@ -701,10 +755,8 @@ aux network + fine tuning
                                     reach mob grasp aux1  aux2
 
         3. should recognize the structure for each primitives
-
     }
     M. temp param ops buffer for primitives required.
-
     M. Action space btw auxilaries and primitives should be correlated somehow
     {
         1. task-specific auxilary:

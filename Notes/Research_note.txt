@@ -208,7 +208,7 @@ Note
                                 - For Neural Network, ...?
                             - 
                         }
-                        - The Architecture of Complexity (Simon, 1062)
+                        - The Architecture of Complexity (Simon, 1962)
                         {
                             - Nearly-decomposable systems
                             - most interactions with subsets close to them, and less with elemtns outside this subset
@@ -245,6 +245,11 @@ Note
                             - convergence time
                             - environment timesteps
                 }
+                1-6. Algorithm Formulation
+                {
+                    Question:
+                        1. How to formulate entropy? Just add them all by primitives?
+                }
             }
             2. Title: Who cares who I am: Policy transfer between robots without fine-tuning
             {
@@ -253,7 +258,6 @@ Note
             {
                 XAI
             }
-
     
     Conflicts:
         Task:
