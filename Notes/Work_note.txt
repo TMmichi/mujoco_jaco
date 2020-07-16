@@ -44,22 +44,66 @@ SAC policies
 
 aux network + fine tuning
 {
-    from stable_baselines.sac.policies import MlpPolicy
+    # Within main.py
+        def train_with_additional_layer(self, model_dir):        
+            from stable_baselines.sac.policies import MlpPolicy
 
-    def train_with_additional_layer(self, model_dir):        
-        env = JacoMujocoEnv(**vars(self.args))
+            env = JacoMujocoEnv(**vars(self.args))
+            # NOTE: name for primitive
+            # If pretrained, then 'freeze/' must be added in front of the name in order to prevent forgetting
+            # else, put 'train/'
+            primitives = OrderedDict()
+        
+            # NOTE: newly appointed primitives
+            BaseRLModel.construct_primitive_info(name='train/aux1', primitive_dict=primitives, obs_dimension=6, obs_range=[-3, 3], obs_index=[0, 1, 2, 4, 5], 
+                                                        act_dimension=6, act_range=[-1.4, 1.4], act_index=[0,1,2,3], layer_structure=[256, 256])
+            BaseRLModel.construct_primitive_info('train/aux2', primitives, 6, [-3, 3], [3, 4, 5, 8], 
+                                                        6, [-1.4, 1.4], [4,5,6,7], [256, 128])
+            BaseRLModel.construct_primitive_info('train/weight', primitives, total_obs_dim, 0, list(range(total_obs_dim)), 
+                                                        number_of_primitives, [0,1], number_of_primitives, [256, 256])
+    
+            # NOTE: Pretrained primitives
+            # tuple (data -> OrderedDict, param -> OrderedDict)
+            # param = {'name': value (np.array)}
+            BaseRLModel.construct_primitive_info('freeze/reaching', primitives, \
+                                                loaded_policy=BaseRLModel._load_from_file(policy_zip_path))
+            BaseRLModel.construct_primitive_info('freeze/grasping', primitives, \
+                                                loaded_policy=BaseRLModel._load_from_file(policy_zip_path))
 
-        # tf.graph -> Use the one in SAC_MULTI.setup_model()
-        # 1. set the structure of unknown layers -> []
-        # 2. define name of the unknown layers -> {'name': np.array}
-        # 3. call pretrained policies and extract the structure of layers by name / store paramters in a temp buffer -> {'name': (structure -> [], parameters -> np.array)}
-        # 4. compose total structure of the total policy -> []
-        # 5. update model policy with the structure of the total policy
-        # 6. setup a graph with variables
+            policy = MlpPolicy
+            self.trainer = SAC_MULTI.pretrainer_load(policy, primitives, env)
 
-        # Within SAC_MULTI(OffPolicyRLModel(BaseRLModel))               common/base_class.py
+        M. total layer structure def required.
+        {
+            1. def structure of aux networks by dict
+            e.g: layers = {}
+                    layers['weight1'] = [256, 256]
+                    layers['weight2'] = [128, 256, 128]
+                    layers['aux1'] = [128, 128, 64]
+                    layers['aux2'] = [128, 128]
+
+            2. stack layers by task-specific str (structure of each prims are pre-defined/pre-trained)
+            e.g: 
+                [['weight1','weight2'],['reaching','mobile','grasping', 'aux1', 'aux2']]
+                total network:
+                                            weight1     weight2
+                                        reach mob grasp aux1  aux2
+
+            3. should recognize the structure for each primitives
+        }
+        M. temp param ops buffer for primitives required.
+        M. Action space btw auxilaries and primitives should be correlated somehow
+        {
+            1. task-specific auxilary:
+        }
+        M. Mixture density network of each composite primitives
+        {
+        }
+        M. standard deviation @ predict -> should be alive : deterministic = False
+
+    # Within SAC_MULTI(OffPolicyRLModel(BaseRLModel))               common/base_class.py
         @classmethod
-        def construct_primitive_info(cls, name, primitive_dict, obs_dimension, obs_range: Union[str, list], obs_index, act_dimension, act_range, act_index: Union[str, list], layer_structure) -> dict:
+        def construct_primitive_info(cls, name, primitive_dict, obs_dimension, obs_range: Union[str, list], obs_index, act_dimension, act_range, act_index: Union[str, list], layer_structure, loaded_policy=None) -> dict:
             '''
             Returns info of the primtive as a dictionary
 
@@ -72,58 +116,110 @@ aux network + fine tuning
             :param act_range: ([float, float] or [int, int]) action range
             :param act_index: ([int, ...] or int) list of indices of the action for the primitive. If int, then action_index_array = [0:act_index]
             :param layer_structure: ([int, ...]) hidden layer structure of the primitive
+            :param loaded_policy: ((dict, dict)) tuple of data and parameters for pretrained policy.zip
             :return: (dict: {'obs':tuple, 'act':tuple, 'layer':list}) primitive information
             '''
-            assert obs_dimension == len(obs_index), '[ERROR]: observation dimension mismatch with length of obs_index.\
-                                                    obs_dimension = {0}, len(obs_index) = {1}'.format(obs_dim, len(obs_index))
+            if isinstance(loaded_policy, type(None)):
+                assert obs_dimension == len(obs_index), '\033[91m[ERROR]: obs_dimension mismatch with the length of obs_index.\
+                                                        obs_dimension = {0}, len(obs_index) = {1}\033[0m'.format(obs_dimension, len(obs_index))
 
-            if isinstance(obs_range, list):
-                obs_range_max = np.array([max(obs_range)]*obs_dimension)
-                obs_range_min = np.array([min(obs_range)]*obs_dimension)
-                obs = (spaces.Box(obs_range_min, obs_range_max, dtype=np.float32), obs_index.sort())
-            elif isinstance(obs_range, int):
-                obs_range_array = np.array([0]*obs_dimension)
-                obs = (spaces.Box(obs_range_array, obs_range_array, dtype=np.float32), obs_index.sort())
-            else:
-                raise TypeError("[ERROR]: obs_range wrong type - Should be a list or an int. Received {}".format(type(obs_range)))
-            
-            if isinstance(act_index, list):
-                assert act_dimension == len(act_index), '[ERROR]: action dimension mismatch with length of act_index.\
-                                                    act_dimension = {0}, len(act_index) = {1}'.format(act_dimension, len(act_index))
-            elif isinstance(act_index, int):
-                act_index = list(range(act_index))
-            else:
-                raise TypeError("[ERROR]: act_index wrong type - Should be a list or an int. Received {}".format(type(act_index)))
+                if isinstance(obs_range, list):
+                    obs_range_max = np.array([max(obs_range)]*obs_dimension)
+                    obs_range_min = np.array([min(obs_range)]*obs_dimension)
+                    obs = (spaces.Box(obs_range_min, obs_range_max, dtype=np.float32), obs_index.sort())
+                elif isinstance(obs_range, int):
+                    obs_range_array = np.array([0]*obs_dimension)
+                    obs = (spaces.Box(obs_range_array, obs_range_array, dtype=np.float32), obs_index.sort())
+                else:
+                    raise TypeError("\033[91m[ERROR]: obs_range wrong type - Should be a list or an int. Received {0}\033[0m".format(type(obs_range)))
+                
+                if isinstance(act_index, list):
+                    assert act_dimension == len(act_index), '\033[91m[ERROR]: act_dimension mismatch with the length of act_index.\
+                                                        act_dimension = {0}, len(act_index) = {1}\033[0m'.format(act_dimension, len(act_index))
+                elif isinstance(act_index, int):
+                    act_index = list(range(act_index))
+                else:
+                    raise TypeError("\033[91m[ERROR]: act_index wrong type, should be a list or an int. Received {0}\033[0m".format(type(act_index)))
+                act_range_max = np.array([max(act_range)]*act_dimension)
+                act_range_min = np.array([min(act_range)]*act_dimension)
+                act = (spaces.Box(act_range_min, act_range_max, dtype=np.float32), act_index.sort())
+                
+            elif isinstance(loaded_policy, tuple):
+                data_dict, param_dict = loaded_policy
 
-            act_range_max = np.array([max(act_range)]*act_dimension)
-            act_range_min = np.array([min(act_range)]*act_dimension)
-            act = (spaces.Box(act_range_min, act_range_max, dtype=np.float32), act_index.sort())
+                obs_box = data_dict['observation_space']
+                act_box = data_dict['action_space']
+                assert len(obs_index) == obs_box.shape[0], '\033[91m[ERROR]: Loaded observation dimension mismatch with length of obs_index.\
+                                                        obs_dimension = {0}, len(obs_index) = {1}\033[0m'.format(obs_box.shape[0], len(obs_index))
+                assert len(act_index) == act_box.shape[0], '\033[91m[ERROR]: Loaded action dimension mismatch with length of act_index.\
+                                                        act_dimension = {0}, len(act_index) = {1}\033[0m'.format(act_box.shape[0], len(act_index))
+                obs = (obs_box, obs_index.sort())
+                act = (act_box, act_index.sort())
+
+                if 'pretrained_param' not in primitive_dict.keys():
+                    primitive_dict['pretrained_param'] = ([],{})
+                updated_name, updated_param_dict = cls.loaded_policy_name_update(name, param_dict)
+                primitive_dict['pretrained_param'][0] += updated_name
+                primitive_dict['pretrained_param'][1] = {**primitive_dict['pretrained_param'][1], **updated_param_dict}
+
+                layer_structure = cls.get_policy_layer_structure((obs, act), param_dict)
+            else:
+                raise TypeError("\033[91m[ERROR]: loaded_policy wrong type - Should be None or a tuple. Received {0}\033[0m".format(type(loaded_policy)))
 
             primitive_dict[name] = {'obs': obs, 'act': act, 'layer': layer_structure}
 
-        # NOTE: name for primitive
-        # If pretrained, then 'freeze/' must be added in front of the name in order to prevent forgetting
-        # else, put 'train/'
-        primitives = OrderedDict()
+    # Within SAC_MULTI(OffPolicyRLModel(BaseRLModel))               common/base_class.py
+        @staticmethod
+        def loaded_policy_name_update(primitive_name, loaded_policy_dict):
+            '''
+            Concatenate name of each layers with name of the primitive
+
+            :param name: (str) name of the primitive
+            :param loaded_policy_dict: (dict) Dictionary of parameters of layers by name
+            :return: (list, dict) List consisting names of layers with specified primitive
+                                Dictionary of parameters by updated names
+            '''
+            layer_name_list = []
+            layer_param_dict = {}
+            for name, value in loaded_policy_dict.items():
+                name_elem = name.split("/")
+                assert 'LayerNorm' not in name_elem, "\033[91m[ERROR]: LayerNormalized policy is not supported for now. Try to load primitives with unnormalized layers\033[0m"
+
+                if 'pi' in name_elem:
+                    insert_index = 2
+                elif 'values_fn' in name_elem:
+                    insert_index = 3
+                else:
+                    insert_index = 1
+                updated_name = '/'.join(name_elem.insert(insert_index, primitive_name))
+                layer_name_list.append(updated_name)
+                layer_param_dict[updated_name] = value
+
+            return layer_name_list, layer_param_dict
     
-        # NOTE: newly appointed primitives
-        BaseRLModel.construct_primitive_info(name='train/aux1', primitive_dict=primitives, obs_dimension=6, obs_range=[-3, 3], obs_index=[0, 1, 2, 4, 5], 
-                                                    act_dimension=6, act_range=[-1.4, 1.4], act_index=[0,1,2,3], layer_structure=[256, 256])
-        BaseRLModel.construct_primitive_info('train/aux2', primitives, 6, [-3, 3], [3, 4, 5, 8], 
-                                                    6, [-1.4, 1.4], [4,5,6,7], [256, 128])
-        BaseRLModel.construct_primitive_info('train/weight', primitives, total_obs_dim, 0, list(range(total_obs_dim)), 
-                                                    number_of_primitives, [0,1], number_of_primitives, [256, 256])
- 
-        # NOTE: Pretrained primitives
-        # tuple (data -> OrderedDict, param -> OrderedDict)
-        # param = {'name': value (np.array)}
-        primitives['freeze/reaching'] = BaseRLModel._load_from_file(policy_zip_path)
-        primitives['freeze/grasping'] = BaseRLModel._load_from_file(policy_zip_path)
+    # Within SAC_MULTI(OffPolicyRLModel(BaseRLModel))               common/base_class.py
+        @staticmethod
+        def get_policy_layer_structure((obs, act), loaded_policy_dict):
+            '''
+            Return layer structure of the policy from parameter dictionary
 
-        policy = MlpPolicy
-        self.trainer = SAC_MULTI.pretrainer_load(policy, primitives, env)
+            :param obs/act: ((tuple, tuple)) Tuple containing info of observation and action
+            :param loaded_policy_dict: (dict) Dictionary of parameters of layers by name
+            :return: (list) Layer structure of the policy
+            '''
+            obs_dim = len(obs[1])
+            act_dim = len(act[1])
+            primitive_layer_structure = []
+            for name, value in loaded_policy_dict.items():
+                if name.find("pi/fc") > -1:
+                    if name.find("fc0/kernel") > -1:
+                        assert obs_dim == value.shape[0], "\033[91m[ERROR/Loaded Primitive]: Observation input of param shape does not match with the observation box. Potential corruption\033[0m"
+                    if name.find("bias") > -1:
+                        primitive_layer_structure.append(value.shape[0])
 
-        # Within SAC_MULTI(OffPolicyRLModel(BaseRLModel))               common/base_class.py
+            return primitive_layer_structure
+
+    # Within SAC_MULTI(OffPolicyRLModel(BaseRLModel))               common/base_class.py
         @classmethod
         @abstractmethod
         def pretrainer_load(cls, policy, primitives, env, **kwargs):
@@ -137,7 +233,7 @@ aux network + fine tuning
             """
             raise NotImplementedError()
 
-        # Within SAC_MULTI(OffPolicyRLModel)                            common/base_class.py
+    # Within SAC_MULTI(OffPolicyRLModel)                            common/base_class.py
         @classmethod
         def pretrainer_load(cls, policy, primitives, env, **kwargs) -> SAC_MULTI:
             """
@@ -154,14 +250,15 @@ aux network + fine tuning
                 raise ValueError("The specified policy kwargs do not equal the stored policy kwargs. "
                                 "Stored kwargs: {}, specified kwargs: {}".format(data['policy_kwargs'],
                                                                                 kwargs['policy_kwargs']))
+            
             # model = SAC_MULTI
             model = cls(policy=policy, env=None, _init_setup_model=False)
 
             # Check the existence of 'train/weight' in primitives
-            weight_check(primitives)
+            cls.weight_check(primitives)
             
             # get total_obs_bound, total_act_bound
-            ranges = range_primitive(primitives)
+            ranges = cls.range_primitive(primitives)
             data = {'observation_space': Box(ranges[0][0], ranges[0][1], dtype=np.float32), 'action_space': Box(ranges[1][0], ranges[1][1], dtype=np.float32)}
             model.__dict__.update(data)
 
@@ -199,24 +296,26 @@ aux network + fine tuning
             #   make feed_dict -> {'ph of the name': value of the name}
             #   make param_update_ops -> [tf.Variable.assign(ph)]
             # after building feed_dict, update_ops, run update_ops with feed_dict
+            # TODO: if primitives with name starts with 'freeze' does not have pretrained params,
+            #       raise Error.
             model.load_parameters(params, exact_match=False)
 
             # return SAC trainer
             return model
-        
-        # Within SAC_MULTI(OffPolicyRLModel)                            common/base_class.py
-        @classmethod
-        def weight_check(cls, primitives: dict)
+    
+    # Within SAC_MULTI(OffPolicyRLModel)                            common/base_class.py
+        @staticmethod
+        def weight_check(primitives: dict)
             '''
             Check the existence of 'train/weight' in primitive dict
 
             :param primitives: (dict) obs/act/structure info of primitives
             '''
-            assert 'train/weight' in primitives.keys(), '[ERROR]: No primitive name "train/weight". YOU MUST HAVE IT'
+            assert 'train/weight' in primitives.keys(), '\033[91m[ERROR]: No primitive name "train/weight". YOU MUST HAVE IT\033[0m'
 
-        # Within SAC_MULTI(OffPolicyRLModel)                            common/base_class.py
-        @classmethod
-        def range_primitive(cls, primitives: dict) -> list:
+    # Within SAC_MULTI(OffPolicyRLModel)                            common/base_class.py
+        @staticmethod
+        def range_primitive(primitives: dict) -> list:
             '''
             Return range bounds of total observation/action space
 
@@ -259,137 +358,17 @@ aux network + fine tuning
 
             return ranges
 
-        # Within ?
-        @classmethod
-        def init_layers(cls, layers: dict) -> dict:
-            '''
-            receive layers, convert to np.array with given size if list
-            1. loadable_parameters = [tf.Variables with name, shape, dtype]
-            2. self._param_load_ops = {'name':(ph, tf.Variable.assign(ph))}
-            3. params = {'name': np.array with shape}
-            4. feed_dict = {self._param_load_ops[name] -> ph : params[name] -> np.array}
-            5. param_update_ops = [tf.Variable.assign(ph)]
-            But to make tf.Variable, need to construct a graph with session
-            '''
-            # Q. Can Layer Normalized policies be mixed with unNormalized policies?
-            # Assume: No Layer Normalization for just a fc policy
-            # name: e.g. 'aux1/model/pi/fc0/kernel:0
-
-            for name, item in layers.items():
-                if isinstance(item, list):
-                    layer_od = OrderedDict()
-                    networks = ['model/pi', 'model/values_fn/vf', 'model/values_fn/qf1', 'model/values_fn/qf2', 'target/values_fn/vf']
-                    for network in networks:
-                        # First layer6
-                        kernel_layer_name = name + "/{0}/fc{1}/kernel:0".format(network,0)
-                        bias_layer_name = name + "/{0}/fc{1}/bias:0".format(network,0)
-                        obs_space_size = ?
-                        # TODO: replace np.zeros with random init module
-                        kernel_value = np.array(np.zeros([obs_space_size, item[0]]))
-                        bias_value = np.array(np.zeros([item[0]]))
-                        layer_od[kernel_layer_name] = kernel_value
-                        layer_od[bias_layer_name] = bias_value
-
-                        # Hidden layer
-                        for i in range(len(item)-1):
-                            # append np.array
-                            kernel_layer_name = name + "/{0}/fc{1}/kernel:0".format(network,i+1)
-                            bias_layer_name = name + "/{0}/fc{1}/bias:0".format(network,i+1)
-                            # TODO: replace np.zeros with random init module
-                            kernel_value = np.array(np.zeros([item[i], item[i+1]]))
-                            bias_value = np.array([item[i+1]])
-                            layer_od[kernel_layer_name] = kernel_value
-                            layer_od[bias_layer_name] = bias_value
-
-                        # Output layer
-                        if network == 'model/pi':
-                            output = 'dense'
-                            mu_kernel_layer_name = name + "/{0}/{1}/kernel:0".format(network, output)
-                            mu_bias_layer_name = name + "/{0}/{1}/bias:0".format(network, output)
-                            std_kernel_layer_name = name + "/{0}/{1}_1/kernel:0".format(network, output)
-                            std_bias_layer_name = name + "/{0}/{1}_1/bias:0".format(network, output)
-                            # TODO: replace np.zeros with random init module
-                            mu_kernel_value = np.array(np.zeros([item[-1], 1]))
-                            mu_bias_value = np.array([1])
-                            std_kernel_value = np.array(np.zeros([item[-1], 1]))
-                            std_bias_value = np.array([1])
-                            layer_od[mu_kernel_layer_name] = mu_kernel_value
-                            layer_od[mu_bias_layer_name] = mu_bias_value
-                            layer_od[std_kernel_layer_name] = std_kernel_value
-                            layer_od[std_bias_layer_name] = std_bias_value
-                        else:
-                            output = network.split("/")[-1]
-                            kernel_layer_name = name + "/{0}/{1}/kernel:0".format(network, output)
-                            bias_layer_name = name + "/{0}/{1}/bias:0".format(network, output)
-                            # TODO: replace np.zeros with random init module
-                            kernel_value = np.array(np.zeros([item[-1], 1]))
-                            bias_value = np.array([1])
-                            layer_od[kernel_layer_name] = kernel_value
-                            layer_od[bias_layer_name] = bias_value        
-                else:
-                    pass
-
-        # Within SAC_MULTI                                              sac_multi/sac_multi.py
-        def set_env(self, env):
-            """
-            Checks the validity of the environment, and if it is coherent, set it as the current environment.
-
-            :param env: (Gym Environment) The environment for learning a policy
-            """
-            if env is None and self.env is None:
-                if self.verbose >= 1:
-                    print("Loading a model without an environment, "
-                        "this model cannot be trained until it has a valid environment.")
-                return
-            elif env is None:
-                raise ValueError("Error: trying to replace the current environment with None")
-
-            # sanity checking the environment
-            assert self.observation_space == env.observation_space, \
-                "Error: the environment  passed must have at least the same observation space as the model was trained on. self.obs = {0}, env.obs = {1}".format(self.observation_space, env.observation_space)
-            assert self.action_space == env.action_space, \
-                "Error: the environment passed must have at least the same action space as the model was trained on."
-            if self._requires_vec_env:
-                assert isinstance(env, VecEnv), \
-                    "Error: the environment passed is not a vectorized environment, however {} requires it".format(
-                        self.__class__.__name__)
-                assert not self.policy.recurrent or self.n_envs == env.num_envs, \
-                    "Error: the environment passed must have the same number of environments as the model was trained on." \
-                    "This is due to the Lstm policy not being capable of changing the number of environments."
-                self.n_envs = env.num_envs
-            else:
-                # for models that dont want vectorized environment, check if they make sense and adapt them.
-                # Otherwise tell the user about this issue
-                if isinstance(env, VecEnv):
-                    if env.num_envs == 1:
-                        env = _UnvecWrapper(env)
-                        self._vectorize_action = True
-                    else:
-                        raise ValueError("Error: the model requires a non vectorized environment or a single vectorized "
-                                        "environment.")
-                else:
-                    self._vectorize_action = False
-
-                self.n_envs = 1
-
-            self.env = env
-            self._vec_normalize_env = unwrap_vec_normalize(env)
-
-            # Invalidated by environment change.
-            self.episode_reward = None
-            self.ep_info_buf = None
-
-        # Within SAC_MULTI(OffPolicyRLModel(BaseRLModel))               common/base_class.py
+    # Within SAC_MULTI(OffPolicyRLModel(BaseRLModel))               common/base_class.py
         @abstractmethod
         def setup_custom_model(self, primitives):
             pass
 
-        # Within SAC_MULTI(OffPolicyRLModel)                            common/base_class.py
+    # Within SAC_MULTI(OffPolicyRLModel)                            common/base_class.py
         @abstractmethod
         def setup_custom_model(self, primitives):
             pass
 
-        # Within SAC_MULTI                                              sac_multi/sac_multi.py
+    # Within SAC_MULTI                                              sac_multi/sac_multi.py
         def setup_custom_model(self, primitives):
             with SetVerbosity(self.verbose):
                 self.graph = tf.Graph()
@@ -404,6 +383,8 @@ aux network + fine tuning
                                                     **self.policy_kwargs)
                         self.target_policy = self.policy(self.sess, self.observation_space, self.action_space, layers=self.layers,
                                                         **self.policy_kwargs)
+                        
+                        assert not self.policy_tf.layer_norm, "\033[91m[ERROR]: LayerNormalized policy is not supported for now. Try to train policy with unnormalized layers\033[0m"
                         
                         # Initialize Placeholders
                         self.observations_ph = self.policy_tf.obs_ph
@@ -515,6 +496,7 @@ aux network + fine tuning
                         # (has to be separate from value train op, because min_qf_pi appears in policy_loss)
                         policy_optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate_ph)
                         # NOTE: params of pretrained networks should not be fine-tuned to avoid forgetting
+                        # TODO Q: If not contained in the train_op, will gradients of these variables be excluded?
                         policy_train_op = policy_optimizer.minimize(policy_loss, var_list=tf_util.get_trainable_vars('model/pi/train'))
 
                         # Value train op
@@ -581,7 +563,7 @@ aux network + fine tuning
 
                     self.summary = tf.summary.merge_all()
 
-        # Within MlpPolicy(FeedForwardPolicy(SACPolicy))                sac_multi/policies.py
+    # Within MlpPolicy(FeedForwardPolicy(SACPolicy))                sac_multi/policies.py
         @abstractmethod
         def make_custom_actor(self, primitives, obs=None, reuse=False, scope="pi"):
             """
@@ -594,7 +576,7 @@ aux network + fine tuning
             """
             raise NotImplementedError
 
-        # Within MlpPolicy(FeedForwardPolicy(SACPolicy))                sac_multi/policies.py
+    # Within MlpPolicy(FeedForwardPolicy(SACPolicy))                sac_multi/policies.py
         @abstractmethod
         def make_custom_critics(self, primitives, obs=None, action=None, reuse=False,
                         scope="values_fn", create_vf=True, create_qf=True):
@@ -611,7 +593,7 @@ aux network + fine tuning
             """
             raise NotImplementedError
 
-        # Within MlpPolicy(FeedForwardPolicy)                           sac_multi/policies.py
+    # Within MlpPolicy(FeedForwardPolicy)                           sac_multi/policies.py
         def make_custom_actor(self, primitives, obs=None, reuse=False, scope="pi"):
             if obs is None:
                 obs = self.processed_obs
@@ -620,57 +602,59 @@ aux network + fine tuning
             self.entropy = 0
 
             for name, item in primitives.items():
+                # When the primitive is not pretrained
+                if isinstance(item, dict):
+                    with tf.variable_scope(scope + "/" + name, reuse=reuse):
+                        if self.feature_extraction == "cnn":
+                            pi_h = self.cnn_extractor(obs, **self.cnn_kwargs)
+                        else:
+                            pi_h = tf.layers.flatten(obs)
+                        
+                        #------------- Input observation seiving layer -------------#
+                        seive_layer = np.zeros([item['obs'][0].shape[0], len(item['obs'][1])])
+                        for i in range(len(item['obs'][1])):
+                            seive_layer[item['obs'][1][i]][i] = 1
+                        pi_h = tf.matmul(pi_h, seive_layer)
+                        #------------- Observation seiving layer End -------------#
 
-                # TODO: for case for loaded primitive
-                with tf.variable_scope(scope + "/" + name, reuse=reuse):
-                    if self.feature_extraction == "cnn":
-                        pi_h = self.cnn_extractor(obs, **self.cnn_kwargs)
-                    else:
-                        pi_h = tf.layers.flatten(obs)
-                    
-                    #------------- Input observation seiving layer -------------#
-                    seive_layer = np.zeros([item['obs'][0].shape[0], len(item['obs'][1])])
-                    for i in range(len(item['obs'][1])):
-                        seive_layer[item['obs'][1][i]][i] = 1
-                    pi_h = tf.matmul(pi_h, seive_layer)
-                    #------------- Observation seiving layer End -------------#
+                        pi_h = mlp(pi_h, item['layer'], self.activ_fn, layer_norm=self.layer_norm)
 
-                    pi_h = mlp(pi_h, item['layer'], self.activ_fn, layer_norm=self.layer_norm)
+                        if name == 'train/weight':
+                            weight = tf.layers.dense(pi_h, item['act_dimension'], activation='softmax')
+                        else:
+                            mu_ = tf.layers.dense(pi_h, item['act_dimension'], activation=None)
+                            mu_array.append(mu_)
 
-                    if name == 'train/weight':
-                        weight = tf.layers.dense(pi_h, item['act_dimension'], activation='softmax')
-                    else:
-                        mu_ = tf.layers.dense(pi_h, item['act_dimension'], activation=None)
-                        mu_array.append(mu_)
+                            # Important difference with SAC and other algo such as PPO:
+                            # the std depends on the state, so we cannot use stable_baselines.common.distribution
+                            log_std = tf.layers.dense(pi_h, item['act_dimension'], activation=None)
 
-                        # Important difference with SAC and other algo such as PPO:
-                        # the std depends on the state, so we cannot use stable_baselines.common.distribution
-                        log_std = tf.layers.dense(pi_h, item['act_dimension'], activation=None)
+                    if name != 'train/weight':
+                        log_std = tf.clip_by_value(log_std, LOG_STD_MIN, LOG_STD_MAX)
+                        log_std_array.append(log_std)
+                        '''
+                            self.std = std = tf.exp(log_std)
+                            # Reparameterization trick
+                            pi_ = mu_ + tf.random_normal(tf.shape(mu_)) * std
+                            logp_pi = gaussian_likelihood(pi_, mu_, log_std)
+                            self.entropy = gaussian_entropy(log_std)
+                            # MISSING: reg params for log and mu
+                            # Apply squashing and account for it in the probability
+                            deterministic_policy, policy, logp_pi = apply_squashing_func(mu_, pi_, logp_pi)
+                            self.policy = policy
+                            self.deterministic_policy = deterministic_policy
+                        '''
+                        std = tf.exp(log_std)
 
-                if name != 'train/weight':
-                    log_std = tf.clip_by_value(log_std, LOG_STD_MIN, LOG_STD_MAX)
-                    log_std_array.append(log_std)
-                    '''
-                        self.std = std = tf.exp(log_std)
-                        # Reparameterization trick
-                        pi_ = mu_ + tf.random_normal(tf.shape(mu_)) * std
-                        logp_pi = gaussian_likelihood(pi_, mu_, log_std)
-                        self.entropy = gaussian_entropy(log_std)
-                        # MISSING: reg params for log and mu
-                        # Apply squashing and account for it in the probability
-                        deterministic_policy, policy, logp_pi = apply_squashing_func(mu_, pi_, logp_pi)
-                        self.policy = policy
-                        self.deterministic_policy = deterministic_policy
-                    '''
-                    std = tf.exp(log_std)
-
-                    '''
-                        # Reparameterization trick
-                        #pi_ = mu_ + tf.random_normal(tf.shape(mu_)) * std
-                        #logp_pi = gaussian_likelihood(pi_, mu_, log_std)
-                    '''
-                    self.entropy += gaussian_entropy(log_std)
-            
+                        '''
+                            # Reparameterization trick
+                            #pi_ = mu_ + tf.random_normal(tf.shape(mu_)) * std
+                            #logp_pi = gaussian_likelihood(pi_, mu_, log_std)
+                        '''
+                        self.entropy += gaussian_entropy(log_std)
+                else:
+                    raise TypeError("\033[91m[ERROR]: Primitive type error. Received: {0}, Should be one of 'dict' or 'tuple'.\033[0m".format(type(item)))
+                
             # Reparameterization trick for MCP
             pi_MCP, mu_MCP, log_std_MCP = fuse_networks_MCP(mu_array, log_std_array, weight)
             logp_pi = gaussian_likelihood(pi_MCP, mu_MCP, log_std_MCP)
@@ -686,113 +670,54 @@ aux network + fine tuning
 
             return deterministic_policy, policy, logp_pi
 
-        # Within MlpPolicy(FeedForwardPolicy)                           sac_multi/policies.py
-        def make_custom_critics(self, primitives, obs=None, action=None, reuse=False, scope="values_fn",
-                        create_vf=True, create_qf=True):
-            if obs is None:
-                obs = self.processed_obs
+    # Within MlpPolicy(FeedForwardPolicy)                           sac_multi/policies.py
+    def make_custom_critics(self, primitives, obs=None, action=None, reuse=False, scope="values_fn",
+                    create_vf=True, create_qf=True):
+        if obs is None:
+            obs = self.processed_obs
 
-            with tf.variable_scope(scope, reuse=reuse):
-                if self.feature_extraction == "cnn":
-                    critics_h = self.cnn_extractor(obs, **self.cnn_kwargs)
-                else:
-                    critics_h = tf.layers.flatten(obs)
+        with tf.variable_scope(scope, reuse=reuse):
+            if self.feature_extraction == "cnn":
+                critics_h = self.cnn_extractor(obs, **self.cnn_kwargs)
+            else:
+                critics_h = tf.layers.flatten(obs)
 
-                if create_vf:
-                    # Value function
-                    with tf.variable_scope('vf', reuse=reuse):
-                        vf_h = mlp(critics_h, self.value_layers, self.activ_fn, layer_norm=self.layer_norm)
-                        value_fn = tf.layers.dense(vf_h, 1, name="vf")
-                    self.value_fn = value_fn
+            if create_vf:
+                # Value function
+                with tf.variable_scope('vf', reuse=reuse):
+                    vf_h = mlp(critics_h, self.value_layers, self.activ_fn, layer_norm=self.layer_norm)
+                    value_fn = tf.layers.dense(vf_h, 1, name="vf")
+                self.value_fn = value_fn
 
-                if create_qf:
-                    # Concatenate preprocessed state and action
-                    qf_h = tf.concat([critics_h, action], axis=-1)
+            if create_qf:
+                # Concatenate preprocessed state and action
+                qf_h = tf.concat([critics_h, action], axis=-1)
 
-                    # Double Q values to reduce overestimation
-                    with tf.variable_scope('qf1', reuse=reuse):
-                        qf1_h = mlp(qf_h, self.value_layers, self.activ_fn, layer_norm=self.layer_norm)
-                        qf1 = tf.layers.dense(qf1_h, 1, name="qf1")
+                # Double Q values to reduce overestimation
+                with tf.variable_scope('qf1', reuse=reuse):
+                    qf1_h = mlp(qf_h, self.value_layers, self.activ_fn, layer_norm=self.layer_norm)
+                    qf1 = tf.layers.dense(qf1_h, 1, name="qf1")
 
-                    with tf.variable_scope('qf2', reuse=reuse):
-                        qf2_h = mlp(qf_h, self.value_layers, self.activ_fn, layer_norm=self.layer_norm)
-                        qf2 = tf.layers.dense(qf2_h, 1, name="qf2")
+                with tf.variable_scope('qf2', reuse=reuse):
+                    qf2_h = mlp(qf_h, self.value_layers, self.activ_fn, layer_norm=self.layer_norm)
+                    qf2 = tf.layers.dense(qf2_h, 1, name="qf2")
 
-                    self.qf1 = qf1
-                    self.qf2 = qf2
+                self.qf1 = qf1
+                self.qf2 = qf2
 
-            return self.qf1, self.qf2, self.value_fn
-        
-        # Within                                                        sac_multi/policies.py
-        def fuse_networks_MCP(mu_array, log_std_array, weight):
-            """
-            Fuse distributions of policy into a MCP fashion
-
-            :param mu_array: ([tf.Tensor]) List of means
-            :param log_std_array: ([tf.Tensor]) List of log of the standard deviations
-            :param weight: (tf.Tensor) Weight tensor of each primitives
-            :return: ([tf.Tensor]) Samples of fused policy, fused mean, and fused standard deviations
-            """
-            
-
-            return pi_MCP, mu_MCP, log_std_MCP
-
-
-    M. total layer structure def required.
-    {
-        1. def structure of aux networks by dict
-        e.g: layers = {}
-                layers['weight1'] = [256, 256]
-                layers['weight2'] = [128, 256, 128]
-                layers['aux1'] = [128, 128, 64]
-                layers['aux2'] = [128, 128]
-
-        2. stack layers by task-specific str (structure of each prims are pre-defined/pre-trained)
-        e.g: 
-            [['weight1','weight2'],['reaching','mobile','grasping', 'aux1', 'aux2']]
-            total network:
-                                        weight1     weight2
-                                    reach mob grasp aux1  aux2
-
-        3. should recognize the structure for each primitives
-    }
-    M. temp param ops buffer for primitives required.
-    M. Action space btw auxilaries and primitives should be correlated somehow
-    {
-        1. task-specific auxilary:
-    }
-    M. Mixture density network of each composite primitives
-    {
-    }
-
+        return self.qf1, self.qf2, self.value_fn
     
-    (for SAC or other algos)
-    SAC.load(model_path, env) + M. total_policy_structure + M. temp_param_load_ops_buffer for all primitives
-        model = cls(policy=data["policy"], env=None, _init_setup_model=False) + M. layer structure
-        model.__dict__.update(data)
-        model.__dict__.update(kwargs)
-        model.set_env(env)
-            compare env.action_space and policy_list action_space
-            compare obs space
+    # Within                                                        sac_multi/policies.py
+    def fuse_networks_MCP(mu_array, log_std_array, weight):
+        """
+        Fuse distributions of policy into a MCP fashion
 
+        :param mu_array: ([tf.Tensor]) List of means
+        :param log_std_array: ([tf.Tensor]) List of log of the standard deviations
+        :param weight: (tf.Tensor) Weight tensor of each primitives
+        :return: ([tf.Tensor]) Samples of fused policy, fused mean, and fused standard deviations
+        """
 
-        model.setup_model() -> model structure setup
-            initialize tf.Graph()
-            variable_scope: make_actor / make_critics (task specific)
-
-
-        model.load_parameters(params -> policy.zip, exact_match=False)
-            BaseRLModel._setup_load_operations()
-                loadable_params = SAC.get_parameter_list()
-                    (loadable_params -> [tf.Variable(name, shape, dtype)]) = self.params + self.target_params (Q. self.params, self.target_params -> from where? A. from setup_model())
-                placeholder = tf.ph(param.dype, param.shape)
-                (self._param_load_ops -> OrderedDict()) = map(loadable_params.name, loadable_params.assign(placeholder)) : for each params by name, (ph, tf.Variable.assign(ph))
-                # self._param_load_ops: dict of param names with ph, tf.variable(ph)
-            for each param: sess.run of variable.assign(ph) with dict = {ph: each value}
-        
-        Q: model structure? A: Maybe from somewhere else which have defined self.params/target_params
-
-    M. standard deviation @ predict -> should be alive : deterministic = False
+        return pi_MCP, mu_MCP, log_std_MCP
 
 }
-    
