@@ -148,24 +148,26 @@ class RL_controller:
         action = []
         return action
 
-    def train_with_additional_layer(self, model_dir):
+    def train_with_additional_layer(self):
         self.args.train_log = False
         env = JacoMujocoEnv(**vars(self.args))
 
         primitives = OrderedDict()
         # Newly appointed primitives
         SAC_MULTI.construct_primitive_info(name='train/aux1', primitive_dict=primitives, 
-                                            obs_dimension=6, obs_range=[-3, 3], obs_index=[0, 1, 2, 4, 5], 
-                                            act_dimension=6, act_range=[-1.4, 1.4], act_index=[0,1,2,3], 
+                                            obs_dimension=6, obs_range=[-2, 2], obs_index=[0, 1, 2, 3, 4, 5], 
+                                            act_dimension=6, act_range=[-1.4, 1.4], act_index=[0, 1, 2, 3, 4, 5], 
                                             layer_structure=[256, 256])
         SAC_MULTI.construct_primitive_info('train/aux2', primitives, 
-                                            6, [-3, 3], [3, 4, 5, 8], 
-                                            6, [-1.4, 1.4], [4,5,6,7], 
+                                            6, [-2, 2], [0, 1, 2, 3, 4, 5], 
+                                            6, [-1.4, 1.4], [0, 1, 2, 3, 4, 5], 
                                             [256, 128])
         # Pretrained primitives
-        policy_zip_path = ?
+        policy_zip_path = self.model_path+"test"+"/policy.zip"
         SAC_MULTI.construct_primitive_info('freeze/reaching', primitives,
-                                            loaded_policy=SAC_MULTI._load_from_file(policy_zip_path))
+                                            obs_dimension=None, obs_range=None, obs_index=[0, 1, 2, 3, 4, 5], 
+                                            act_dimension=None, act_range=None, act_index=[0, 1, 2, 3, 4, 5], 
+                                            layer_structure=None, loaded_policy=SAC_MULTI._load_from_file(policy_zip_path))
         # Weight definition  
         number_of_primitives = 3
         total_obs_dim = env.get_num_observation()
@@ -207,7 +209,7 @@ if __name__ == "__main__":
             iter_train = 0
             while True:
                 iter_train += 1
-                opt2 = input("Train_from_scratch / Train_from_pre_model / Train_from_expert (1/2/3): ")
+                opt2 = input("Train_from_scratch / Train_from_pre_model / Train_from_expert / Train with additional layer (1/2/3/4): ")
                 if opt2 == "1":
                     controller.train_from_scratch()
                     break
@@ -219,6 +221,9 @@ if __name__ == "__main__":
                     n_episodes = int(
                         input("How many trials do you want to record?"))
                     controller.train_from_expert(n_episodes)
+                    break
+                elif opt2 == "4":
+                    controller.train_with_additional_layer()
                     break
                 else:
                     if iter_train <= 5:
