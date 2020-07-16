@@ -4,6 +4,7 @@ import os
 import sys
 import path_config
 import time
+from collections import OrderedDict
 
 import stable_baselines.common.tf_util as tf_util
 from stable_baselines.trpo_mpi import TRPO
@@ -73,7 +74,8 @@ class RL_controller:
         os.makedirs(model_dir, exist_ok=True)
         tb_path = self.tb_dir + prefix
         self.num_timesteps = self.steps_per_batch * self.batches_per_episodes * self.num_episodes
-        layers = {"policy": [64, 64], "value": [256, 256, 128]}
+        # layers = {"policy": [64, 64], "value": [256, 256, 128]}
+        layers = None
         env = JacoMujocoEnv(**vars(self.args))
 
         # NOTE: Layer Normalization for RNNs, but for just fc..?
@@ -92,21 +94,22 @@ class RL_controller:
         self.trainer.save(model_dir+"/policy")
     
     def _write_log(self, model_log, layers):
-        model_log.writelines("Layers:\n")
-        model_log.write("\tpolicy:\t[")
-        for i in range(len(layers['policy'])):
-            model_log.write(str(layers['policy'][i]))
-            if i != len(layers['policy'])-1:
-                model_log.write(", ")
-            else:
-                model_log.writelines("]\n")
-        model_log.write("\tvalue:\t[")
-        for i in range(len(layers['value'])):
-            model_log.write(str(layers['value'][i]))
-            if i != len(layers['value'])-1:
-                model_log.write(", ")
-            else:
-                model_log.writelines("]\n")
+        if layers != None:
+            model_log.writelines("Layers:\n")
+            model_log.write("\tpolicy:\t[")
+            for i in range(len(layers['policy'])):
+                model_log.write(str(layers['policy'][i]))
+                if i != len(layers['policy'])-1:
+                    model_log.write(", ")
+                else:
+                    model_log.writelines("]\n")
+            model_log.write("\tvalue:\t[")
+            for i in range(len(layers['value'])):
+                model_log.write(str(layers['value'][i]))
+                if i != len(layers['value'])-1:
+                    model_log.write(", ")
+                else:
+                    model_log.writelines("]\n")
         model_log.writelines("Reward Method:\t\t\t\t{0}\n".format(self.reward_method))
         model_log.writelines("Steps per batch:\t\t\t{0}\n".format(self.steps_per_batch))
         model_log.writelines("Batches per episodes:\t\t{0}\n".format(self.batches_per_episodes))
@@ -120,7 +123,12 @@ class RL_controller:
         try:
             # self.trainer = SAC.load(self.model_path + model_dir + "/policy.zip", env=env)
             self.trainer = SAC_MULTI.load(self.model_path+model_dir+"/policy.zip", env=env)
-            print(self.trainer)
+            print("layer_norm: ",self.trainer.policy_tf.layer_norm)
+            '''
+            param_dict = SAC_MULTI._load_from_file(self.model_path+model_dir+"/policy.zip")[1]
+            for name, value in param_dict.items():
+                print(name, value.shape)
+            '''
             quit()
             self.trainer.learn(total_timesteps=self.num_timesteps)
             print("Train Finished")
@@ -143,10 +151,33 @@ class RL_controller:
     def train_with_additional_layer(self, model_dir):
         self.args.train_log = False
         env = JacoMujocoEnv(**vars(self.args))
-        try:
-            self.trainer = SAC.load(self.model_path + model_dir, env=env)
-        except Exception as e:
-            print(e)
+
+        primitives = OrderedDict()
+        # Newly appointed primitives
+        SAC_MULTI.construct_primitive_info(name='train/aux1', primitive_dict=primitives, 
+                                            obs_dimension=6, obs_range=[-3, 3], obs_index=[0, 1, 2, 4, 5], 
+                                            act_dimension=6, act_range=[-1.4, 1.4], act_index=[0,1,2,3], 
+                                            layer_structure=[256, 256])
+        SAC_MULTI.construct_primitive_info('train/aux2', primitives, 
+                                            6, [-3, 3], [3, 4, 5, 8], 
+                                            6, [-1.4, 1.4], [4,5,6,7], 
+                                            [256, 128])
+        # Pretrained primitives
+        policy_zip_path = ?
+        SAC_MULTI.construct_primitive_info('freeze/reaching', primitives,
+                                            loaded_policy=SAC_MULTI._load_from_file(policy_zip_path))
+        # Weight definition  
+        number_of_primitives = 3
+        total_obs_dim = env.get_num_observation()
+        SAC_MULTI.construct_primitive_info('train/weight', primitives, 
+                                            total_obs_dim, 0, list(range(total_obs_dim)), 
+                                            number_of_primitives, [0,1], number_of_primitives, 
+                                            [512, 512, 512])
+
+        self.num_timesteps = self.steps_per_batch * self.batches_per_episodes * self.num_episodes 
+        self.trainer = SAC_MULTI.pretrainer_load(policy=MlpPolicy_sac, primitives=primitives, env=env)
+        self.trainer.learn(total_timesteps=self.num_timesteps)
+
 
     def test(self, policy):
         print("Testing called")

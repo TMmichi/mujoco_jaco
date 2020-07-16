@@ -54,6 +54,9 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
 
     def get_state_shape(self):
         return self.state_shape
+    
+    def get_num_observation(self):
+        return self.observation_space.shape[0]
 
     def get_num_action(self):
         return self.action_space.shape[0]

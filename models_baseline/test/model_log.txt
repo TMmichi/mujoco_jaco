@@ -1,0 +1,5 @@
+Reward Method:				l2
+Steps per batch:			100
+Batches per episodes:		5
+Numbers of episodes:		1
+Total number of episodes:	500
