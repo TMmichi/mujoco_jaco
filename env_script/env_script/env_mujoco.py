@@ -43,8 +43,10 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
         self.seed()
 
         ### ------------  LOGGING  ------------ ###
+        self.log_save = False
         if kwargs['train_log']:
             log_dir = kwargs['log_dir']
+            self.log_save = True
             self.joint_angle_log = open(log_dir+"/training_log.txt", 'w')
 
 
@@ -97,7 +99,8 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
         write_str += "\t| wb = {0:2.3f} | \033[92mReward:\t{1:1.5f}\033[0m".format(wb,reward)
         write_log += "\t| wb = {0:2.3f} | Reward:\t{1:1.5f}".format(wb,reward)
         print(write_str, end='\r')
-        self.joint_angle_log.writelines(write_log+"\n")
+        if self.log_save:
+            self.joint_angle_log.writelines(write_log+"\n")
 
     def _colored_string(self, obs_val, prev_obs_val, action):
         if int(np.sign(obs_val-prev_obs_val)) == int(np.sign(action)):

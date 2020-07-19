@@ -60,7 +60,7 @@ class RL_controller:
         self.batches_per_episodes = 5
         args.steps_per_batch = self.steps_per_batch
         args.batches_per_episodes = self.batches_per_episodes
-        self.num_episodes = 1
+        self.num_episodes = 2
         self.args = args
 
 
@@ -74,11 +74,10 @@ class RL_controller:
         os.makedirs(model_dir, exist_ok=True)
         tb_path = self.tb_dir + prefix
         self.num_timesteps = self.steps_per_batch * self.batches_per_episodes * self.num_episodes
-        # layers = {"policy": [64, 64], "value": [256, 256, 128]}
-        layers = None
         env = JacoMujocoEnv(**vars(self.args))
 
-        # NOTE: Layer Normalization for RNNs, but for just fc..?
+        # layers = {"policy": [64, 64], "value": [256, 256, 128]}
+        layers = None
         #self.trainer = TRPO(MlpPolicy, self.env, cg_damping=0.1, vf_iters=5, vf_stepsize=1e-3, timesteps_per_batch=self.steps_per_batch,
         #                   tensorboard_log=tb_path, full_tensorboard_log=True)
         #self.trainer = SAC(LnMlpPolicy_sac, env, layers=layers,
@@ -151,8 +150,13 @@ class RL_controller:
     def train_with_additional_layer(self):
         self.args.train_log = False
         env = JacoMujocoEnv(**vars(self.args))
+        prefix = "trained_at_" + str(time.localtime().tm_year) + "_" + str(time.localtime().tm_mon) + "_" + str(
+                time.localtime().tm_mday) + "_" + str(time.localtime().tm_hour) + ":" + str(time.localtime().tm_min)
+        model_dir = self.model_path + prefix
+        os.makedirs(model_dir, exist_ok=True)
 
         primitives = OrderedDict()
+        separate_value = False
         # Newly appointed primitives
         SAC_MULTI.construct_primitive_info(name='train/aux1', primitive_dict=primitives, 
                                             obs_dimension=6, obs_range=[-2, 2], obs_index=[0, 1, 2, 3, 4, 5], 
@@ -167,7 +171,8 @@ class RL_controller:
         SAC_MULTI.construct_primitive_info('freeze/reaching', primitives,
                                             obs_dimension=None, obs_range=None, obs_index=[0, 1, 2, 3, 4, 5], 
                                             act_dimension=None, act_range=None, act_index=[0, 1, 2, 3, 4, 5], 
-                                            layer_structure=None, loaded_policy=SAC_MULTI._load_from_file(policy_zip_path))
+                                            layer_structure=None, 
+                                            loaded_policy=SAC_MULTI._load_from_file(policy_zip_path), separate_value=separate_value)
         # Weight definition  
         number_of_primitives = 3
         total_obs_dim = env.get_num_observation()
@@ -177,8 +182,11 @@ class RL_controller:
                                             [512, 512, 512])
 
         self.num_timesteps = self.steps_per_batch * self.batches_per_episodes * self.num_episodes 
-        self.trainer = SAC_MULTI.pretrainer_load(policy=MlpPolicy_sac, primitives=primitives, env=env)
+        self.trainer = SAC_MULTI.pretrainer_load(policy=MlpPolicy_sac, primitives=primitives, env=env, separate_value=separate_value)
+        print("\033[91mTraining Starts\033[0m")
         self.trainer.learn(total_timesteps=self.num_timesteps)
+        print("\033[91mTrain Finished\033[0m")
+        self.trainer.save(model_dir+"/policy")
 
 
     def test(self, policy):

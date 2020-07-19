@@ -1,5 +1,4 @@
 import os
-os.environ['TF_CPP_MIN_VLOG_LEVEL'] = '1'
 import tensorflow as tf
 import numpy as np
 
@@ -30,5 +29,17 @@ with tf.variable_scope("hi"):
     print(np.sum(c,axis=1,))
 
 print(tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='hi'))
-dim = 5
-x = tf.placeholder(shape=(None, dim), dtype=tf.float32)
+
+a = tf.constant([[1,2,3],[4,5,6],[7,5,6]], tf.float32)
+print(sess.run(tf.reshape(a[:,0],[-1,1])))
+b = tf.tile(tf.reshape(a[:,0],[-1,1]),tf.constant([1,2])) + 1
+print(sess.run(b))
+c = tf.exp(b)
+print(sess.run(c))
+d = tf.log(c)
+print(sess.run(d))
+rand = tf.random_normal(tf.shape(d))
+e = rand * c
+print((e))
+e1 = tf.math.multiply(rand,c)
+print((e1))
