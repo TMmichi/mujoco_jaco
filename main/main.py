@@ -156,22 +156,24 @@ class RL_controller:
         os.makedirs(model_dir, exist_ok=True)
 
         primitives = OrderedDict()
-        separate_value = False
+        separate_value = True
+        
         # Newly appointed primitives
+        # name = "{'train', 'freeze'}/{'loaded', ''}/'primitive_name'"
         SAC_MULTI.construct_primitive_info(name='train/aux1', primitive_dict=primitives, 
                                             obs_dimension=6, obs_range=[-2, 2], obs_index=[0, 1, 2, 3, 4, 5], 
                                             act_dimension=6, act_range=[-1.4, 1.4], act_index=[0, 1, 2, 3, 4, 5], 
-                                            layer_structure=[256, 256])
+                                            policy_layer_structure=[256, 256])
         SAC_MULTI.construct_primitive_info('train/aux2', primitives, 
                                             6, [-2, 2], [0, 1, 2, 3, 4, 5], 
                                             6, [-1.4, 1.4], [0, 1, 2, 3, 4, 5], 
                                             [256, 128])
         # Pretrained primitives
         policy_zip_path = self.model_path+"test"+"/policy.zip"
-        SAC_MULTI.construct_primitive_info('freeze/reaching', primitives,
+        SAC_MULTI.construct_primitive_info('freeze/loaded/reaching', primitives,
                                             obs_dimension=None, obs_range=None, obs_index=[0, 1, 2, 3, 4, 5], 
                                             act_dimension=None, act_range=None, act_index=[0, 1, 2, 3, 4, 5], 
-                                            layer_structure=None, 
+                                            policy_layer_structure=None,
                                             loaded_policy=SAC_MULTI._load_from_file(policy_zip_path), separate_value=separate_value)
         # Weight definition  
         number_of_primitives = 3
