@@ -154,6 +154,7 @@ class RL_controller:
                 time.localtime().tm_mday) + "_" + str(time.localtime().tm_hour) + ":" + str(time.localtime().tm_min)
         model_dir = self.model_path + prefix
         os.makedirs(model_dir, exist_ok=True)
+        tb_path = self.tb_dir + prefix
 
         primitives = OrderedDict()
         separate_value = True
@@ -175,8 +176,15 @@ class RL_controller:
                                             act_dimension=None, act_range=None, act_index=[0, 1, 2, 3, 4, 5], 
                                             policy_layer_structure=None,
                                             loaded_policy=SAC_MULTI._load_from_file(policy_zip_path), separate_value=separate_value)
+
+        policy_zip_path = self.model_path+"test2"+"/policy.zip"
+        SAC_MULTI.construct_primitive_info('train/loaded/grasping', primitives,
+                                            obs_dimension=None, obs_range=None, obs_index=[0, 1, 2, 3, 4, 5], 
+                                            act_dimension=None, act_range=None, act_index=[0, 1, 2, 3, 4, 5], 
+                                            policy_layer_structure=None,
+                                            loaded_policy=SAC_MULTI._load_from_file(policy_zip_path), separate_value=separate_value)
         # Weight definition  
-        number_of_primitives = 3
+        number_of_primitives = 4
         total_obs_dim = env.get_num_observation()
         SAC_MULTI.construct_primitive_info('train/weight', primitives, 
                                             total_obs_dim, 0, list(range(total_obs_dim)), 
@@ -184,7 +192,7 @@ class RL_controller:
                                             [512, 512, 512])
 
         self.num_timesteps = self.steps_per_batch * self.batches_per_episodes * self.num_episodes 
-        self.trainer = SAC_MULTI.pretrainer_load(policy=MlpPolicy_sac, primitives=primitives, env=env, separate_value=separate_value)
+        self.trainer = SAC_MULTI.pretrainer_load(policy=MlpPolicy_sac, primitives=primitives, env=env, separate_value=separate_value, tensorboard_log=tb_path)
         print("\033[91mTraining Starts\033[0m")
         self.trainer.learn(total_timesteps=self.num_timesteps)
         print("\033[91mTrain Finished\033[0m")
