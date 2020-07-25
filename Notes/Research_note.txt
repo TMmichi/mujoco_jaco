@@ -251,6 +251,7 @@ Note
                 {
                     Question:
                         1. How to formulate entropy? Just add them all by primitives?
+                        2. How to initialize policy since it only guarantees the local maximum?
                 }
             }
             2. Title: Who cares who I am: Policy transfer between robots without fine-tuning
