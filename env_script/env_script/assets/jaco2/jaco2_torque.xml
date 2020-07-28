@@ -1,4 +1,5 @@
 <mujoco model="jaco2">
+    <size njmax="8000" nconmax="4000"/>
     <compiler angle="radian" meshdir="meshes" balanceinertia="true"/>
 
     <default>
@@ -34,39 +35,51 @@
         <texture name="foam_blocks" file="meshes/foam_blocks.png" width="2744" height="2744" type="2d"/>
         <material name="foam" texture="foam_blocks" specular="0" shininess="0" reflectance="0" emission="1" />
 
+        <texture name="texcarpet" type="2d" file="meshes/carpet.png"/>
+        <material name="matcarpet" texture="texcarpet"/>
     </asset>
 
     <worldbody>
+        <light directional="true" pos="-0.5 0.5 3" dir="0 0 -1" />
+
         <geom name="floor_foam_block" pos="0 0 0" size="0.5 0.5 0.05" type="plane" rgba="1 0.83 0.61 1" material="foam"/>
         <geom name="floor_grey_tile" pos="0 0 -0.001" size="0.75 0.75 0.05" type="plane" material="tile"/>
 
-        <!-- control visualizations -->
+        <!--### CONTROL VISUALIZATIONS ###-->
         <body name="hand" pos="0 0 -0.15" mocap="true">
             <geom type="box" size=".01 .02.03" rgba="0 .9 0 .5" contype="2" conaffinity="2"/>
         </body>
-
         <body name="target" pos="0 0 -0.15" mocap="true">
             <geom name="target" type="sphere" size="0.025" rgba=".9 0 0 .5" contype="4" conaffinity="4"/>
         </body>
-
         <body name="target_orientation" pos="0 0 -0.15" mocap="true">
             <geom type="box" size=".01 .02 .03" rgba=".9 0 0 .5" contype="8" conaffinity="8"/>
         </body>
+        <!--#########################################-->
 
-        <body name="path_planner" pos="0 0 -0.15" mocap="true">
-            <geom type="sphere" size="0.05" rgba="0 1 1 0.5" contype="16" conaffinity="16"/>
+        <!--### VISOION BLOCKER ###-->
+        <!-- Holder -->
+        <body name="Holder_left" pos="-0.5 0.5 0.5">
+            <geom type="cylinder" size=".01 0.5" density="100"/>
         </body>
-
-        <body name="path_planner_orientation" pos="0 0 -0.15" mocap="true">
-            <geom type="box" size=".02 .04 .06" rgba="0 1 1 .5" contype="32" conaffinity="32"/>
+        <body name="Holder_right" pos="0.5 0.5 0.5">
+            <geom type="cylinder" size=".01 0.5" density="100"/>
         </body>
-
-        <body name="obstacle" pos="0 0 -0.15" mocap="true">
-            <geom type="sphere" size="0.05" rgba="0 0 1 1"/>
+        <body name="Holder_up" pos="0 0.5 1">
+            <geom type="cylinder" size=".01 0.5" zaxis="1 0 0" density="100"/>
         </body>
-
-        <light directional="true" pos="-0.5 0.5 3" dir="0 0 -1" />
-
+        <!-- Cloth -->
+        <body name="B10_0" pos="0 0.5 1" zaxis="0 1 0">
+            <freejoint/>
+            <composite type="cloth" count="21 15 1" spacing="0.05" flatinertia="0.001">
+                <joint kind="main" damping="0.001"/>
+                <skin material="matcarpet" texcoord="true" inflate="0.005" subgrid="2"/>
+                <geom type="capsule" size="0.005 0.005" rgba=".8 .2 .1 1"/>
+            </composite>
+        </body>
+        <!--#########################################-->
+        
+        <!--### JACO ###-->
         <body name="base_link" pos="0 0 0">
             <geom name="link0" type="mesh" mesh="link0" pos="0 0 0" material="carbon"/>
             <inertial pos="0.000000 0.000000 0.125500" mass="1.226" diaginertia="0.25 0.25 0.25"/>
@@ -77,7 +90,6 @@
                 <geom name="link1" type="mesh" mesh="link1" pos="0 0 0" euler="0 3.14 0" material="carbon"/>
                 <!--<geom name="ring0" type="mesh" mesh="ring_big_joint0" material="grey_plastic"/>-->
                 <joint name="joint0" axis="0 0 -1" pos="0 0 0"/>
-
 
                 <body name="link2" pos="0 0.0016 0.1186">
                     <inertial pos="0.000014 0.009353 0.329006" mass="1.010000" diaginertia="0.3 0.3 0.3"/>
@@ -153,7 +165,14 @@
                 </body>
             </body>
         </body>
+        <!--#########################################-->
     </worldbody>
+
+    <equality>
+        <connect name="const1" body1="B0_0" body2="Holder_up" anchor="0 0 0"/>
+        <connect name="const2" body1="B10_0" body2="Holder_up" anchor="0 0 0"/>
+        <connect name="const3" body1="B20_0" body2="Holder_up" anchor="0 0 0"/>
+    </equality>
 
     <actuator>
         <motor name="joint0_motor" joint="joint0" forcelimited="true" forcerange="-30 30"/>

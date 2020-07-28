@@ -33,11 +33,23 @@
 
         <texture name="foam_blocks" file="meshes/foam_blocks.png" width="2744" height="2744" type="2d"/>
         <material name="foam" texture="foam_blocks" specular="0" shininess="0" reflectance="0" emission="1" />
+
+        <texture name="texcarpet" type="2d" file="meshes/carpet.png"/>
+        <material name="matcarpet" texture="texcarpet"/>
     </asset>
 
     <worldbody>
         <geom name="floor_foam_block" pos="0 0 0" size="0.5 0.5 0.05" type="plane" rgba="1 0.83 0.61 1" material="foam"/>
         <geom name="floor_grey_tile" pos="0 0 -0.001" size="0.75 0.75 0.05" type="plane" material="tile"/>
+
+        <body name="B3_5" pos="0 0 1">
+            <freejoint/>
+            <composite type="cloth" count="9 9 1" spacing="0.05" flatinertia="0.01">
+                <joint kind="main" damping="0.001"/>
+                <skin material="matcarpet" texcoord="true" inflate="0.005" subgrid="2"/>
+                <geom type="capsule" size="0.015 0.01" rgba=".8 .2 .1 1"/>
+            </composite>
+        </body> 
     </worldbody>
 
     <worldbody>
