@@ -26,7 +26,7 @@ class JacoMujocoEnvUtil:
         except Exception:
             raise NotImplementedError("\n\t\033[91m[ERROR]: xml_file of the given number of robots doesn't exist\033[0m")
         self.jaco = MujocoConfig(xml_name, n_robots=self.n_robots)
-        self.interface = Mujoco(self.jaco, dt=0.005, visualize=False)
+        self.interface = Mujoco(self.jaco, dt=0.005, visualize=True)
         self.interface.connect()
         self.ctrl_type = self.jaco.ctrl_type
         self.base_position = self.__get_property('link1', 'position')
@@ -239,32 +239,38 @@ if __name__ == "__main__":
     from abr_control.controllers import OSC
     from abr_control.utils import transformations
 
-    mobile = True
+    mobile = False
     if not mobile:
-        pos = True
-        vel = not pos
-        controller = False
+        pos = False
+        vel = False
+        controller = True
         if pos:
             jaco = MujocoConfig('jaco2_position')
         elif vel:
             jaco = MujocoConfig('jaco2_velocity')
-        #jaco = MujocoConfig('jaco2')
+        else:
+            #jaco = MujocoConfig('jaco2_torque')
+            jaco = MujocoConfig('jaco2_dual_torque', n_robots=2)
         interface = Mujoco(jaco, dt=0.005)
         interface.connect()
 
         if controller:
             ctr = OSC(jaco, kp=2, ctrlr_dof=[True, True, True, True, True, True])
-            interface.set_joint_state([1, 2, 1, 1, 1, 1], [0, 0, 0, 0, 0, 0])
+            #interface.set_joint_state([1, 2, 1, 1, 1, 1], [0, 0, 0, 0, 0, 0])
+            interface.set_joint_state([1, 2, 1, 1, 1, 1, 1, 2, 1, 1.5, 1, 1], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
             for _ in range(2):
                 fb = interface.get_feedback()
                 u = ctr.generate(
                     q=fb['q'],
                     dq=fb['dq'],
-                    target=np.hstack([0, 0, -0.15, 0, 0, 0])
+                    #target=np.hstack([0, 0, -0.15, 0, 0, 0])
+                    target=np.hstack([0, 0, -0.15, 0, 0, 0, 0, 0, -0,15, 0, 0, 0])
                 )
-                interface.send_forces([0, 0, 0, 0, 0, 0, 0, 0, 0])
-            print(interface.get_xyz('EE'))
-            target_pos = interface.get_xyz('EE')
+                #interface.send_forces([0, 0, 0, 0, 0, 0, 0, 0, 0])
+                interface.send_forces([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+            #target_pos = interface.get_xyz('EE')
+            target_pos1 = interface.get_xyz('EE_1')
+            target_pos2 = interface.get_xyz('EE_2')
             target_or = np.array([0, 0, 0], dtype=np.float16)
             for _ in range(10):
                 while True:
@@ -272,16 +278,23 @@ if __name__ == "__main__":
                     u = ctr.generate(
                         q=fb['q'],
                         dq=fb['dq'],
-                        target=np.hstack([target_pos, target_or])
+                        target=np.hstack([target_pos1, target_or, target_pos2, target_or])
+                        #target=np.hstack([target_pos, target_or])
                     )
-                    a = interface.get_xyz('EE')
-                    b = interface.get_orientation('EE')
-                    # print(a)1
-                    interface.send_forces(np.hstack([u, [0, 0, 0]]))
-                    if np.linalg.norm(a[:] - target_pos[:]) < 0.01:
+                    #a = interface.get_xyz('EE')
+                    a1 = interface.get_xyz('EE_1')
+                    a2 = interface.get_xyz('EE_2')
+                    #b = interface.get_orientation('EE_1')
+                    # print(a)
+                    #interface.send_forces(np.hstack([u[:6], [0, 0, 0]]))
+                    interface.send_forces(np.hstack([u[:6], [0, 0, 0], u[6:], [0, 0, 0]]))
+                    #if np.linalg.norm(a[:] - target_pos[:]) < 0.01:
+                    if np.linalg.norm(a1[:] - target_pos1[:]) < 0.01 and np.linalg.norm(a2[:] - target_pos2[:]):
                         print("Reached")
                         break
-                target_pos += np.array([0.01, 0.01, 0.01])
+                #target_pos += np.array([0.01, 0.01, 0.01])
+                target_pos1 += np.array([0.01, 0.01, 0.01])
+                target_pos2 += np.array([0.01, 0.01, 0.01])
                 target_or += np.array([0.1, 0.1, 0.1])
         else:
             interface.set_joint_state([1, 2, 1.5, 1.5, 1.5, 1.5], [0, 0, 0, 0, 0, 0])

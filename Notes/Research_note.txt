@@ -188,6 +188,8 @@ Note
                             - if actions from both arm and wheels are important, then the weight will equally be distributed
                             - if actions from arm is more important than that of the wheels, then the weight will focus more on arms
                             - since weight incorporates total states, it can fully observe the space and provide decisions
+                            - DRAWBACK: If one primitive gets majoritic value, then actions from other primitives (-> from other action spaces) will not be effective
+                            -           Total policy is not a 'probability distribution' anymore.
                 }
                 1-4. Brain Functionality
                 {
@@ -200,7 +202,7 @@ Note
                             ** Simon’s original hypothesis that hierarchy or near-decomposability of physical symbol systems is a critical design feature for their fast adaptivity to changing environmental conditions.
                             ** stable intermediate forms (component modules) -> allow the system to adapt one module at a time without risking loss of function in other, already-adapted modules
                             -> Need of auxilary network, not to destruct already-trained primitive 
-                                - Overcoming catastrophic forgetting in neural networks Kirkpatrick, 2017)
+                                - Overcoming catastrophic forgetting in neural networks (Kirkpatrick, 2017)
                                 - Progressive neural networks (Rusu, 2016)
                                 - Sim-to-real robot learning from pixerls with progressive nets (Rusu, 2017)
                             ** modularity -> Can it measure similarity btw NN primitives? -> btw pretrained primitives and aux networks
@@ -249,6 +251,7 @@ Note
                 {
                     Question:
                         1. How to formulate entropy? Just add them all by primitives?
+                        2. How to initialize policy since it only guarantees the local maximum?
                 }
             }
             2. Title: Who cares who I am: Policy transfer between robots without fine-tuning
