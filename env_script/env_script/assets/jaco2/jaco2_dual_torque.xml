@@ -42,20 +42,39 @@
         <geom name="floor_foam_block" pos="0 0 0" size="0.5 0.5 0.05" type="plane" rgba="1 0.83 0.61 1" material="foam"/>
         <geom name="floor_grey_tile" pos="0 0 -0.001" size="0.75 0.75 0.05" type="plane" material="tile"/>
 
-        <body name="B3_5" pos="0 0 1">
-            <freejoint/>
-            <composite type="cloth" count="9 9 1" spacing="0.05" flatinertia="0.01">
-                <joint kind="main" damping="0.001"/>
-                <skin material="matcarpet" texcoord="true" inflate="0.005" subgrid="2"/>
-                <geom type="capsule" size="0.015 0.01" rgba=".8 .2 .1 1"/>
-            </composite>
-        </body> 
-    </worldbody>
+        <!--### VISOION BLOCKER ###-->
+        <!-- Holder -->
+        <body name="Holder_left" pos="-0.5 0.5 0.5">
+            <geom type="cylinder" size=".01 0.5" density="100"/>
+        </body>
+        <body name="Holder_right" pos="0.5 0.5 0.5">
+            <geom type="cylinder" size=".01 0.5" density="100"/>
+        </body>
+        <body name="Holder_up" pos="0 0.5 1">
+            <geom type="cylinder" size=".01 0.5" zaxis="1 0 0" density="100"/>
+        </body>
 
-    <worldbody>
         <include file="jaco2_ind_1.xml"/>
         <include file="jaco2_ind_2.xml"/>
+
+        <!-- Cloth -->
+        <!--
+        <body name="B10_0" pos="0 0.5 1" zaxis="0 1 0">
+            <composite type="cloth" count="21 15 1" spacing="0.05" flatinertia="0.001">
+                <joint kind="main" damping="0.001"/>
+                <skin material="matcarpet" texcoord="true" inflate="0.005" subgrid="2"/>
+                <geom type="capsule" size="0.005 0.005" rgba=".8 .2 .1 1"/>
+            </composite>
+        </body>-->
+        <!--#########################################-->
     </worldbody>
+
+    <!--
+    <equality>
+        <connect name="const1" body1="B0_0" body2="Holder_up" anchor="0 0 0"/>
+        <connect name="const2" body1="B10_0" body2="Holder_up" anchor="0 0 0"/>
+        <connect name="const3" body1="B20_0" body2="Holder_up" anchor="0 0 0"/>
+    </equality>-->
 
     <actuator>
         <motor name="joint0_motor_1" joint="joint0_1"/>

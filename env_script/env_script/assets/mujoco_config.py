@@ -43,7 +43,7 @@ class MujocoConfig:
             arm_dir = xml_file.split("_")[0]
             current_dir = os.path.dirname(__file__)
             try:
-                self.ctrl_type = xml_file.split("_")[1]
+                self.ctrl_type = xml_file.split("_")[-1]
                 self.xml_file = os.path.join(current_dir, arm_dir, "%s.xml" % xml_file)
             except Exception:
                 self.ctrl_type = "torque"

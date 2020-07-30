@@ -70,10 +70,9 @@
         </body>
         <!-- Cloth -->
         <body name="B10_0" pos="0 0.5 1" zaxis="0 1 0">
-            <freejoint/>
             <composite type="cloth" count="21 15 1" spacing="0.05" flatinertia="0.001">
                 <joint kind="main" damping="0.001"/>
-                <skin material="matcarpet" texcoord="true" inflate="0.005" subgrid="2"/>
+                <!--<skin material="matcarpet" texcoord="true" inflate="0.005" subgrid="2"/>-->
                 <geom type="capsule" size="0.005 0.005" rgba=".8 .2 .1 1"/>
             </composite>
         </body>
