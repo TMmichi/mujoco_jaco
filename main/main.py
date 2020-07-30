@@ -2,9 +2,16 @@
 
 import os
 import sys
-import path_config
 import time
+import path_config
+from pathlib import Path
 from collections import OrderedDict
+try:
+    import spacenav, atexit
+except Exception:
+    pass
+
+import numpy as np
 
 import stable_baselines.common.tf_util as tf_util
 from stable_baselines.trpo_mpi import TRPO
@@ -46,14 +53,9 @@ class RL_controller:
         args.reward_module = self.reward_module
 
         # If resume training on pre-trained models with episodes, else None
-        if sys.platform in ["linux", "linux2"]:
-            self.model_path = "/home/ljh/Project/mujoco_jaco/models_baseline/"
-            self.tb_dir = "/home/ljh/Project/mujoco_jaco/tensorboard_log/"
-        elif sys.platform == "darwin":
-            self.model_path = "/Users/jeonghoon/Google_drive/Workspace/MLCS/mujoco_jaco/models_baseline/"
-            self.tb_dir = "/Users/jeonghoon/Google_drive/Workspace/MLCS/mujoco_jaco/tensorboard_log/"
-        else:
-            raise NotImplementedError
+        package_path = str(Path(__file__).resolve().parent.parent)
+        self.model_path = package_path+"/models_baseline/"
+        self.tb_dir = package_path+"/tensorboard_log/"
         os.makedirs(self.model_path, exist_ok=True)
         os.makedirs(self.tb_dir, exist_ok=True)
         self.steps_per_batch = 100
@@ -76,13 +78,13 @@ class RL_controller:
         self.num_timesteps = self.steps_per_batch * self.batches_per_episodes * self.num_episodes
         env = JacoMujocoEnv(**vars(self.args))
 
-        # layers = {"policy": [64, 64], "value": [256, 256, 128]}
-        layers = None
+        layers = {"policy": [64, 64], "value": [256, 256, 128]}
+        #layers = None
         #self.trainer = TRPO(MlpPolicy, self.env, cg_damping=0.1, vf_iters=5, vf_stepsize=1e-3, timesteps_per_batch=self.steps_per_batch,
         #                   tensorboard_log=tb_path, full_tensorboard_log=True)
         #self.trainer = SAC(LnMlpPolicy_sac, env, layers=layers,
         #                   tensorboard_log=tb_path, full_tensorboard_log=True)
-        self.trainer = SAC(MlpPolicy_sac, env, layers=layers, 
+        self.trainer = SAC_MULTI(MlpPolicy_sac, env, layers=layers, 
                             tensorboard_log=tb_path, full_tensorboard_log=True)
         model_log = open(model_dir+"/model_log.txt", 'w')
         self._write_log(model_log, layers)
@@ -138,13 +140,27 @@ class RL_controller:
     def train_from_expert(self, n_episodes=10):
         print("Training from expert called")
         self.args.train_log = False
-
-        env = JacoMujocoEnv(**vars(self.args))
-        generate_expert_traj(self._expert, 'expert_traj',
-                             env, n_episodes=n_episodes)
+        try:            
+            print("Opening connection to SpaceNav driver ...")
+            spacenav.open()
+            print("... connection established.")
+            atexit.register(spacenav.close)
+            env = JacoMujocoEnv(**vars(self.args))
+            generate_expert_traj(self._expert, 'expert_traj',
+                                 env, n_episodes=n_episodes)
+        except spacenav.ConnectionError:
+            print("No connection to the SpaceNav driver. Is spacenavd running?")
 
     def _expert(self, _obs):
-        action = []
+        spacenav.remove_events(1)
+        event = spacenav.wait()
+        if type(event) is spacenav.MotionEvent:
+            action = np.array([event.x, event.z, event.y, event.ry, -event.rz, event.rx])/350 * 1.4
+            print(action)
+        elif type(event) is spacenav.ButtonEvent:
+            action = []
+        else:
+            action = []
         return action
 
     def train_with_additional_layer(self):
@@ -202,14 +218,13 @@ class RL_controller:
         print("\033[91mTrain Finished\033[0m")
         self.trainer.save(model_dir+"/policy")
 
-
     def test(self, policy):
         print("Testing called")
         self.args.train_log = False
         self.env = JacoMujocoEnv(**vars(self.args))
         model_dir = self.model_path+policy+"/policy.zip"
         test_iter = 100
-        self.model = SAC.load(model_dir)
+        self.model = SAC_MULTI.load(model_dir)
         for _ in range(test_iter):
             obs = self.env.reset()
             done = False
