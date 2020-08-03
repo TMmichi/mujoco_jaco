@@ -137,24 +137,33 @@ class RL_controller:
         except Exception as e:
             print(e)
 
-    def train_from_expert(self, n_episodes=10):
+    def train_from_expert(self, n_episodes=10, con_method=2):
         print("Training from expert called")
         self.args.train_log = False
-        if sys.platform in ['linux', 'linux2']:
-            try:            
-                print("Opening connection to SpaceNav driver ...")
-                spacenav.open()
-                print("... connection established.")
-                atexit.register(spacenav.close)
-                env = JacoMujocoEnv(**vars(self.args))
-                generate_expert_traj(self._expert, 'expert_traj',
-                                    env, n_episodes=n_episodes)
-            except spacenav.ConnectionError:
-                print("No connection to the SpaceNav driver. Is spacenavd running?")
+        if con_method == 2:
+            if sys.platform in ['linux', 'linux2']:
+                try:            
+                    print("Opening connection to SpaceNav driver ...")
+                    spacenav.open()
+                    print("... connection established.")
+                    atexit.register(spacenav.close)
+                    self.args.robot_file = "jaco2_sensor_torque"
+                    env = JacoMujocoEnv(**vars(self.args))
+                    generate_expert_traj(self._expert_3d, 'expert_traj',
+                                        env, n_episodes=n_episodes)
+                except spacenav.ConnectionError:
+                    print("No connection to the SpaceNav driver. Is spacenavd running?")
+            else:
+                pass
+        elif con_method == 1:
+            self.args.robot_file = "jaco2_sensor_torque"
+            env = JacoMujocoEnv(**vars(self.args))
+            generate_expert_traj(self._expert_keyboard, 'expert_traj',
+                                env, n_episodes=n_episodes)
         else:
             pass
 
-    def _expert(self, _obs):
+    def _expert_3d(self, _obs):
         if sys.platform in ['linux', 'linux2']:
             on_pressed_left = False
             on_pressed_right = False
@@ -172,6 +181,11 @@ class RL_controller:
             return action
         else:
             return []
+    
+    def _expert_keyboard(self, _obs):
+        
+        action = []
+        return action
 
     def train_with_additional_layer(self):
         self.args.train_log = False
@@ -266,7 +280,9 @@ if __name__ == "__main__":
                     break
                 elif opt2 == "3":
                     #n_episodes = int(input("How many trials do you want to record?"))
-                    controller.train_from_expert(10)
+                    con_method = int(input("control method - (keyboard:1, 3d mouse: 2) "))
+                    #controller.train_from_expert(n_episodes)
+                    controller.train_from_expert(con_method=con_method)
                     break
                 elif opt2 == "4":
                     controller.train_with_additional_layer()

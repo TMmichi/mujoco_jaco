@@ -18,13 +18,18 @@ if __name__ != "__main__":
 
 class JacoMujocoEnvUtil:
     def __init__(self, controller=True, **kwargs):
-        n_robot_postfix = ['', '_dual', '_tri']
         ### ------------  MODEL CONFIGURATION  ------------ ###
-        self.n_robots = 1
-        try:
-            xml_name = 'jaco2'+n_robot_postfix[self.n_robots-1]
-        except Exception:
-            raise NotImplementedError("\n\t\033[91m[ERROR]: xml_file of the given number of robots doesn't exist\033[0m")
+        if kwargs['robot_file'] == None:
+            n_robot_postfix = ['', '_dual', '_tri']
+            self.n_robots = 1
+            try:
+                xml_name = 'jaco2'+n_robot_postfix[self.n_robots-1]
+            except Exception:
+                raise NotImplementedError("\n\t\033[91m[ERROR]: xml_file of the given number of robots doesn't exist\033[0m")
+        else:
+            xml_name = kwargs['robot_file']
+            self.n_robots = 1
+        
         self.jaco = MujocoConfig(xml_name, n_robots=self.n_robots)
         self.interface = Mujoco(self.jaco, dt=0.005, visualize=True)
         self.interface.connect()
