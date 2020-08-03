@@ -140,28 +140,38 @@ class RL_controller:
     def train_from_expert(self, n_episodes=10):
         print("Training from expert called")
         self.args.train_log = False
-        try:            
-            print("Opening connection to SpaceNav driver ...")
-            spacenav.open()
-            print("... connection established.")
-            atexit.register(spacenav.close)
-            env = JacoMujocoEnv(**vars(self.args))
-            generate_expert_traj(self._expert, 'expert_traj',
-                                 env, n_episodes=n_episodes)
-        except spacenav.ConnectionError:
-            print("No connection to the SpaceNav driver. Is spacenavd running?")
+        if sys.platform in ['linux', 'linux2']:
+            try:            
+                print("Opening connection to SpaceNav driver ...")
+                spacenav.open()
+                print("... connection established.")
+                atexit.register(spacenav.close)
+                env = JacoMujocoEnv(**vars(self.args))
+                generate_expert_traj(self._expert, 'expert_traj',
+                                    env, n_episodes=n_episodes)
+            except spacenav.ConnectionError:
+                print("No connection to the SpaceNav driver. Is spacenavd running?")
+        else:
+            pass
 
     def _expert(self, _obs):
-        spacenav.remove_events(1)
-        event = spacenav.wait()
-        if type(event) is spacenav.MotionEvent:
-            action = np.array([event.x, event.z, event.y, event.ry, -event.rz, event.rx])/350 * 1.4
-            print(action)
-        elif type(event) is spacenav.ButtonEvent:
-            action = []
+        if sys.platform in ['linux', 'linux2']:
+            on_pressed_left = False
+            on_pressed_right = False
+            spacenav.remove_events(1)
+            event = spacenav.wait()
+            if type(event) is spacenav.MotionEvent:
+                action = np.array([event.x, event.z, event.y, event.rx, -event.ry, event.rz])/350 * 1.4
+            elif type(event) is spacenav.ButtonEvent:
+                action = [0,0,0,0,0,0]
+                print("button = ",event.button)
+                print("pressed = ",event.pressed)
+                spacenav.remove_events(2)
+            else:
+                action = []
+            return action
         else:
-            action = []
-        return action
+            return []
 
     def train_with_additional_layer(self):
         self.args.train_log = False
@@ -255,9 +265,8 @@ if __name__ == "__main__":
                     controller.train_continue(model_dir)
                     break
                 elif opt2 == "3":
-                    n_episodes = int(
-                        input("How many trials do you want to record?"))
-                    controller.train_from_expert(n_episodes)
+                    #n_episodes = int(input("How many trials do you want to record?"))
+                    controller.train_from_expert(10)
                     break
                 elif opt2 == "4":
                     controller.train_with_additional_layer()

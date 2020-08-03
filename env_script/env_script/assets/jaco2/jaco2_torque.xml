@@ -47,7 +47,7 @@
 
         <!--### CONTROL VISUALIZATIONS ###-->
         <body name="hand" pos="0 0 -0.15" mocap="true">
-            <geom type="box" size=".01 .02.03" rgba="0 .9 0 .5" contype="2" conaffinity="2"/>
+            <geom type="box" size=".01 .02.035" rgba="0 .9 0 .5" contype="2" conaffinity="2"/>
         </body>
         <body name="target" pos="0 0 -0.15" mocap="true">
             <geom name="target" type="sphere" size="0.025" rgba=".9 0 0 .5" contype="4" conaffinity="4"/>
@@ -58,23 +58,27 @@
         <!--#########################################-->
 
         <!--### VISOION BLOCKER ###-->
-        <!-- Holder -->
-        <body name="Holder_left" pos="-0.5 0.5 0.5">
-            <geom type="cylinder" size=".01 0.5" density="100"/>
-        </body>
-        <body name="Holder_right" pos="0.5 0.5 0.5">
-            <geom type="cylinder" size=".01 0.5" density="100"/>
-        </body>
-        <body name="Holder_up" pos="0 0.5 1">
-            <geom type="cylinder" size=".01 0.5" zaxis="1 0 0" density="100"/>
-        </body>
-        <!-- Cloth -->
-        <body name="B10_0" pos="0 0.5 1" zaxis="0 1 0">
-            <composite type="cloth" count="21 15 1" spacing="0.05" flatinertia="0.001">
-                <joint kind="main" damping="0.001"/>
-                <!--<skin material="matcarpet" texcoord="true" inflate="0.005" subgrid="2"/>-->
-                <geom type="capsule" size="0.005 0.005" rgba=".8 .2 .1 1"/>
-            </composite>
+        <body name="blocker" pos="0 0.35 0">
+            <!-- Holder -->
+            <body name="Holder_left" pos="-0.5 0 0.4">
+                <site type="sphere" size="0.015" pos="0 0 0.4"/>
+                <geom type="cylinder" size=".01 0.4" density="100"/>
+            </body>
+            <body name="Holder_right" pos="0.5 0 0.4">
+                <site type="sphere" size="0.015" pos="0 0 0.4"/>
+                <geom type="cylinder" size=".01 0.4" density="100"/>
+            </body>
+            <body name="Holder_up" pos="0 0 0.8">
+                <geom type="cylinder" size=".01 0.5" zaxis="1 0 0" density="100"/>
+                <!-- Cloth -->
+                <body name="B10_0" pos="0 0 0" zaxis="0 1 0">
+                    <composite type="cloth" count="21 11 1" spacing="0.049" flatinertia="0.001">
+                        <joint kind="main" damping="0.001"/>
+                        <skin material="matcarpet" texcoord="true" inflate="0.005" subgrid="2"/>
+                        <geom type="capsule" size="0.005 0.005" rgba=".8 .2 .1 1"/>
+                    </composite>
+                </body>
+            </body>
         </body>
         <!--#########################################-->
         
@@ -169,8 +173,10 @@
 
     <equality>
         <connect name="const1" body1="B0_0" body2="Holder_up" anchor="0 0 0"/>
-        <connect name="const2" body1="B10_0" body2="Holder_up" anchor="0 0 0"/>
-        <connect name="const3" body1="B20_0" body2="Holder_up" anchor="0 0 0"/>
+        <connect name="const2" body1="B5_0" body2="Holder_up" anchor="0 0 0"/>
+        <connect name="const3" body1="B10_0" body2="Holder_up" anchor="0 0 0"/>
+        <connect name="const4" body1="B15_0" body2="Holder_up" anchor="0 0 0"/>
+        <connect name="const5" body1="B20_0" body2="Holder_up" anchor="0 0 0"/>
     </equality>
 
     <actuator>

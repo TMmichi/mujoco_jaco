@@ -243,58 +243,79 @@ if __name__ == "__main__":
     if not mobile:
         pos = False
         vel = False
+        torque = True
+        dual = True and torque
         controller = True
         if pos:
             jaco = MujocoConfig('jaco2_position')
         elif vel:
             jaco = MujocoConfig('jaco2_velocity')
-        else:
-            #jaco = MujocoConfig('jaco2_torque')
-            jaco = MujocoConfig('jaco2_dual_torque', n_robots=2)
-        interface = Mujoco(jaco, dt=0.005)
+        elif torque:
+            if dual:
+                jaco = MujocoConfig('jaco2_dual_torque', n_robots=2)
+                #jaco = MujocoConfig('jaco2_tri_torque', n_robots=3)
+            else:
+                jaco = MujocoConfig('jaco2_torque')
+        interface = Mujoco(jaco, dt=0.005, visualize=True)
         interface.connect()
 
         if controller:
             ctr = OSC(jaco, kp=2, ctrlr_dof=[True, True, True, True, True, True])
-            #interface.set_joint_state([1, 2, 1, 1, 1, 1], [0, 0, 0, 0, 0, 0])
-            interface.set_joint_state([1, 2, 1, 1, 1, 1, 1, 2, 1, 1.5, 1, 1], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+            if dual:
+                interface.set_joint_state([1.5, 2, 1.1, 1, 1, 1, 1, 1.1, 1, 1.5, 1, 1], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+            else:
+                interface.set_joint_state([1, 2, 1, 1, 1, 1], [0, 0, 0, 0, 0, 0])
             for _ in range(2):
                 fb = interface.get_feedback()
+                if dual:
+                    target = np.hstack([0, 0, -0.15, 0, 0, 0, 0, 0, -0,15, 0, 0, 0])
+                else:
+                    target=np.hstack([0, 0, -0.15, 0, 0, 0])
                 u = ctr.generate(
                     q=fb['q'],
                     dq=fb['dq'],
-                    #target=np.hstack([0, 0, -0.15, 0, 0, 0])
-                    target=np.hstack([0, 0, -0.15, 0, 0, 0, 0, 0, -0,15, 0, 0, 0])
+                    target=target                        
                 )
-                #interface.send_forces([0, 0, 0, 0, 0, 0, 0, 0, 0])
-                interface.send_forces([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
-            #target_pos = interface.get_xyz('EE')
-            target_pos1 = interface.get_xyz('EE_1')
-            target_pos2 = interface.get_xyz('EE_2')
+                if dual:
+                    interface.send_forces([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+                else:
+                    interface.send_forces([0, 0, 0, 0, 0, 0, 0, 0, 0])
+            if dual:
+                target_pos1 = interface.get_xyz('EE_1')
+                target_pos2 = interface.get_xyz('EE_2')
+            else:
+                target_pos = interface.get_xyz('EE')
             target_or = np.array([0, 0, 0], dtype=np.float16)
             for _ in range(10):
                 while True:
                     fb = interface.get_feedback()
+                    if dual:
+                        target = np.hstack([target_pos1, target_or, target_pos2, target_or])
+                    else:
+                        target = np.hstack([target_pos, target_or])
                     u = ctr.generate(
                         q=fb['q'],
                         dq=fb['dq'],
-                        target=np.hstack([target_pos1, target_or, target_pos2, target_or])
-                        #target=np.hstack([target_pos, target_or])
+                        target=target
                     )
-                    #a = interface.get_xyz('EE')
-                    a1 = interface.get_xyz('EE_1')
-                    a2 = interface.get_xyz('EE_2')
-                    #b = interface.get_orientation('EE_1')
-                    # print(a)
-                    #interface.send_forces(np.hstack([u[:6], [0, 0, 0]]))
-                    interface.send_forces(np.hstack([u[:6], [0, 0, 0], u[6:], [0, 0, 0]]))
-                    #if np.linalg.norm(a[:] - target_pos[:]) < 0.01:
-                    if np.linalg.norm(a1[:] - target_pos1[:]) < 0.01 and np.linalg.norm(a2[:] - target_pos2[:]):
-                        print("Reached")
-                        break
-                #target_pos += np.array([0.01, 0.01, 0.01])
-                target_pos1 += np.array([0.01, 0.01, 0.01])
-                target_pos2 += np.array([0.01, 0.01, 0.01])
+                    if dual:
+                        a1 = interface.get_xyz('EE_1')
+                        a2 = interface.get_xyz('EE_2')
+                        interface.send_forces(np.hstack([u[:6], [0, 0, 0], u[6:], [0, 0, 0]]))
+                        if np.linalg.norm(a1[:] - target_pos1[:]) < 0.01 and np.linalg.norm(a2[:] - target_pos2[:]):
+                            print("Reached")
+                            break
+                    else:
+                        a = interface.get_xyz('EE')
+                        interface.send_forces(np.hstack([u[:6], [0, 0, 0]]))
+                        if np.linalg.norm(a[:] - target_pos[:]) < 0.01:
+                            print("Reached")
+                            break
+                if dual:
+                    target_pos1 += np.array([0.01, 0.01, 0.01])
+                    target_pos2 += np.array([0.01, 0.01, 0.01])
+                else:
+                    target_pos += np.array([0.01, 0.01, 0.01])
                 target_or += np.array([0.1, 0.1, 0.1])
         else:
             interface.set_joint_state([1, 2, 1.5, 1.5, 1.5, 1.5], [0, 0, 0, 0, 0, 0])
