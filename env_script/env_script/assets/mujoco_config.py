@@ -14,7 +14,7 @@ class MujocoConfig:
     def __init__(self, xml_file, n_robots=1, folder=None, use_sim_state=True):
         """ Loads the Mujoco model from the specified xml file
 
-        Parameters
+        Parameters~
         ----------
         xml_file: string
             the name of the arm model to load. If folder remains as None,
@@ -43,6 +43,7 @@ class MujocoConfig:
             arm_dir = xml_file.split("_")[0]
             current_dir = os.path.dirname(__file__)
             try:
+                _ = xml_file.split("_")[1]
                 self.ctrl_type = xml_file.split("_")[-1]
                 self.xml_file = os.path.join(current_dir, arm_dir, "%s.xml" % xml_file)
             except Exception:
@@ -105,36 +106,64 @@ class MujocoConfig:
         if self.N_ROBOTS == 1:
             N_ALL_JOINTS = int(len(self.sim.data.get_body_jacp("EE")) / 3)
         else:
-            N_ALL_JOINTS = int(len(self.sim.data.get_body_jacp("EE_1")) / 3 / self.N_ROBOTS)
+            # N_ALL_JOINTS = int(len(self.sim.data.get_body_jacp("EE_2")) / 3 / self.N_ROBOTS)
+            N_ALL_JOINTS = int(len(self.sim.data.get_body_jacp("EE_2")) / 3)
+            print("N_ALL_JOINTS: ", N_ALL_JOINTS) if debug else None
 
         # need to calculate the joint_dyn_addrs indices in flat vectors returned
         # for the Jacobian
         if debug:
             print("self.joint_dyn_addrs: ",self.joint_dyn_addrs)
 
-        self.jac_indices = np.hstack(
+        """ self.jac_indices = np.hstack(
             # 6 because position and rotation Jacobians are 3 x N_JOINTS
             [self.joint_dyn_addrs[:6] + (ii * N_ALL_JOINTS * self.N_ROBOTS) for ii in range(3)]
-        )
+        ) """
 
-        # for the inertia matrix
+        # for the inertia matrix and jacobian
         self.M_indices = np.array([],dtype=np.int32)
+        self.jac_indices = []
         for i in range(self.N_ROBOTS):
-            vac = N_ALL_JOINTS * i
-            self.M_indices = np.hstack([
-                self.M_indices,
-                [ii * N_ALL_JOINTS * self.N_ROBOTS + jj + vac
-                for jj in self.joint_dyn_addrs[:self.N_JOINTS]
-                for ii in self.joint_dyn_addrs[self.N_JOINTS*i:self.N_JOINTS*(i+1)]]
-            ])
-
+            """ vac = N_ALL_JOINTS * i
+            self.M_indices = np.hstack(
+                [
+                    self.M_indices,
+                    [ii * N_ALL_JOINTS * self.N_ROBOTS + jj + vac
+                    for jj in self.joint_dyn_addrs[:self.N_JOINTS]
+                    for ii in self.joint_dyn_addrs[self.N_JOINTS*i:self.N_JOINTS*(i+1)]]
+                ]
+            ) """
+            vac = 12 * i
+            self.M_indices = np.hstack(
+                [
+                    self.M_indices,
+                    [ii * N_ALL_JOINTS + jj + vac
+                    for jj in self.joint_dyn_addrs[:self.N_JOINTS]
+                    for ii in self.joint_dyn_addrs[self.N_JOINTS*i:self.N_JOINTS*(i+1)]]
+                ]
+            )
+            self.jac_indices.append(
+                np.hstack(
+                    # position and rotation Jacobians are 3 x N_JOINTS
+                    [self.joint_dyn_addrs[self.N_JOINTS*i:self.N_JOINTS*(i+1)] + (ii * N_ALL_JOINTS)
+                    for ii in range(3)]
+                )
+            )
+        self.jac_indices = np.array(self.jac_indices)
+        
+        print("M_indices\n", self.M_indices) if debug else None
         # a place to store data returned from Mujoco
         #self._g = np.zeros(self.N_JOINTS)
-        self._J3NP = np.zeros(3 * (N_ALL_JOINTS * self.N_ROBOTS))
+        """ self._J3NP = np.zeros(3 * (N_ALL_JOINTS * self.N_ROBOTS))
         self._J3NR = np.zeros(3 * (N_ALL_JOINTS * self.N_ROBOTS))
         self._J6N = np.zeros((self.N_ROBOTS, 6, self.N_JOINTS))
         self._MNN_vector = np.zeros((N_ALL_JOINTS * self.N_ROBOTS) ** 2)
-        self._MNN = np.zeros((self.N_JOINTS * self.N_ROBOTS) ** 2)
+        self._MNN = np.zeros((self.N_JOINTS * self.N_ROBOTS) ** 2) """
+        self._J3NP = np.zeros(3 * N_ALL_JOINTS)
+        self._J3NR = np.zeros(3 * N_ALL_JOINTS)
+        self._J6N = np.zeros((self.N_ROBOTS, 6, self.N_JOINTS))
+        self._MNN_vector = np.zeros(N_ALL_JOINTS ** 2)
+        self._MNN = np.zeros(self.N_JOINTS ** 2)
         self._R9 = np.zeros(9)
         self._R = np.zeros((3, 3))
         self._x = np.ones(4)
@@ -226,8 +255,8 @@ class MujocoConfig:
             options: body, geom, site
         """
         for i in range(self.N_ROBOTS):
-            jac_indices = self.jac_indices + self.N_ALL_JOINTS * i
-
+            jac_indices = self.jac_indices[i]
+            print("jac_indices: ",jac_indices) if debug else None
             if x is not None and not np.allclose(x, 0):
                 raise Exception("x offset currently not supported, set to None")
 
@@ -256,9 +285,6 @@ class MujocoConfig:
 
                 jacp(name[i], self._J3NP)[jac_indices]  # pylint: disable=W0106
                 jacr(name[i], self._J3NR)[jac_indices]  # pylint: disable=W0106
-            
-            #print("self._J3NP: ",self._J3NP)
-            #print("self._J3NR: ",self._J3NR)
 
             # get the position Jacobian hstacked (1 x N_JOINTS*3)
             self._J6N[i][:3] = self._J3NP[jac_indices].reshape((3, self.N_JOINTS))
@@ -268,6 +294,8 @@ class MujocoConfig:
             if not self.use_sim_state and q is not None:
                 self._load_state(old_q, old_dq, old_u)
         if debug:
+            print("self._J3NP: ",self._J3NP)
+            print("self._J3NR: ",self._J3NR)
             print("self.J6N: ",self._J6N)
 
         return np.copy(self._J6N)
