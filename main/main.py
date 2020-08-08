@@ -78,6 +78,8 @@ class RL_controller:
         os.makedirs(model_dir, exist_ok=True)
         tb_path = self.tb_dir + prefix
         self.num_timesteps = self.steps_per_batch * self.batches_per_episodes * self.num_episodes
+        self.args.robot_file = "jaco2_curtain_torque"
+        self.args.n_robots = 1
         env = JacoMujocoEnv(**vars(self.args))
 
         layers = {"policy": [64, 64], "value": [256, 256, 128]}
@@ -149,8 +151,7 @@ class RL_controller:
                     spacenav.open()
                     print("... connection established.")
                     atexit.register(spacenav.close)
-                    #self.args.robot_file = "jaco2_sensor_torque"
-                    self.args.robot_file = "jaco2_torque"
+                    self.args.robot_file = "jaco2_curtain_torque"
                     env = JacoMujocoEnv(**vars(self.args))
                     generate_expert_traj(self._expert_3d, 'expert_traj',
                                         env, n_episodes=n_episodes)
@@ -159,9 +160,7 @@ class RL_controller:
             else:
                 pass
         elif con_method == 1:
-            print("Keyboard popup")
-            self._build_popup()
-            self.args.robot_file = "jaco2_sensor_torque"
+            self.args.robot_file = "jaco2_curtain_torque"
             env = JacoMujocoEnv(**vars(self.args))
             generate_expert_traj(self._expert_keyboard, 'expert_traj',
                                 env, n_episodes=n_episodes)
@@ -175,17 +174,18 @@ class RL_controller:
             spacenav.remove_events(1)
             event = spacenav.wait()
             if type(event) is spacenav.MotionEvent:
-                action = np.array([event.x, event.z, event.y, event.rx, -event.ry, event.rz])/350 * 1.4
+                action = np.array([event.x, event.z, event.y, event.rx, -event.ry, event.rz])/350*3
             elif type(event) is spacenav.ButtonEvent:
                 action = [0,0,0,0,0,0]
                 print("button = ",event.button)
                 print("pressed = ",event.pressed)
                 spacenav.remove_events(2)
             else:
-                action = []
+                action = [0,0,0,0,0,0]
             return action
         else:
-            return []
+            action = [0,0,0,0,0,0]
+            return action
     
     def _expert_keyboard(self, _obs):
         self.action = [0,0,0,0,0,0]

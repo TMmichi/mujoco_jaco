@@ -3,11 +3,13 @@
 import os
 import sys
 import time
+from pathlib import Path
 from math import pi
 from random import sample, randint, uniform
 
 import numpy as np
 from numpy.random import uniform as uniform_np
+from matplotlib import pyplot as plt
 
 if __name__ != "__main__":
     from abr_control.controllers import OSC
@@ -19,16 +21,15 @@ if __name__ != "__main__":
 class JacoMujocoEnvUtil:
     def __init__(self, controller=True, **kwargs):
         ### ------------  MODEL CONFIGURATION  ------------ ###
+        self.n_robots = kwargs.get('n_robots', 1)
         if kwargs['robot_file'] == None:
-            n_robot_postfix = ['', '_dual', '_tri']
-            self.n_robots = 1
+            n_robot_postfix = ['', '_dual', '_tri']    
             try:
                 xml_name = 'jaco2'+n_robot_postfix[self.n_robots-1]
             except Exception:
                 raise NotImplementedError("\n\t\033[91m[ERROR]: xml_file of the given number of robots doesn't exist\033[0m")
         else:
             xml_name = kwargs['robot_file']
-            self.n_robots = 1
         
         self.jaco = MujocoConfig(xml_name, n_robots=self.n_robots)
         self.interface = Mujoco(self.jaco, dt=0.005, visualize=True)
@@ -39,8 +40,9 @@ class JacoMujocoEnvUtil:
         ### ------------  CONTROLLER SETUP  ------------ ###
         self.controller = controller
         if self.controller:
-            self.ctr = OSC(self.jaco, kp=50, ko=180, kv=20, vmax=[0.2, 0.5236], ctrlr_dof=[
-                True, True, True, True, True, True])
+            ctrl_dof = [True, True, True, True, True, True]
+            #self.ctr = OSC(self.jaco, kp=50, ko=180, kv=20, vmax=[0.2, 0.5236], ctrlr_dof=ctrl_dof)
+            self.ctr = OSC(self.jaco, kp=50, ko=180, kv=20, vmax=[0.3, 0.7854], ctrlr_dof=ctrl_dof)
             self.target_pos = self._reset()
         else:
             _ = self._reset()
@@ -50,6 +52,7 @@ class JacoMujocoEnvUtil:
             self.state_gen = kwargs['stateGen']
         except Exception:
             self.state_gen = None
+        self.package_path = str(Path(__file__).resolve().parent.parent)
         self.image_buffersize = 5
         self.image_buff = []
         self.pressure_buffersize = 100
@@ -76,7 +79,8 @@ class JacoMujocoEnvUtil:
         self.current_jointstate_1 = fb['q']
         if self.controller:
             u = self.__controller_generate(fb)
-            self.interface.send_forces(np.hstack([u, [0, 0, 0]]))
+            # 0: closed ~ 10: open
+            self.interface.send_forces(np.hstack([u, [self.gripper_angle_1, self.gripper_angle_1, self.gripper_angle_2]]))
         else:
             if self.ctrl_type == "torque":
                 self.interface.send_signal(np.hstack([self.target_signal, [0, 0, 0]]))
@@ -94,8 +98,6 @@ class JacoMujocoEnvUtil:
 
     def _reset(self, target_angle=None):
         self.num_episodes = 0
-        self.gripper_angle_1 = 0.35
-        self.gripper_angle_2 = 0.35
         if target_angle == None:
             random_init_angle = [uniform_np(-pi/2, pi/2), 3.75, uniform_np(
                 1.5, 2.5), uniform_np(0.8, 2.3), uniform_np(0.8, 2.3), uniform_np(0.8, 2.3)]
@@ -122,14 +124,15 @@ class JacoMujocoEnvUtil:
 
     def _get_observation(self):
         test = True  # TODO: Remove test
+        image, depth = self._get_camera()
         if test:
             self.gripper_pose = self.__get_property('EE', 'pose')
             observation = []
             for i in range(self.n_robots):
                 observation.append(self.gripper_pose[i] - np.hstack([self.goal[i], [0, 0, 0]]))
         else:
-            data_from_callback = []
-            observation = self.state_gen.generate(data_from_callback)
+            data = [image, depth]
+            observation = self.state_gen.generate(data)
         return np.array(observation)
 
     def _get_reward(self):
@@ -181,6 +184,8 @@ class JacoMujocoEnvUtil:
             # NOTE
             # Action: Gripper Pose Increments (m,rad)
             self.target_pos = self.gripper_pose[0] + np.hstack([a[:3]/100, a[3:]/20])
+            self.gripper_angle_1 = a[6]
+            self.gripper_angle_2 = a[7]
             self.interface.set_mocap_xyz("hand", self.target_pos[:3])
             self.interface.set_mocap_orientation("hand", transformations.quaternion_from_euler(
                 self.target_pos[3], self.target_pos[4], self.target_pos[5], axes="rxyz"))
@@ -227,8 +232,13 @@ class JacoMujocoEnvUtil:
                     out.append(pose)
                 return np.copy(out)
 
-    def _get_depth(self):
-        pass
+    def _get_camera(self):
+        image, depth = self.interface.sim.render(width = 640, height = 480, camera_name='visual_camera', depth=True)
+        image = np.flip(image, 0)
+        depth = np.flip(depth, 0)
+        #plt.imsave(self.package_path+'/test.jpg', image)
+        #plt.imsave(self.package_path+"/test_depth.jpg", depth)
+        return image, depth
 
     def _get_pressure(self):
         pass
@@ -249,7 +259,7 @@ if __name__ == "__main__":
         pos = False
         vel = False
         torque = True
-        dual = True and torque
+        dual = False and torque
         controller = True
         if pos:
             jaco = MujocoConfig('jaco2_position')
@@ -265,7 +275,9 @@ if __name__ == "__main__":
         interface.connect()
 
         if controller:
-            ctr = OSC(jaco, kp=2, ctrlr_dof=[True, True, True, True, True, True])
+            ctrl_dof = [True, True, True, True, True, True]
+            ctr = OSC(jaco, kp=50, ko=180, kv=20, vmax=[0.3, 0.7854], ctrlr_dof=ctrl_dof)
+            #ctr = OSC(jaco, kp=50, ko=180, kv=20, vmax=[2, 5.236], ctrlr_dof=ctrl_dof)
             if dual:
                 interface.set_joint_state([1.5, 2, 1.1, 1, 1, 1, 1, 1.1, 1, 1.5, 1, 1], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
             else:
@@ -320,7 +332,7 @@ if __name__ == "__main__":
                     target_pos1 += np.array([0.01, 0.01, 0.01])
                     target_pos2 += np.array([0.01, 0.01, 0.01])
                 else:
-                    target_pos += np.array([0.01, 0.01, 0.01])
+                    target_pos += np.array([0.03, 0.03, 0.03])
                 target_or += np.array([0.1, 0.1, 0.1])
         else:
             interface.set_joint_state([1, 2, 1.5, 1.5, 1.5, 1.5], [0, 0, 0, 0, 0, 0])

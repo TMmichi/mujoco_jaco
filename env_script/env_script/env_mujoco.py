@@ -34,12 +34,21 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
         obs = np.array([self.obs_max]*self.state_shape[0])
         self.observation_space = spaces.Box(-obs, obs, dtype=np.float32)
         self.prev_obs = [0,0,0,0,0,0]
-        # 0.007 (m) -> multiplied by factor of 2, will later be divided into 2 @ step
-        self.action_space_max = 0.7 * 2
-        # unit action (1) from the policy = 0.5 (cm) in real world
-        # x,y,z,r,p,y, finger {1,2}, finger 3
-        act = np.array([self.action_space_max]*6)
-        self.action_space = spaces.Box(-act, act, dtype=np.float32)  # Action space: [-1.4, 1.4]
+
+        # unit action (1) from the policy = 3 (cm) in real world
+        # max distance diff/s = 3 / 0.2 = 15 (cm)
+        # x,y,z,r,p,y
+        self.pose_action_space_max = 3
+        # gripper angle: 0-closed, 10-open
+        self.gripper_action_space_max = 10
+        self.gripper_action_space_min = 0
+
+        pose_act = np.array([self.pose_action_space_max]*6)
+        gripper_act_max = np.array([self.gripper_action_space_max]*2)
+        gripper_act_min = np.array([self.gripper_action_space_min]*2)
+        act_max = np.hstack([pose_act, gripper_act_max])
+        act_min = np.hstack([-pose_act, gripper_act_min])
+        self.action_space = spaces.Box(act_min, act_max, dtype=np.float32)  # Action space: [-1.4, 1.4]
         self.seed()
 
         ### ------------  LOGGING  ------------ ###
@@ -68,9 +77,7 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
 
     def step(self, action, log=True):
         # TODO: Determine how many time steps should be proceed when called
-        # moveit trajectory planning (0.15) + target angle following (0.3 - 0.15?)
-        # -> In real world, full timesteps are used for conducting action (No need for finding IK solution)
-        num_step_pass = 40
+        num_step_pass = 40 # 0.2s
         # actions = np.clip(actions,-self.action _space_max, self.action_space_max)
         action = np.clip(action, -self.action_space_max, self.action_space_max)
         self.take_action(action)
