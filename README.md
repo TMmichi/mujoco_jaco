@@ -31,6 +31,10 @@ After installing mujoco-py, install additional requirements via:
 pip install -r requirements.txt
 ```
 
+### Pyspacenav
+
+Python API for 3D Spacenav can be found here[https://github.com/mastersign/pyspacenav]
+
 ## Usage
 
 ```bash
