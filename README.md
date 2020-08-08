@@ -33,7 +33,7 @@ pip install -r requirements.txt
 
 ### Pyspacenav
 
-Python API for 3D Spacenav can be found here[https://github.com/mastersign/pyspacenav]
+Python API for 3D Spacenav can be found [here](https://github.com/mastersign/pyspacenav)
 
 ## Usage
 
