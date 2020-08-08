@@ -54,6 +54,11 @@ class RL_controller:
         args.reward_method = self.reward_method
         args.reward_module = self.reward_module
 
+        # Action
+        self.g_angle = 0
+        self.g_changed = None
+        self.pressed = {0:False, 1:False}        # 0:Left - Open, 1:Right - Close
+
         # If resume training on pre-trained models with episodes, else None
         package_path = str(Path(__file__).resolve().parent.parent)
         self.model_path = package_path+"/models_baseline/"
@@ -169,22 +174,42 @@ class RL_controller:
 
     def _expert_3d(self, _obs):
         if sys.platform in ['linux', 'linux2']:
-            on_pressed_left = False
-            on_pressed_right = False
-            spacenav.remove_events(1)
-            event = spacenav.wait()
+            event = spacenav.poll()
             if type(event) is spacenav.MotionEvent:
-                action = np.array([event.x, event.z, event.y, event.rx, -event.ry, event.rz])/350*3
+                action = np.array([event.x, event.z, event.y, event.rx, -event.ry, event.rz, self.g_angle, self.g_angle])/350*1.5
             elif type(event) is spacenav.ButtonEvent:
-                action = [0,0,0,0,0,0]
-                print("button = ",event.button)
-                print("pressed = ",event.pressed)
-                spacenav.remove_events(2)
+                print("button: ",event.button)
+                print("pressed: ",event.pressed)
+                if self.g_changed is not None:
+                    self.g_changed = not self.g_changed
+                else:
+                    self.g_changed = True
+
+                try:
+                    action = np.array([event.x, event.z, event.y, event.rx, -event.ry, event.rz, 0, 0])/350*1.5
+                except Exception:
+                    action = [0,0,0,0,0,0,0,0]
+                self.pressed[event.button] = event.pressed
             else:
-                action = [0,0,0,0,0,0]
+                action = [0,0,0,0,0,0,0,0]
+
+            if self.pressed[0]:
+                self.g_angle += 0.25
+            elif self.pressed[1]:
+                self.g_angle -= 0.25
+            self.g_angle = np.clip(self.g_angle, 0, 10)
+            
+            action[6] = action[7] = self.g_angle
+            spacenav.remove_events(1)
+            if self.g_changed is not None and not self.g_changed:
+                print("Removed")
+                spacenav.remove_events(2)
+                self.g_changed = None
+
             return action
+
         else:
-            action = [0,0,0,0,0,0]
+            action = [0,0,0,0,0,0,0,0]
             return action
     
     def _expert_keyboard(self, _obs):

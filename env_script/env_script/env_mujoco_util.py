@@ -32,20 +32,11 @@ class JacoMujocoEnvUtil:
             xml_name = kwargs['robot_file']
         
         self.jaco = MujocoConfig(xml_name, n_robots=self.n_robots)
-        self.interface = Mujoco(self.jaco, dt=0.005, visualize=True)
+        visualize = True
+        self.interface = Mujoco(self.jaco, dt=0.005, visualize=visualize, create_offscreen_rendercontext=True)
         self.interface.connect()
         self.ctrl_type = self.jaco.ctrl_type
         self.base_position = self.__get_property('link1', 'position')
-
-        ### ------------  CONTROLLER SETUP  ------------ ###
-        self.controller = controller
-        if self.controller:
-            ctrl_dof = [True, True, True, True, True, True]
-            #self.ctr = OSC(self.jaco, kp=50, ko=180, kv=20, vmax=[0.2, 0.5236], ctrlr_dof=ctrl_dof)
-            self.ctr = OSC(self.jaco, kp=50, ko=180, kv=20, vmax=[0.3, 0.7854], ctrlr_dof=ctrl_dof)
-            self.target_pos = self._reset()
-        else:
-            _ = self._reset()
 
         ### ------------  STATE GENERATION  ------------ ###
         try:
@@ -62,6 +53,16 @@ class JacoMujocoEnvUtil:
         self.pressure_trigger = True
         self.data_buff = []
         self.data_buff_temp = [0, 0, 0]
+
+        ### ------------  CONTROLLER SETUP  ------------ ###
+        self.controller = controller
+        if self.controller:
+            ctrl_dof = [True, True, True, True, True, True]
+            #self.ctr = OSC(self.jaco, kp=50, ko=180, kv=20, vmax=[0.2, 0.5236], ctrlr_dof=ctrl_dof)
+            self.ctr = OSC(self.jaco, kp=50, ko=180, kv=20, vmax=[0.3, 0.7854], ctrlr_dof=ctrl_dof)
+            self.target_pos = self._reset()
+        else:
+            _ = self._reset()
 
         ### ------------  REWARD  ------------ ###
         self.goal = self.__sample_goal()
@@ -126,7 +127,7 @@ class JacoMujocoEnvUtil:
         test = True  # TODO: Remove test
         image, depth = self._get_camera()
         if test:
-            self.gripper_pose = self.__get_property('EE', 'pose')
+            self.__get_gripper_pose()
             observation = []
             for i in range(self.n_robots):
                 observation.append(self.gripper_pose[i] - np.hstack([self.goal[i], [0, 0, 0]]))
@@ -134,6 +135,19 @@ class JacoMujocoEnvUtil:
             data = [image, depth]
             observation = self.state_gen.generate(data)
         return np.array(observation)
+    
+    def _get_camera(self):
+        #image, depth = self.interface.sim.render(width = 640, height = 480, camera_name='visual_camera', depth=True)
+        self.interface.offscreen.render(width=640, height=480, camera_id=0)
+        image, depth = self.interface.offscreen.read_pixels(width=640, height=480, depth=True)
+        image = np.flip(image, 0)
+        depth = np.flip(depth, 0)
+        #plt.imsave(self.package_path+"/test.jpg", image)
+        #plt.imsave(self.package_path+"/test_depth.jpg", depth)
+        return image, depth
+
+    def __get_gripper_pose(self):
+        self.gripper_pose = self.__get_property('EE', 'pose')
 
     def _get_reward(self):
         # TODO: Reward from IRL
@@ -179,11 +193,11 @@ class JacoMujocoEnvUtil:
                     return False, 0, wb
 
     def _take_action(self, a):
-        _ = self._get_observation()
+        _ = self.__get_gripper_pose()
         if self.controller:
             # NOTE
             # Action: Gripper Pose Increments (m,rad)
-            self.target_pos = self.gripper_pose[0] + np.hstack([a[:3]/100, a[3:]/20])
+            self.target_pos = self.gripper_pose[0] + np.hstack([a[:3]/100, a[3:6]/20])
             self.gripper_angle_1 = a[6]
             self.gripper_angle_2 = a[7]
             self.interface.set_mocap_xyz("hand", self.target_pos[:3])
@@ -231,14 +245,6 @@ class JacoMujocoEnvUtil:
                     pose = np.append(pos, ori)
                     out.append(pose)
                 return np.copy(out)
-
-    def _get_camera(self):
-        image, depth = self.interface.sim.render(width = 640, height = 480, camera_name='visual_camera', depth=True)
-        image = np.flip(image, 0)
-        depth = np.flip(depth, 0)
-        #plt.imsave(self.package_path+'/test.jpg', image)
-        #plt.imsave(self.package_path+"/test_depth.jpg", depth)
-        return image, depth
 
     def _get_pressure(self):
         pass

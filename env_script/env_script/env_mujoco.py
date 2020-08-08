@@ -16,8 +16,8 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
         super().__init__(**kwargs)
 
         ### ------------  RL SETUP  ------------ ###
+        ## Env Steps
         self.current_steps = 0
-        self.num_envs = 1
         try:
             self.max_steps = kwargs['steps_per_batch'] * \
                 kwargs['batches_per_episodes']
@@ -25,7 +25,7 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
             print("Using default max_steps: 500")
             self.max_steps = 500
 
-        # TODO: define obs/act bounds with a separate range per each dimension
+        ## Observations
         try:
             self.state_shape = kwargs['stateGen'].get_state_shape()
         except Exception:
@@ -35,20 +35,18 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
         self.observation_space = spaces.Box(-obs, obs, dtype=np.float32)
         self.prev_obs = [0,0,0,0,0,0]
 
-        # unit action (1) from the policy = 3 (cm) in real world
-        # max distance diff/s = 3 / 0.2 = 15 (cm)
-        # x,y,z,r,p,y
-        self.pose_action_space_max = 3
-        # gripper angle: 0-closed, 10-open
-        self.gripper_action_space_max = 10
-        self.gripper_action_space_min = 0
-
-        pose_act = np.array([self.pose_action_space_max]*6)
-        gripper_act_max = np.array([self.gripper_action_space_max]*2)
+        ## Actions
+        # unit action from the policy = 1 (cm) in real world
+        # max distance diff/s = 1.5 / 0.1 = 15 (cm)
+        self.pose_action_space_max = 1.5
+        self.gripper_action_space_max = 10  # Open
+        self.gripper_action_space_min = 0   # Closed
+        pose_act = np.array([self.pose_action_space_max]*6)             # x,y,z,r,p,y
+        gripper_act_max = np.array([self.gripper_action_space_max]*2)   # g1, g2
         gripper_act_min = np.array([self.gripper_action_space_min]*2)
-        act_max = np.hstack([pose_act, gripper_act_max])
-        act_min = np.hstack([-pose_act, gripper_act_min])
-        self.action_space = spaces.Box(act_min, act_max, dtype=np.float32)  # Action space: [-1.4, 1.4]
+        self.act_max = np.hstack([pose_act, gripper_act_max])
+        self.act_min = np.hstack([-pose_act, gripper_act_min])
+        self.action_space = spaces.Box(self.act_min, self.act_max, dtype=np.float32)
         self.seed()
 
         ### ------------  LOGGING  ------------ ###
@@ -73,13 +71,11 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
         return self.action_space.shape[0]
 
     def get_action_bound(self):
-        return self.action_space_max
+        return self.pose_action_space_max
 
     def step(self, action, log=True):
-        # TODO: Determine how many time steps should be proceed when called
-        num_step_pass = 40 # 0.2s
-        # actions = np.clip(actions,-self.action _space_max, self.action_space_max)
-        action = np.clip(action, -self.action_space_max, self.action_space_max)
+        num_step_pass = 20                                      # 0.2s per step
+        action = np.clip(action, self.act_min, self.act_max)
         self.take_action(action)
         for _ in range(num_step_pass):
             self._step_simulation()
