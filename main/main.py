@@ -5,6 +5,8 @@ import sys
 import time
 import path_config
 from pathlib import Path
+from tkinter import *
+from tkinter import simpledialog
 from collections import OrderedDict
 try:
     import spacenav, atexit
@@ -147,7 +149,8 @@ class RL_controller:
                     spacenav.open()
                     print("... connection established.")
                     atexit.register(spacenav.close)
-                    self.args.robot_file = "jaco2_sensor_torque"
+                    #self.args.robot_file = "jaco2_sensor_torque"
+                    self.args.robot_file = "jaco2_torque"
                     env = JacoMujocoEnv(**vars(self.args))
                     generate_expert_traj(self._expert_3d, 'expert_traj',
                                         env, n_episodes=n_episodes)
@@ -156,6 +159,8 @@ class RL_controller:
             else:
                 pass
         elif con_method == 1:
+            print("Keyboard popup")
+            self._build_popup()
             self.args.robot_file = "jaco2_sensor_torque"
             env = JacoMujocoEnv(**vars(self.args))
             generate_expert_traj(self._expert_keyboard, 'expert_traj',
@@ -183,9 +188,19 @@ class RL_controller:
             return []
     
     def _expert_keyboard(self, _obs):
-        
-        action = []
-        return action
+        self.action = [0,0,0,0,0,0]
+        return self.action
+    
+    def _build_popup(self):
+        self.root = Tk()
+        self.root.title("Keyboard input")
+        self.root.geometry("400x400")
+        button_a = Button(self.root, text="a")
+        button_a.bind("<a>", self._clicker)
+
+    def _clicker(self, event):
+        self.action
+        pass
 
     def train_with_additional_layer(self):
         self.args.train_log = False
