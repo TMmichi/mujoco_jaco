@@ -120,7 +120,7 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
             return True, 0, 0
 
     def make_observation(self):
-        self.obs = self._get_observation()[0]
+        self.obs = self._get_observation()[0]   # Gripper pose of the first jaco2
         assert self.state_shape[0] == self.obs.shape[0], \
             "State shape from state generator ({0}) and observations ({1}) differs. Possible test code error. You should fix it.".format(
                 self.state_shape[0], self.obs.shape[0])
