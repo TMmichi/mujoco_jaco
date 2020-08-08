@@ -141,6 +141,23 @@
             </body>
         </body>
         <!--#########################################-->
+
+        <!--### CAMERA ###-->
+        <camera name="visual_camera" pos="0 0.2 0.5" euler="1.3 0 0"></camera> 
+        <!--#########################################-->
+
+        <!--### TARGET BODY ###-->
+        <body name="target_holder" pos="0 0.65 0">
+            <geom type="cylinder" size=".01 .2" density="100" pos="0 0 .2"></geom>
+            <geom type="cylinder" size=".1 .01" density="100" pos="0 0 .4"></geom>
+        </body>
+
+        <body name="target_body" pos="0 0.65 0.42">
+            <freejoint></freejoint>
+            <geom name="target_geom" type="box" size="0.02 0.02 0.02"></geom>
+            <inertial pos="0 0 0" mass="1" diaginertia="1 1 1"></inertial>
+        </body>
+        <!--#########################################-->
     </worldbody>
 
     <actuator>
