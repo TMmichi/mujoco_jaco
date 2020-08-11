@@ -33,7 +33,7 @@ pip install -r requirements.txt
 
 #### Note
 
-If you get No matching distribution error for tensorflow==1.15.0, you should upgrade your pip version to the latest one.
+If you get `No matching distribution found` error for tensorflow==1.15.0, you should upgrade your pip version to the latest one.
 
 ### Pyspacenav
 
