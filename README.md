@@ -31,6 +31,10 @@ After installing mujoco-py, install additional requirements via:
 pip install -r requirements.txt
 ```
 
+#### Note
+
+If you get No matching distribution error for tensorflow==1.15.0, you should upgrade your pip version to the latest one.
+
 ### Pyspacenav
 
 Python API for 3D Spacenav can be found [here](https://github.com/mastersign/pyspacenav)
