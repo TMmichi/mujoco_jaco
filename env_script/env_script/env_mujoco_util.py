@@ -22,7 +22,8 @@ class JacoMujocoEnvUtil:
     def __init__(self, controller=True, **kwargs):
         ### ------------  MODEL CONFIGURATION  ------------ ###
         self.n_robots = kwargs.get('n_robots', 1)
-        if kwargs['robot_file'] == None:
+        robot_file = kwargs.get('robot_file', None)
+        if robot_file == None:
             n_robot_postfix = ['', '_dual', '_tri']    
             try:
                 xml_name = 'jaco2'+n_robot_postfix[self.n_robots-1]
@@ -32,27 +33,19 @@ class JacoMujocoEnvUtil:
             xml_name = kwargs['robot_file']
         
         self.jaco = MujocoConfig(xml_name, n_robots=self.n_robots)
-        visualize = True
-        self.interface = Mujoco(self.jaco, dt=0.005, visualize=visualize, create_offscreen_rendercontext=True)
+        self.interface = Mujoco(self.jaco, dt=0.005, visualize=True, create_offscreen_rendercontext=True)
         self.interface.connect()
         self.ctrl_type = self.jaco.ctrl_type
-        self.base_position = self.__get_property('link1', 'position')
+        self.num_episodes = 0
 
         ### ------------  STATE GENERATION  ------------ ###
-        try:
-            self.state_gen = kwargs['stateGen']
-        except Exception:
-            self.state_gen = None
         self.package_path = str(Path(__file__).resolve().parent.parent)
+        self.state_gen = kwargs.get('stateGen', None)
         self.image_buffersize = 5
         self.image_buff = []
         self.pressure_buffersize = 100
-        self.pressure_state = []
-
-        self.depth_trigger = True
-        self.pressure_trigger = True
+        self.pressure_buff = []
         self.data_buff = []
-        self.data_buff_temp = [0, 0, 0]
 
         ### ------------  CONTROLLER SETUP  ------------ ###
         self.controller = controller
@@ -65,23 +58,25 @@ class JacoMujocoEnvUtil:
             _ = self._reset()
 
         ### ------------  REWARD  ------------ ###
-        self.goal = self.__sample_goal()
-        self.num_episodes = 0
-        try:
-            self.reward_method = kwargs['reward_method']
-            self.reward_module = kwargs['reward_module']
-        except Exception:
-            self.reward_method = None
-            self.reward_module = None
+        self.base_position = self.__get_property('link1', 'position')
+        self.reward_method = kwargs.get('reward_method', None)
+        self.reward_module = kwargs.get('reward_module', None)
 
 
     def _step_simulation(self):
         fb = self.interface.get_feedback()
-        self.current_jointstate_1 = fb['q']
         if self.controller:
             u = self.__controller_generate(fb)
             # 0: closed ~ 10: open
-            self.interface.send_forces(np.hstack([u, [self.gripper_angle_1, self.gripper_angle_1, self.gripper_angle_2]]))
+            '''
+            forces = []
+            for i in range(self.n_robots):
+                gripper_angle = []
+                np.hstack([forces, u[6*i:6*(i+1)], gripper_angle])
+            '''
+            self.interface.send_forces(
+                np.hstack([u, [self.gripper_angle_1, self.gripper_angle_1, self.gripper_angle_2]])
+            )
         else:
             if self.ctrl_type == "torque":
                 self.interface.send_signal(np.hstack([self.target_signal, [0, 0, 0]]))
@@ -102,11 +97,7 @@ class JacoMujocoEnvUtil:
         if target_angle == None:
             random_init_angle = [uniform_np(-pi/2, pi/2), 3.75, uniform_np(
                 1.5, 2.5), uniform_np(0.8, 2.3), uniform_np(0.8, 2.3), uniform_np(0.8, 2.3)]
-            #random_init_angle = [1,1,1,1,1,1]
             random_init_angle *= self.n_robots
-            if self.n_robots > 1:
-                random_init_angle[7] = random_init_angle[1] + pi/4
-                random_init_angle[6] = random_init_angle[0] + pi/4
         else:
             random_init_angle = target_angle
         self.interface.set_joint_state(random_init_angle, [0]*6*self.n_robots)
@@ -115,7 +106,6 @@ class JacoMujocoEnvUtil:
             self.target_pos = np.hstack([[-0.25, 0, -0.15, 0, 0, 0]*self.n_robots])
             _ = self.__controller_generate(fb)
             self.interface.send_forces([0]*9*self.n_robots)
-        self.current_jointstate = fb['q']
         self.goal = self.__sample_goal()
         obs = self._get_observation()
         # TODO: additional term for dist_diff
@@ -124,9 +114,8 @@ class JacoMujocoEnvUtil:
         return obs[0]
 
     def _get_observation(self):
-        test = True  # TODO: Remove test
         image, depth = self._get_camera()
-        if test:
+        if self.state_gen == None:
             self.__get_gripper_pose()
             observation = []
             for i in range(self.n_robots):
@@ -137,7 +126,6 @@ class JacoMujocoEnvUtil:
         return np.array(observation)
     
     def _get_camera(self):
-        #image, depth = self.interface.sim.render(width = 640, height = 480, camera_name='visual_camera', depth=True)
         self.interface.offscreen.render(width=640, height=480, camera_id=0)
         image, depth = self.interface.offscreen.read_pixels(width=640, height=480, depth=True)
         image = np.flip(image, 0)
@@ -171,7 +159,6 @@ class JacoMujocoEnvUtil:
                           for i in range(2)] + [uniform(0.1, 0.4)]
             goal.append(goal_pos)
             self.interface.set_mocap_xyz("target", goal_pos[:3])
-        # TODO: Target pose -> make object in Mujoco
         return np.array(goal)
 
     def _get_terminal_inspection(self):
@@ -195,7 +182,6 @@ class JacoMujocoEnvUtil:
     def _take_action(self, a):
         _ = self.__get_gripper_pose()
         if self.controller:
-            # NOTE
             # Action: Gripper Pose Increments (m,rad)
             self.target_pos = self.gripper_pose[0] + np.hstack([a[:3]/100, a[3:6]/20])
             self.gripper_angle_1 = a[6]
@@ -204,7 +190,6 @@ class JacoMujocoEnvUtil:
             self.interface.set_mocap_orientation("hand", transformations.quaternion_from_euler(
                 self.target_pos[3], self.target_pos[4], self.target_pos[5], axes="rxyz"))
         else:
-            # NOTE
             # If Position: Joint Angle Increments (rad)
             # If Velocity: Joint Velocity (rad/s)
             # If Torque: Joint Torque (Nm)

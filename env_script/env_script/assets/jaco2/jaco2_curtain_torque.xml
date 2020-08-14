@@ -28,14 +28,11 @@
         <mesh file="ring_small.STL"/>
         <mesh file="dice.STL" scale="0.005 0.005 0.005"/>
 
-        <texture name="floor_tile" file="meshes/floor_tile.png" width="3000" height="3000" type="2d"/>
-        <material name="tile" texture="floor_tile" specular="0" shininess="0" reflectance="0" emission="1" />
-
         <material name="carbon" specular="1" shininess="1" reflectance="1" rgba="0.05 0.05 0.05 1" emission="1" />
         <material name="grey_plastic" specular="0.5" shininess="0" reflectance="0" rgba="0.12 0.14 0.14 1" emission="1" />
 
-        <texture name="foam_blocks" file="meshes/foam_blocks.png" width="2744" height="2744" type="2d"/>
-        <material name="foam" texture="foam_blocks" specular="0" shininess="0" reflectance="0" emission="1" />
+        <texture name="floor_wood" file="meshes/floor_wood.png" width="1200" height="1200" type="2d"/>
+        <material name="wood" texture="floor_wood" specular="0" shininess="0" reflectance="0" emission="1" texrepeat="5 5"/>
 
         <texture name="texcarpet" type="2d" file="meshes/carpet.png"/>
         <material name="matcarpet" texture="texcarpet"/>
@@ -47,8 +44,7 @@
     <worldbody>
         <light directional="true" pos="-0.5 0.5 3" dir="0 0 -1" />
 
-        <geom name="floor_foam_block" pos="0 0 0" size="0.5 0.5 0.05" type="plane" rgba="1 0.83 0.61 1" material="foam"/>
-        <geom name="floor_grey_tile" pos="0 0 -0.001" size="0.75 0.75 0.05" type="plane" material="tile"/>
+        <geom name="floor_wood" pos="0 0 0" size="1 1 0.05" type="plane" material="wood"/>
 
         <!--######### CONTROL VISUALIZATIONS #########-->
         <body name="hand" pos="0 0 -0.15" mocap="true">

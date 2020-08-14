@@ -36,6 +36,7 @@ Note
                     - learn auxilary primitives that have not been told/trained (if possible)
                     - fuse policies with different action space into a whole
                     - reduce learning time compared to primitives that has same, whole action space
+                    - weights coordinate each primitives: not concurrent -> execute multiple primitives at once // no latent embedding -> interpretable
                 To_do: 
                     - Train primitives that are identified for certain tasks (from either expert trajectory or reward engineered RL scheme)
                     - Set task which requires multiple primitives:
@@ -78,6 +79,7 @@ Note
                     - Options (Sutten, 1999)
                     # If using LofD for primitives:
                     - Learning Agile Robotic Locomotion Skills by Imitating Animals (Peng, 2020)
+                    - Learning to Coordinate Manipulation Skills Via Skill Behavior Diversification (Lee, 2020)
             }
             2. Title: Who cares who I am: Policy transfer between robots without fine-tuning
             {
@@ -152,7 +154,7 @@ Note
                     Note: Target position of a reaching primitive - Should explicitly be known to the user
                         -> User do know where it's reaching to
                 }
-                1-2. Sub-primitives 
+                1-2. Sub-primitives
                 {
                     Questions:
                         1. Why have sub-primitives?
@@ -190,6 +192,11 @@ Note
                             - since weight incorporates total states, it can fully observe the space and provide decisions
                             - DRAWBACK: If one primitive gets majoritic value, then actions from other primitives (-> from other action spaces) will not be effective
                             -           Total policy is not a 'probability distribution' anymore.
+                    References:
+                        - Peng et al. 2019 (MCP)
+                        - Shu et al. 2017 (Hierarchical and interpretable skill acquisition in multi-task reinforcement learning)
+                        - Li et al. 2019 (Hierarchical Reinforcement Learning with Advantage-Based Auxiliary Rewards)
+                        - 
                 }
                 1-4. Brain Functionality
                 {
@@ -252,6 +259,12 @@ Note
                     Question:
                         1. How to formulate entropy? Just add them all by primitives?
                         2. How to initialize policy since it only guarantees the local maximum?
+                }
+                1-7. Baselines
+                {
+                    - Vanilla RL
+                    - 
+                    - 
                 }
             }
             2. Title: Who cares who I am: Policy transfer between robots without fine-tuning

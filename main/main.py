@@ -49,7 +49,7 @@ class RL_controller:
         #args.stateGen = self.stateGen
 
         # Reward Generation
-        self.reward_method = "l2"
+        self.reward_method = "l2"   
         self.reward_module = ""
         args.reward_method = self.reward_method
         args.reward_module = self.reward_module
