@@ -32,7 +32,7 @@ class JacoMujocoEnvUtil:
             xml_name = kwargs['robot_file']
         
         self.jaco = MujocoConfig(xml_name, n_robots=self.n_robots)
-        visualize = True
+        visualize = False
         self.interface = Mujoco(self.jaco, dt=0.005, visualize=visualize, create_offscreen_rendercontext=True)
         self.interface.connect()
         self.ctrl_type = self.jaco.ctrl_type
