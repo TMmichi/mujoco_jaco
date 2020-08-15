@@ -86,6 +86,7 @@ if train:
                                             number_of_primitives, [0,1], number_of_primitives, 
                                             [64, 64])
         model = SAC_MULTI.pretrainer_load(policy=MlpPolicy_sac, primitives=primitives, env=env, separate_value=True)
+        quit()
         print("\033[91mTraining Starts\033[0m")
         model.learn(100000)
         print("\033[91mTrain Finished\033[0m")
@@ -139,7 +140,14 @@ if load:
         env.render()
 
     else:
-        model = SAC_MULTI.load(model_path+"twowheel/policy")
+        primitives = OrderedDict()
+        policy_zip_path = model_path+"twowheel"+"/policy.zip"
+        SAC_MULTI.construct_primitive_info(name=None, primitive_dict=primitives,
+                                            obs_dimension=None, obs_range=None, obs_index=[0, 1], 
+                                            act_dimension=None, act_range=None, act_index=[0, 1], 
+                                            policy_layer_structure=None,
+                                            loaded_policy=SAC_MULTI._load_from_file(policy_zip_path), separate_value=True)
+        model = SAC_MULTI.pretrainer_load(policy=MlpPolicy_sac, primitives=primitives, env=env, separate_value=True)
         obs = env.reset()
 
         while True:
