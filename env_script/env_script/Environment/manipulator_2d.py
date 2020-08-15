@@ -265,8 +265,6 @@ class Manipulator2D(gym.Env):
         mat_target_robot = self.robot_tf.inv()*self.target_tf
         dist = np.linalg.norm(mat_target_robot.get_translation())
         ang = -np.arctan2(mat_target_robot.y(), mat_target_robot.x())
-        if self.n_episodes % 20 == 0:
-            print("dist:\t",dist,"\tang:\t",ang)
         return np.array([dist, ang])
 
 

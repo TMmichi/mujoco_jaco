@@ -63,9 +63,11 @@ if train:
         print("\033[91mTraining Starts\033[0m")
         model.learn(100000)
         print("\033[91mTrain Finished\033[0m")
-        model.save(model_dir+"/policy")
+        model.save(model_dir+"/policy", hierarchical=True)
 
     else:
+        # TODO: add sub-primitive layer # of each policies to their name
+        # -> Needed for constructing the policy structure
         primitives = OrderedDict()
         policy_zip_path = model_path+"twowheel"+"/linear.zip"
         SAC_MULTI.construct_primitive_info('freeze/loaded/linear', primitives,
@@ -90,7 +92,24 @@ if train:
         print("\033[91mTraining Starts\033[0m")
         model.learn(100000)
         print("\033[91mTrain Finished\033[0m")
-        model.save(model_dir+"/policy")
+        model.save(model_dir+"/policy", hierarchical=True)
+
+        print("\033[91mTest Starts\033[0m")
+        for i in range(10):
+            print("\033[91mTest iter: {0}\033[0m".format(i))
+            obs = env.reset()
+            n_iter = 0
+            while True:
+                n_iter += 1
+                action, state = model.predict(obs)
+                weight = model.get_weight(obs)
+                if n_iter % 20:
+                    print("dist:\t",obs[0],"\tang:\t",obs[1],"\taction:\t",action,"\tweight:\t",weight)
+                obs, reward, done, _ = env.step(action)
+                if done:
+                    break
+            env.render()
+        print("\033[91mTest Finished\033[0m")
 
 if load:
     if separate:
