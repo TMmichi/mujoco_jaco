@@ -91,6 +91,21 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
         return self.obs, total_reward, done, {0: 0}
 
     def logging(self, obs, prev_obs, action, wb, reward):
+        print(self.interface.sim.data.sensordata.dtype)
+        print(self.interface.sim.data.get_sensor("td_touch_0"))
+        self.interpolation("tp")
+        self.interpolation("tp2")
+        self.interpolation("td")
+        self.interpolation("td2")
+        self.interpolation("ip")
+        self.interpolation("ip2")
+        self.interpolation("id")
+        self.interpolation("id2")
+        self.interpolation("pp")
+        self.interpolation("pp2")
+        self.interpolation("pd")
+        self.interpolation("pd2")
+
         write_str = "Act:"
         for i in range(len(action)):
             write_str += "\t{0:2.3f}".format(action[i])

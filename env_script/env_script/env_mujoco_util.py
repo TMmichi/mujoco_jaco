@@ -7,6 +7,8 @@ from pathlib import Path
 from math import pi
 from random import sample, randint, uniform
 
+from scipy import interpolate
+
 import numpy as np
 from numpy.random import uniform as uniform_np
 from matplotlib import pyplot as plt
@@ -233,6 +235,68 @@ class JacoMujocoEnvUtil:
 
     def _get_pressure(self):
         pass
+
+    def interpolation(self, string):
+        sensor = []
+        for i in range(5):
+            sensor.append(string+"_touch_" + "{}".format(i))
+    
+    #sensor0 = str+"_touch_0"
+    #sensor1 = str+"_touch_1"
+    #sensor2 = str+"_touch_2"
+    #sensor3 = str+"_touch_3"
+    #sensor4 = str+"_touch_4"
+        if string == "tp":
+            a, b =0.0072, 0.0072
+        elif string == "tp2":
+            a, b= 0.0072, 0.006
+        elif string == "td":
+            a, b= 0.0048, 0.0048
+        elif string == "td2":
+            a, b= 0.006, 0.006
+        elif string == "ip":
+            a, b= 0.0072, 0.0072
+        elif string == "ip2":
+            a, b= 0.0072, 0.006
+        elif string == "id":
+            a, b= 0.0048, 0.0048
+        elif string == "id2":
+            a, b= 0.006, 0.006
+        elif string == "pp":
+            a, b= 0.0072, 0.0072
+        elif string == "pp2":
+            a, b= 0.0072, 0.006
+        elif string == "pd":
+            a, b= 0.0048, 0.0048
+        elif string == "pd2":
+            a, b= 0.006, 0.006
+        else:
+            print("not a right string")
+
+        x = np.linspace(0,a,10)
+        y = np.linspace(0,b,10)
+        xx,yy=np.meshgrid(x,y)
+        c = np.empty((10,10))
+        c[4:6,4:6] = self.interface.sim.data.get_sensor(sensor[0])
+        c[1:3,1:3] = self.interface.sim.data.get_sensor(sensor[1])
+        c[1:3,7:9] = self.interface.sim.data.get_sensor(sensor[2])
+        c[7:9,1:3] = self.interface.sim.data.get_sensor(sensor[3])
+        c[7:9,7:9] = self.interface.sim.data.get_sensor(sensor[4])
+        f = interpolate.interp2d(x,y,c,kind='linear')
+        
+        xt = np.linspace(0,a,100)
+        yt = np.linspace(0,b,100)
+        xxt, yyt = np.meshgrid(xt,yt)
+        ct = f(xt,yt)
+        print(ct)
+'''
+        fig = plt.figure()
+        ax = fig.add_subplot(1,1,1, projection='3d')
+        ax.plot_surface(xx,yy,c,color='blue')
+        ax.plot_surface(xxt,yyt,ct,color='red')
+        plt.show()
+'''
+
 
 
 if __name__ == "__main__":
