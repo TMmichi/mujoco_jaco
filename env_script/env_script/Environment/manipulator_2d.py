@@ -100,14 +100,25 @@ class Transformation:
 
 class Manipulator2D(gym.Env):
     
-    def __init__(self, arm1=1, arm2=1, dt=0.01, tol=0.1):
+    def __init__(self, action=None, arm1=1, arm2=1, dt=0.01, tol=0.1):
+        self.action_type = action
         # Observation space를 구성하는 state의 최대, 최소를 지정한다.
         self.obs_high = np.array([float('inf'), np.pi]) # x1, y1, x2, y2, xd, yd
         self.obs_low = -self.obs_high
 
         # Action space를 구성하는 action의 최대, 최소를 지정한다.
-        self.action_high = np.array([1, np.pi])
-        self.action_low = np.array([-1, -np.pi])
+        if self.action_type == 'linear':
+            self.action_high = np.array([1])
+            self.action_low = np.array([-1])
+        elif self.action_type == 'angular':
+            self.action_high = np.array([np.pi])
+            self.action_low = np.array([-np.pi])
+        elif self.action_type == 'fused':
+            self.action_high = np.array([1, np.pi])
+            self.action_low = np.array([-1, -np.pi])
+        else:
+            print(self.action_type)
+            raise ValueError('action type not one of: linear, angular, fused')
 
         # GYM environment에서 요구하는 변수로, 실제 observation space와 action space를 여기에서 구성한다.
         self.observation_space = spaces.Box(low = self.obs_low, high = self.obs_high, dtype = np.float32)
@@ -123,8 +134,8 @@ class Manipulator2D(gym.Env):
         self.seed()
 
         self.env_boundary = 5
-
         self.target_speed = 1.2
+        self.episode_length = 1000
 
         # 변수를 초기화한다.
         self.reset()
@@ -135,17 +146,21 @@ class Manipulator2D(gym.Env):
         self.n_episodes += 1
         #self._move_target()
 
-        # 강화학습이 만들어낸 action을 위에서 지정한 최대, 최소 action으로 클리핑한다.
         action = np.clip(action, self.action_low, self.action_high)
 
-        # Action으로부터 로봇암 kinematics를 계산하는 부분
-        # 여기에서 action은 각 로봇팔1이 x축과 이루는 각의 변화, 로봇팔1과 로봇팔2이 이루는 각의 변화를 말함
-        self.robot_tf.transform(
-            translation=(action[0]*self.dt, 0),
-            #translation=(0*self.dt, 0),
-            rotation=action[1]*self.dt
-            #rotation=0*self.dt
-        )
+        if self.action_type == 'linear':
+            self.robot_tf.transform(
+                translation=(action[0]*self.dt, 0)
+            )
+        elif self.action_type == 'angular':
+            self.robot_tf.transform(
+                rotation=action[0]*self.dt
+            )
+        elif self.action_type == 'fused':
+            self.robot_tf.transform(
+                translation=(action[0]*self.dt, 0),
+                rotation=action[1]*self.dt
+            )
 
         #self.joint1_tf.transform(rotation=action[2] * self.dt)
         #self.joint2_tf.transform(rotation=action[3] * self.dt)
@@ -230,15 +245,15 @@ class Manipulator2D(gym.Env):
         l = np.linalg.norm(
             self.target_tf.get_translation() - self.robot_tf.get_translation()
         )
-        # Linear
-        if l < self.tol: 
-            reward = 1.
-            done = True 
-        else:
-            reward = -l**2
-
-        # Angular
-        #reward = -abs(self._get_state()[1])
+        
+        if self.action_type in ['linear', 'fused']:
+            if l < self.tol: 
+                reward = 1.
+                done = True 
+            else:
+                reward = -l**2
+        elif self.action_type == 'angular':
+            reward = -abs(self._get_state()[1])
 
         x0, y0 = self.robot_tf.get_translation()
         if abs(x0) > self.env_boundary:
@@ -250,7 +265,7 @@ class Manipulator2D(gym.Env):
             done = True
             reward = -100
 
-        if self.n_episodes > 2000:
+        if self.n_episodes > self.episode_length:
             done = True
 
         if done:

@@ -10,7 +10,6 @@ from env_script.Environment.manipulator_2d import Manipulator2D
 from stable_baselines.sac_multi import SAC_MULTI
 from stable_baselines.sac_multi.policies import MlpPolicy as MlpPolicy_sac
 
-env = Manipulator2D()
 
 package_path = str(Path(__file__).resolve().parent.parent)
 model_path = package_path+"/models_baseline/"
@@ -20,11 +19,17 @@ model_dir = model_path + prefix
 os.makedirs(model_dir, exist_ok=True)
 train = True
 load = not train
-separate = False
+separate = True
 auxilary = False and not separate
+
+env = Manipulator2D(action='fused')
 
 if train:
     if separate:
+        del env
+        action = 'angular'
+        env = Manipulator2D(action=action)
+
         n_actions = env.action_space.shape[-1]
         n_obs = env.observation_space.shape[-1]
         print("n_obs: ",n_obs)
@@ -33,8 +38,10 @@ if train:
 
         model = SAC_MULTI(MlpPolicy_sac, env, layers=layers)
 
+        print("\033[91mTraining Starts, action: {0}\033[0m".format(action))
         model.learn(250000)
-        model.save(model_dir+"/linear")
+        model.save(model_dir+"/"+action)
+        print("\033[91mTraining finished\033[0m")
     elif auxilary:
         primitives = OrderedDict()
         SAC_MULTI.construct_primitive_info(name='train/aux1', primitive_dict=primitives, 
@@ -69,21 +76,21 @@ if train:
         # TODO: add sub-primitive layer # of each policies to their name
         # -> Needed for constructing the policy structure
         primitives = OrderedDict()
-        policy_zip_path = model_path+"twowheel"+"/linear.zip"
-        SAC_MULTI.construct_primitive_info('freeze/loaded/linear', primitives,
+        policy_zip_path = model_path+"twowheel/linear.zip"
+        SAC_MULTI.construct_primitive_info('linear', primitives, freeze=True,
                                             obs_dimension=None, obs_range=None, obs_index=[0, 1], 
-                                            act_dimension=None, act_range=None, act_index=[0, 1], 
+                                            act_dimension=None, act_range=None, act_index=[0], 
                                             policy_layer_structure=None,
                                             loaded_policy=SAC_MULTI._load_from_file(policy_zip_path), separate_value=True)
-        policy_zip_path = model_path+"twowheel"+"/angular.zip"    
-        SAC_MULTI.construct_primitive_info('freeze/loaded/angular', primitives,
+        policy_zip_path = model_path+"twowheel/angular.zip"
+        SAC_MULTI.construct_primitive_info('angular', primitives, freeze=True,
                                             obs_dimension=None, obs_range=None, obs_index=[0, 1], 
-                                            act_dimension=None, act_range=None, act_index=[0, 1], 
+                                            act_dimension=None, act_range=None, act_index=[1], 
                                             policy_layer_structure=None,
                                             loaded_policy=SAC_MULTI._load_from_file(policy_zip_path), separate_value=True)
         number_of_primitives = 2
         total_obs_dim = 2
-        SAC_MULTI.construct_primitive_info('train/weight', primitives, 
+        SAC_MULTI.construct_primitive_info('weight', primitives, False,
                                             total_obs_dim, 0, list(range(total_obs_dim)), 
                                             number_of_primitives, [0,1], number_of_primitives, 
                                             [64, 64])
