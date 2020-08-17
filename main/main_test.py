@@ -18,7 +18,7 @@ model_path = package_path+"/models_baseline/"
 prefix = "twowheel"
 model_dir = model_path + prefix
 os.makedirs(model_dir, exist_ok=True)
-train = False
+train = True
 load = not train
 separate = False
 auxilary = False and not separate
@@ -29,11 +29,11 @@ if train:
         n_obs = env.observation_space.shape[-1]
         print("n_obs: ",n_obs)
         print("state: ",env._get_state())
-        layers = {"policy": [32, 32], "value": [32, 32]}
+        layers = {"policy": [64, 64], "value": [64, 64]}
 
         model = SAC_MULTI(MlpPolicy_sac, env, layers=layers)
 
-        model.learn(100000)
+        model.learn(250000)
         model.save(model_dir+"/linear")
     elif auxilary:
         primitives = OrderedDict()
@@ -88,9 +88,9 @@ if train:
                                             number_of_primitives, [0,1], number_of_primitives, 
                                             [64, 64])
         model = SAC_MULTI.pretrainer_load(policy=MlpPolicy_sac, primitives=primitives, env=env, separate_value=True)
-        quit()
+        
         print("\033[91mTraining Starts\033[0m")
-        model.learn(100000)
+        model.learn(250000)
         print("\033[91mTrain Finished\033[0m")
         model.save(model_dir+"/policy", hierarchical=True)
 
@@ -104,8 +104,8 @@ if train:
                 action, state = model.predict(obs)
                 weight = model.get_weight(obs)
                 if n_iter % 20:
-                    print("dist:\t",obs[0],"\tang:\t",obs[1],"\taction:\t",action,"\tweight:\t",weight)
-                obs, reward, done, _ = env.step(action)
+                    print("dist:\t",obs[0],"\tang:\t",obs[1],"\taction:\t[{0:2.3f} {1:2.3f}]".format(action[0],action[1]),"\tweight:\t",weight)
+                obs, reward, done, _ = env.step(action, weight[0])
                 if done:
                     break
             env.render()
@@ -114,15 +114,20 @@ if train:
 if load:
     if separate:
         task = ['linear', 'angular']
-        model = SAC_MULTI.load(model_path+"twowheel/"+task[1])
-        obs = env.reset()
+        model = SAC_MULTI.load(model_path+"twowheel/"+task[0])
 
-        while True:
-            action, state = model.predict(obs)
-            obs, reward, done, _ = env.step(action)
-            if done:
-                break
-        env.render()
+        for i in range(10):
+            n_iter = 0
+            obs = env.reset()
+            while True:
+                n_iter += 1
+                action, state = model.predict(obs)
+                obs, reward, done, _ = env.step(action)
+                if n_iter % 20:
+                    print(reward)
+                if done:
+                    break
+            env.render()
 
     elif auxilary:
         primitives = OrderedDict()

@@ -131,7 +131,7 @@ class Manipulator2D(gym.Env):
         self.n_episodes = 0
 
         
-    def step(self, action):
+    def step(self, action, weight=[0,0]):
         self.n_episodes += 1
         #self._move_target()
 
@@ -169,7 +169,8 @@ class Manipulator2D(gym.Env):
                 link2=self.link2_tf_global.copy(),
                 target=self.target_tf.copy(),
                 time=self.t,
-                reward=reward
+                reward=reward,
+                weight=weight
             )
         )
 
@@ -182,7 +183,7 @@ class Manipulator2D(gym.Env):
         self.n_episodes = 0
         # 매 episode가 시작될때 사용됨.
         # 사용 변수들 초기화
-        self.robot_tf = Transformation()
+        self.robot_tf = Transformation(rotation=random.randrange(-3,3))
         self.joint1_tf = Transformation()
         self.link1_tf = Transformation(translation=(self.link1_len, 0))
         self.joint2_tf = Transformation()
@@ -227,7 +228,7 @@ class Manipulator2D(gym.Env):
         done = False
 
         l = np.linalg.norm(
-            self.target_tf.get_translation() - self.link2_tf_global.get_translation()
+            self.target_tf.get_translation() - self.robot_tf.get_translation()
         )
         # Linear
         if l < self.tol: 
@@ -290,6 +291,7 @@ class Manipulator2D(gym.Env):
         target, = ax.plot([], [], 'bo', ms=6)
         time_text = ax.text(0.02, 0.95, '', transform=ax.transAxes)
         reward_text = ax.text(0.02, 0.90, '', transform=ax.transAxes)
+        weight_text = ax.text(0.02, 0.85, '', transform=ax.transAxes)
 
         robot_geom = np.array(
             [
@@ -322,7 +324,8 @@ class Manipulator2D(gym.Env):
             target.set_data([], [])
             time_text.set_text('')
             reward_text.set_text('')
-            return robot, link1, link2, gripper, target, time_text, reward_text
+            weight_text.set_text('')
+            return robot, link1, link2, gripper, target, time_text, reward_text, weight_text
 
         def animate(i):
             """perform animation step"""
@@ -340,7 +343,9 @@ class Manipulator2D(gym.Env):
             target.set_data([buffer[i]['target'].x(), buffer[i]['target'].y()])
             time_text.set_text('time = %.1f' % buffer[i]['time'])
             reward_text.set_text('reward = %.3f' % buffer[i]['reward'])
-            return robot, link1, link2, gripper, target, time_text, reward_text
+            weight = buffer[i]['weight']
+            weight_text.set_text('weight: linear = {0:2.3f}, angular = {1:2.3f}'.format(weight[0], weight[1]))
+            return robot, link1, link2, gripper, target, time_text, reward_text, weight_text
 
         interval = self.dt * 1000
         ani = animation.FuncAnimation(fig, animate, frames=len(self.buffer),
