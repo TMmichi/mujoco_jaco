@@ -146,7 +146,11 @@ class Manipulator2D(gym.Env):
         self.n_episodes += 1
         #self._move_target()
 
+        if True in np.isnan(action):
+            print("ACTION NAN WARNING")
+            raise ValueError
         action = np.clip(action, self.action_low, self.action_high)
+        
 
         if self.action_type == 'linear':
             self.robot_tf.transform(
@@ -188,6 +192,9 @@ class Manipulator2D(gym.Env):
                 weight=weight
             )
         )
+        dist, ang = self._get_state()
+        if self.n_episodes % 20:
+            print("dist:\t{0:2.3f}".format(dist),"\tang:\t{0: 2.3f}".format(ang),"\taction:\t[{0: 2.2f}\t{1: 2.2f}]".format(action[0],action[1]),"\treward:\t{0: 2.3f}".format(reward))
 
         # 일반적으로 Gym environment의 step function은 
         # State(observation), 현재 step에서의 reward, episode 종료 여부, 기타 정보로 구성되어있음
@@ -195,6 +202,7 @@ class Manipulator2D(gym.Env):
 
 
     def reset(self):
+        print("\nreseted\n")
         self.n_episodes = 0
         # 매 episode가 시작될때 사용됨.
         # 사용 변수들 초기화

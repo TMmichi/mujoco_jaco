@@ -19,7 +19,7 @@ model_dir = model_path + prefix
 os.makedirs(model_dir, exist_ok=True)
 train = True
 load = not train
-separate = True
+separate = False
 auxilary = False and not separate
 
 env = Manipulator2D(action='fused')
@@ -44,31 +44,31 @@ if train:
         print("\033[91mTraining finished\033[0m")
     elif auxilary:
         primitives = OrderedDict()
-        SAC_MULTI.construct_primitive_info(name='train/aux1', primitive_dict=primitives, 
+        SAC_MULTI.construct_primitive_info(name='aux1', primitive_dict=primitives, freeze=False, level=0,
                                             obs_dimension=2, obs_range=[float('inf'), np.pi], obs_index=[0, 1], 
                                             act_dimension=2, act_range=[-1, 1], act_index=[0, 1], 
                                             policy_layer_structure=[32, 32])
         policy_zip_path = model_path+"twowheel"+"/linear.zip"
-        SAC_MULTI.construct_primitive_info('freeze/loaded/linear', primitives,
+        SAC_MULTI.construct_primitive_info('linear', primitives, freeze=True, level=0,
                                             obs_dimension=None, obs_range=None, obs_index=[0, 1], 
-                                            act_dimension=None, act_range=None, act_index=[0, 1], 
+                                            act_dimension=None, act_range=None, act_index=[0], 
                                             policy_layer_structure=None,
                                             loaded_policy=SAC_MULTI._load_from_file(policy_zip_path), separate_value=True)
         policy_zip_path = model_path+"twowheel"+"/angular.zip"    
-        SAC_MULTI.construct_primitive_info('freeze/loaded/angular', primitives,
+        SAC_MULTI.construct_primitive_info('angular', primitives, freeze=True, level=0,
                                             obs_dimension=None, obs_range=None, obs_index=[0, 1], 
-                                            act_dimension=None, act_range=None, act_index=[0, 1], 
+                                            act_dimension=None, act_range=None, act_index=[1], 
                                             policy_layer_structure=None,
                                             loaded_policy=SAC_MULTI._load_from_file(policy_zip_path), separate_value=True)
         number_of_primitives = 3
-        total_obs_dim = env.get_num_observation()
-        SAC_MULTI.construct_primitive_info('train/weight', primitives, 
+        total_obs_dim = 2
+        SAC_MULTI.construct_primitive_info('weight', primitives, False, 0,
                                             total_obs_dim, 0, list(range(total_obs_dim)), 
                                             number_of_primitives, [0,1], number_of_primitives, 
                                             [64, 64])
         model = SAC_MULTI.pretrainer_load(policy=MlpPolicy_sac, primitives=primitives, env=env, separate_value=True)
         print("\033[91mTraining Starts\033[0m")
-        model.learn(100000)
+        model.learn(1)
         print("\033[91mTrain Finished\033[0m")
         model.save(model_dir+"/policy", hierarchical=True)
 
@@ -77,20 +77,20 @@ if train:
         # -> Needed for constructing the policy structure
         primitives = OrderedDict()
         policy_zip_path = model_path+"twowheel/linear.zip"
-        SAC_MULTI.construct_primitive_info('linear', primitives, freeze=True,
+        SAC_MULTI.construct_primitive_info('linear', primitives, freeze=True, level=0,
                                             obs_dimension=None, obs_range=None, obs_index=[0, 1], 
                                             act_dimension=None, act_range=None, act_index=[0], 
                                             policy_layer_structure=None,
                                             loaded_policy=SAC_MULTI._load_from_file(policy_zip_path), separate_value=True)
         policy_zip_path = model_path+"twowheel/angular.zip"
-        SAC_MULTI.construct_primitive_info('angular', primitives, freeze=True,
+        SAC_MULTI.construct_primitive_info('angular', primitives, freeze=True, level=0,
                                             obs_dimension=None, obs_range=None, obs_index=[0, 1], 
                                             act_dimension=None, act_range=None, act_index=[1], 
                                             policy_layer_structure=None,
                                             loaded_policy=SAC_MULTI._load_from_file(policy_zip_path), separate_value=True)
         number_of_primitives = 2
         total_obs_dim = 2
-        SAC_MULTI.construct_primitive_info('weight', primitives, False,
+        SAC_MULTI.construct_primitive_info('weight', primitives, False, 0,
                                             total_obs_dim, 0, list(range(total_obs_dim)), 
                                             number_of_primitives, [0,1], number_of_primitives, 
                                             [64, 64])
@@ -99,7 +99,7 @@ if train:
         print("\033[91mTraining Starts\033[0m")
         model.learn(250000)
         print("\033[91mTrain Finished\033[0m")
-        model.save(model_dir+"/policy", hierarchical=True)
+        model.save(model_dir+"/policy", hierarchical=False)
 
         print("\033[91mTest Starts\033[0m")
         for i in range(10):

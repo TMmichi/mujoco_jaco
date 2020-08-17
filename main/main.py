@@ -241,28 +241,28 @@ class RL_controller:
         
         # Newly appointed primitives
         # name = "{'train', 'freeze'}/{'loaded', ''}/'primitive_name'"
-        SAC_MULTI.construct_primitive_info(name='aux1', primitive_dict=primitives, freeze=False,
+        SAC_MULTI.construct_primitive_info(name='aux1', primitive_dict=primitives, freeze=False, level=0,
                                             obs_dimension=6, obs_range=[-2, 2], obs_index=[0, 1, 2, 3, 4, 5], 
                                             act_dimension=4, act_range=[-1.4, 1.4], act_index=[0, 1, 2, 3], 
                                             policy_layer_structure=[256, 256])
-        SAC_MULTI.construct_primitive_info('aux2', primitives, False,
+        SAC_MULTI.construct_primitive_info('aux2', primitives, False, 0,
                                             6, [-2, 2], [0, 1, 2, 3, 4, 5], 
                                             2, [-1.4, 1.4], [4, 5], 
                                             [256, 128])
-        SAC_MULTI.construct_primitive_info('train/aux3', primitives, False,
+        SAC_MULTI.construct_primitive_info('train/aux3', primitives, False, 0,
                                             6, [-2, 2], [0, 1, 2, 3, 4, 5], 
                                             5, [-1.4, 1.4], [0, 1, 4, 5, 6], 
                                             [256, 128])
         # Pretrained primitives
         policy_zip_path = self.model_path+"test"+"/policy.zip"
-        SAC_MULTI.construct_primitive_info('reaching', primitives, freeze=True,
+        SAC_MULTI.construct_primitive_info('reaching', primitives, freeze=True, level=0,
                                             obs_dimension=None, obs_range=None, obs_index=[0, 1, 2, 3, 4, 5], 
                                             act_dimension=None, act_range=None, act_index=[0, 1, 2, 3, 4, 5], 
                                             policy_layer_structure=None,
                                             loaded_policy=SAC_MULTI._load_from_file(policy_zip_path), separate_value=separate_value)
 
         policy_zip_path = self.model_path+"test2"+"/policy.zip"
-        SAC_MULTI.construct_primitive_info('grasping', primitives, False,
+        SAC_MULTI.construct_primitive_info('grasping', primitives, False, 0,
                                             None, None, [0, 1, 2, 3, 4, 5], 
                                             None, None, [0, 1, 2, 3, 4, 5], 
                                             None,
@@ -270,7 +270,7 @@ class RL_controller:
         # Weight definition  
         number_of_primitives = 5
         total_obs_dim = env.get_num_observation()
-        SAC_MULTI.construct_primitive_info('weight', primitives, False,
+        SAC_MULTI.construct_primitive_info('weight', primitives, False, 0,
                                             total_obs_dim, 0, list(range(total_obs_dim)), 
                                             number_of_primitives, [0,1], number_of_primitives, 
                                             [512, 512, 512])
