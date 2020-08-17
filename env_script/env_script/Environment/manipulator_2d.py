@@ -188,6 +188,7 @@ class Manipulator2D(gym.Env):
                 link2=self.link2_tf_global.copy(),
                 target=self.target_tf.copy(),
                 time=self.t,
+                actions=action,
                 reward=reward,
                 weight=weight
             )
@@ -277,8 +278,8 @@ class Manipulator2D(gym.Env):
             done = True
 
         if done:
-            pass
-            #self.render()
+            #pass
+            self.render()
 
 
         return reward, done
@@ -313,8 +314,9 @@ class Manipulator2D(gym.Env):
         gripper, = ax.plot([], [], 'k', lw=1)
         target, = ax.plot([], [], 'bo', ms=6)
         time_text = ax.text(0.02, 0.95, '', transform=ax.transAxes)
-        reward_text = ax.text(0.02, 0.90, '', transform=ax.transAxes)
+        action_text = ax.text(0.02, 0.90, '', transform=ax.transAxes)
         weight_text = ax.text(0.02, 0.85, '', transform=ax.transAxes)
+        reward_text = ax.text(0.02, 0.80, '', transform=ax.transAxes)
 
         robot_geom = np.array(
             [
@@ -346,9 +348,10 @@ class Manipulator2D(gym.Env):
             gripper.set_data([], [])
             target.set_data([], [])
             time_text.set_text('')
+            action_text.set_text('')
             reward_text.set_text('')
             weight_text.set_text('')
-            return robot, link1, link2, gripper, target, time_text, reward_text, weight_text
+            return robot, link1, link2, gripper, target, time_text, reward_text, weight_text, action_text
 
         def animate(i):
             """perform animation step"""
@@ -368,6 +371,11 @@ class Manipulator2D(gym.Env):
             reward_text.set_text('reward = %.3f' % buffer[i]['reward'])
             weight = buffer[i]['weight']
             weight_text.set_text('weight: linear = {0:2.3f}, angular = {1:2.3f}'.format(weight[0], weight[1]))
+            action = buffer[i]['action']
+            if len(action) == 1:
+                action_text.set_text('action = {0:2.3f}'.format(action[0]))
+            elif len(action) == 2:
+                action_text.set_text('action = {0: 2.3f}, {1: 2.3f}'.format(action[0],action[1]))
             return robot, link1, link2, gripper, target, time_text, reward_text, weight_text
 
         interval = self.dt * 1000
