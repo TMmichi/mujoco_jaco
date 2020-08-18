@@ -19,7 +19,7 @@ model_dir = model_path + prefix
 os.makedirs(model_dir, exist_ok=True)
 train = True
 load = not train
-separate = False
+separate = True
 auxilary = False and not separate
 
 env = Manipulator2D(action='fused')
@@ -27,7 +27,7 @@ env = Manipulator2D(action='fused')
 if train:
     if separate:
         del env
-        action = 'angular'
+        action = 'linear'
         env = Manipulator2D(action=action)
 
         n_actions = env.action_space.shape[-1]
@@ -40,7 +40,7 @@ if train:
 
         print("\033[91mTraining Starts, action: {0}\033[0m".format(action))
         model.learn(250000)
-        model.save(model_dir+"/"+action)
+        model.save(model_dir+"/"+action+"_SAC")
         print("\033[91mTraining finished\033[0m")
     elif auxilary:
         primitives = OrderedDict()
@@ -93,7 +93,7 @@ if train:
         SAC_MULTI.construct_primitive_info('weight', primitives, False, 0,
                                             total_obs_dim, 0, list(range(total_obs_dim)), 
                                             number_of_primitives, [0,1], number_of_primitives, 
-                                            [64, 64])
+                                            [32, 32])
         model = SAC_MULTI.pretrainer_load(policy=MlpPolicy_sac, primitives=primitives, env=env, separate_value=True)
         
         print("\033[91mTraining Starts\033[0m")
