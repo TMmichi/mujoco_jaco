@@ -195,7 +195,10 @@ class Manipulator2D(gym.Env):
         )
         dist, ang = self._get_state()
         if self.n_episodes % 20:
-            print("dist:\t{0:2.3f}".format(dist),"\tang:\t{0: 2.3f}".format(ang),"\taction:\t[{0: 2.2f}\t{1: 2.2f}]".format(action[0],action[1]),"\treward:\t{0: 2.3f}".format(reward))
+            if len(action) == 1:
+                print("dist:\t{0:2.3f}".format(dist),"\tang:\t{0: 2.3f}".format(ang),"\taction:\t[{0: 2.2f}]".format(action[0]),"\treward:\t{0: 2.3f}".format(reward))
+            if len(action) == 2:
+                print("dist:\t{0:2.3f}".format(dist),"\tang:\t{0: 2.3f}".format(ang),"\taction:\t[{0: 2.2f}\t{1: 2.2f}]".format(action[0],action[1]),"\treward:\t{0: 2.3f}".format(reward))
 
         # 일반적으로 Gym environment의 step function은 
         # State(observation), 현재 step에서의 reward, episode 종료 여부, 기타 정보로 구성되어있음
@@ -207,7 +210,8 @@ class Manipulator2D(gym.Env):
         self.n_episodes = 0
         # 매 episode가 시작될때 사용됨.
         # 사용 변수들 초기화
-        self.robot_tf = Transformation(rotation=random.randrange(-3,3))
+        robot_rot = random.randrange(-3,3)
+        self.robot_tf = Transformation(rotation=robot_rot)
         self.joint1_tf = Transformation()
         self.link1_tf = Transformation(translation=(self.link1_len, 0))
         self.joint2_tf = Transformation()
@@ -216,12 +220,18 @@ class Manipulator2D(gym.Env):
         self.link2_tf_global = self.link1_tf_global * self.joint2_tf * self.link2_tf
 
         # 목표 지점 생성
-        self.target_tf = Transformation(
-            translation=(
-                random.randrange(-self.env_boundary, self.env_boundary),
-                random.randrange(-self.env_boundary, self.env_boundary)
+        if random.randint(0,1) == 0:
+            self.target_tf = Transformation(
+                translation=(
+                    random.randrange(-self.env_boundary, self.env_boundary),
+                    random.randrange(-self.env_boundary, self.env_boundary)
+                )
             )
-        )
+        else:
+            x = random.randrange(-self.env_boundary, self.env_boundary)
+            y = np.tan(robot_rot)*x
+            self.target_tf = Transformation(translation=(x, y))
+
         self.ou = OUNoise(dt=self.dt, theta=0.1, sigma=0.2)
 
         self.done = False
@@ -278,8 +288,8 @@ class Manipulator2D(gym.Env):
             done = True
 
         if done:
-            #pass
-            self.render()
+            pass
+            #self.render()
 
 
         return reward, done
@@ -371,7 +381,7 @@ class Manipulator2D(gym.Env):
             reward_text.set_text('reward = %.3f' % buffer[i]['reward'])
             weight = buffer[i]['weight']
             weight_text.set_text('weight: linear = {0:2.3f}, angular = {1:2.3f}'.format(weight[0], weight[1]))
-            action = buffer[i]['action']
+            action = buffer[i]['actions']
             if len(action) == 1:
                 action_text.set_text('action = {0:2.3f}'.format(action[0]))
             elif len(action) == 2:
