@@ -297,7 +297,7 @@ class JacoMujocoEnvUtil:
         Y = np.linspace(min(y), max(y), num=50)
         XX, YY = np.meshgrid(X, Y)
 
-        Z = interp(X, Y)
+        Z = interp(XX, YY)
         print(Z)
 
 
