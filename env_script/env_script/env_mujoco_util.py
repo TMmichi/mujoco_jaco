@@ -7,7 +7,7 @@ from pathlib import Path
 from math import pi
 from random import sample, randint, uniform
 
-from scipy import interpolate
+import scipy.interpolate
 
 import numpy as np
 from numpy.random import uniform as uniform_np
@@ -238,64 +238,68 @@ class JacoMujocoEnvUtil:
 
     def interpolation(self, string):
         sensor = []
-        for i in range(5):
-            sensor.append(string+"_touch_" + "{}".format(i))
+        # for i in range(5):
+        #     sensor.append(string+"_touch_" + "{}".format(i))
     
     #sensor0 = str+"_touch_0"
     #sensor1 = str+"_touch_1"
     #sensor2 = str+"_touch_2"
     #sensor3 = str+"_touch_3"
     #sensor4 = str+"_touch_4"
-        if string == "tp":
-            a, b =0.0072, 0.0072
-        elif string == "tp2":
-            a, b= 0.0072, 0.006
-        elif string == "td":
-            a, b= 0.0048, 0.0048
-        elif string == "td2":
-            a, b= 0.006, 0.006
-        elif string == "ip":
-            a, b= 0.0072, 0.0072
-        elif string == "ip2":
-            a, b= 0.0072, 0.006
-        elif string == "id":
-            a, b= 0.0048, 0.0048
-        elif string == "id2":
-            a, b= 0.006, 0.006
-        elif string == "pp":
-            a, b= 0.0072, 0.0072
-        elif string == "pp2":
-            a, b= 0.0072, 0.006
-        elif string == "pd":
-            a, b= 0.0048, 0.0048
-        elif string == "pd2":
-            a, b= 0.006, 0.006
-        else:
-            print("not a right string")
+        # if string == "tp":
+        #     a, b =0.0072, 0.0072
+        # elif string == "tp2":
+        #     a, b= 0.0072, 0.006
+        # elif string == "td":
+        #     a, b= 0.0048, 0.0048
+        # elif string == "td2":
+        #     a, b= 0.006, 0.006
+        # elif string == "ip":
+        #     a, b= 0.0072, 0.0072
+        # elif string == "ip2":
+        #     a, b= 0.0072, 0.006
+        # elif string == "id":
+        #     a, b= 0.0048, 0.0048
+        # elif string == "id2":
+        #     a, b= 0.006, 0.006
+        # elif string == "pp":
+        #     a, b= 0.0072, 0.0072
+        # elif string == "pp2":
+        #     a, b= 0.0072, 0.006
+        # elif string == "pd":
+        #     a, b= 0.0048, 0.0048
+        # elif string == "pd2":
+        #     a, b= 0.006, 0.006
+        # else:
+        #     print("not a right string")
 
-        x = np.linspace(0,a,10)
-        y = np.linspace(0,b,10)
-        xx,yy=np.meshgrid(x,y)
-        c = np.empty((10,10))
-        c[4:6,4:6] = self.interface.sim.data.get_sensor(sensor[0])
-        c[1:3,1:3] = self.interface.sim.data.get_sensor(sensor[1])
-        c[1:3,7:9] = self.interface.sim.data.get_sensor(sensor[2])
-        c[7:9,1:3] = self.interface.sim.data.get_sensor(sensor[3])
-        c[7:9,7:9] = self.interface.sim.data.get_sensor(sensor[4])
-        f = interpolate.interp2d(x,y,c,kind='linear')
+        s=[]
         
-        xt = np.linspace(0,a,100)
-        yt = np.linspace(0,b,100)
-        xxt, yyt = np.meshgrid(xt,yt)
-        ct = f(xt,yt)
-        print(ct)
-'''
-        fig = plt.figure()
-        ax = fig.add_subplot(1,1,1, projection='3d')
-        ax.plot_surface(xx,yy,c,color='blue')
-        ax.plot_surface(xxt,yyt,ct,color='red')
-        plt.show()
-'''
+        # for i in range(5):
+        #     s[i]= self.interface.sim.data.get_sensor(sensor[i])
+        for i in range(5):
+            s.append(self.interface.sim.data.get_sensor(string+"_touch_" + "{}".format(i)))
+        
+        x=np.array([0,0,9,9, 1,1,1,1, 2,2,2,2, 4,4,5,5, 7,7,7,7, 8,8,8,8])
+        y=np.array([0,9,0,9, 1,2,7,8, 1,2,7,8, 4,5,4,5, 1,2,7,8, 1,2,7,8])
+        cartcoord = list(zip(x, y))
+
+        z = np.array([0,0,0,0, 
+                s[1],s[1],s[2],s[2], 
+                s[1],s[1],s[2],s[2],
+                s[0],s[0],s[0],s[0], 
+                s[3],s[3],s[4],s[4],
+                s[3],s[3],s[4],s[4]])
+
+        interp = scipy.interpolate.LinearNDInterpolator(cartcoord, z)
+
+        X = np.linspace(min(x), max(x), num=50)
+        Y = np.linspace(min(y), max(y), num=50)
+        XX, YY = np.meshgrid(X, Y)
+
+        Z = interp(X, Y)
+        print(Z)
+
 
 
 
