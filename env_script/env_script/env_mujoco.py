@@ -158,7 +158,7 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
         if self.current_steps < self.max_steps:
             return self._get_terminal_inspection()
         else:
-            return True, 0, 0
+            return False, 0, 0
 
     def make_observation(self):
         self.obs = self._get_observation()[0]   # Gripper pose of the first jaco2

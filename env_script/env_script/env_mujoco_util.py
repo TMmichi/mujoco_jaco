@@ -166,21 +166,7 @@ class JacoMujocoEnvUtil:
     def _get_terminal_inspection(self):
         self.num_episodes += 1
         dist_diff = np.linalg.norm(self.gripper_pose[0][:3] - self.goal[0])
-        # wb = np.linalg.norm(self.__get_property('EE', 'position')[0] - self.base_position[0])
-        wb = 0.3
-        if pi - 0.1 < self.interface.get_feedback()['q'][2] < pi + 0.1:
-            print("\033[91m \nUn wanted joint angle - possible singular state \033[0m")
-            return True, -5, wb
-        else:
-            if wb > 0.9:
-                print("\033[91m \nWorkspace out of bound \033[0m")
-                return True, -5, wb
-            else:
-                if dist_diff < 0.15:  # TODO: Shape terminal inspection
-                    print("\033[92m Target Reached \033[0m")
-                    return True, 200 - (self.num_episodes*0.1), wb
-                else:
-                    return False, 0, wb
+        return False, 0, 0.3
 
     def _take_action(self, a):
         _ = self.__get_gripper_pose()
