@@ -166,7 +166,8 @@ class JacoMujocoEnvUtil:
     def _get_terminal_inspection(self):
         self.num_episodes += 1
         dist_diff = np.linalg.norm(self.gripper_pose[0][:3] - self.goal[0])
-        wb = np.linalg.norm(self.__get_property('EE', 'position')[0] - self.base_position[0])
+        # wb = np.linalg.norm(self.__get_property('EE', 'position')[0] - self.base_position[0])
+        wb = 0.3
         if pi - 0.1 < self.interface.get_feedback()['q'][2] < pi + 0.1:
             print("\033[91m \nUn wanted joint angle - possible singular state \033[0m")
             return True, -5, wb
@@ -237,7 +238,7 @@ class JacoMujocoEnvUtil:
         pass
 
     def interpolation(self, string):
-        sensor = []
+        # sensor = []
         # for i in range(5):
         #     sensor.append(string+"_touch_" + "{}".format(i))
     
@@ -293,12 +294,12 @@ class JacoMujocoEnvUtil:
 
         interp = scipy.interpolate.LinearNDInterpolator(cartcoord, z)
 
-        X = np.linspace(min(x), max(x), num=50)
-        Y = np.linspace(min(y), max(y), num=50)
+        X = np.linspace(min(x), max(x), num=10)
+        Y = np.linspace(min(y), max(y), num=10)
         XX, YY = np.meshgrid(X, Y)
 
         Z = interp(XX, YY)
-        print(Z)
+        # print(Z)
 
 
 
@@ -310,7 +311,7 @@ if __name__ == "__main__":
     from abr_control.controllers import OSC
     from abr_control.utils import transformations
 
-    mobile = False
+    mobile = Falses
     if not mobile:
         pos = False
         vel = False

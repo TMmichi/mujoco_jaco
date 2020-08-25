@@ -72,6 +72,7 @@
             <body name="Holder_up" pos="0 0 0.8">
                 <geom type="cylinder" size=".01 0.5" zaxis="1 0 0" density="100"/>
                 <!-- Cloth -->
+                <!-- 
                 <body name="B10_0" pos="0 0 0" zaxis="0 1 0">
                     <composite type="cloth" count="21 11 1" spacing="0.049" flatinertia="0.001">
                         <joint kind="main" damping="0.001"/>
@@ -79,6 +80,7 @@
                         <geom type="capsule" size="0.005 0.005" rgba=".8 .2 .1 1"/>
                     </composite>
                 </body>
+                -->
             </body>
         </body>
         <!--#########################################-->
@@ -144,7 +146,7 @@
                                             <site name="tp_touch_3" type="box" pos="0.0048 -0.0008 -0.0048" size="0.0024 0.0024 0.0024" euler="1.44 0 0" rgba="0 1 1 0.5"/>
                                             <site name="tp_touch_4" type="box" pos="-0.0048 -0.0008 -0.0048" size="0.0024 0.0024 0.0024" euler="1.44 0 0" rgba="0 1 1 0.5"/>
                                         </body>
-                                        <body name="thumb_proximal_plane2" pos="0 0.00 0.013">
+                                        <body name="thumb_proximal_plane2" pos="0 0.002 0.013">
                                             <geom name="thumb_proximal_plane2" type="box" euler="1.7453 0 0" size="0.008 0.006 0.0005" rgba="0 1 0 0.5" />
                                             <site name="tp2_touch_0" type="box" pos="0 0.0010 0.0" size="0.0024 0.002 0.0016" euler="1.7453 0 0" rgba="0 0 1 0.5"/>
                                             <site name="tp2_touch_1" type="box" pos="0.0048 0.0003 0.0032" size="0.0024 0.002 0.0016" euler="1.7453 0 0" rgba="0 1 0 0.5"/>
@@ -278,14 +280,15 @@
             <geom type="cylinder" size=".1 .01" density="100" pos="0 0 .4"></geom>
         </body>
 
-        <body name="object_body" pos="0 0.65 0.42">
+        <body name="object_body" pos="0 0.65 1">
             <freejoint></freejoint>
             <geom name="object_geom" type="box" size="0.03 0.03 0.03" material="matdice"/>
-            <inertial pos="0 0 0" mass="1" diaginertia="1 1 1"></inertial>
+            <site name='boxx' pos='0 0 0' size='0.03 0.03 0.03' />
+            <inertial pos="0 0 0" mass="1.5" diaginertia="1 1 1"></inertial>
         </body>
         <!--#########################################-->
     </worldbody>
-
+<!--
     <equality>
         <connect name="const1" body1="B0_0" body2="Holder_up" anchor="0 0 0"/>
         <connect name="const2" body1="B5_0" body2="Holder_up" anchor="0 0 0"/>
@@ -293,7 +296,7 @@
         <connect name="const4" body1="B15_0" body2="Holder_up" anchor="0 0 0"/>
         <connect name="const5" body1="B20_0" body2="Holder_up" anchor="0 0 0"/>
     </equality>
-
+-->
     <actuator>
         <motor name="joint0_motor" joint="joint0" forcelimited="true" forcerange="-30 30"/>
         <motor name="joint1_motor" joint="joint1" forcelimited="true" forcerange="-30 30"/>
@@ -307,6 +310,9 @@
     </actuator>
 
     <sensor>
+        <touch name="boxx" site ="boxx"/>
+        
+
         <touch name="td_touch_0" site ="td_touch_0"/>
         <touch name="td_touch_1" site ="td_touch_1"/>
         <touch name="td_touch_2" site ="td_touch_2"/>

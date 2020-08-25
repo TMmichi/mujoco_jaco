@@ -74,7 +74,7 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
         return self.pose_action_space_max
 
     def step(self, action, log=True):
-        num_step_pass = 20                                      # 0.2s per step
+        num_step_pass = 100  #was 20                                      # 0.2s per step
         action = np.clip(action, self.act_min, self.act_max)
         self.take_action(action)
         for _ in range(num_step_pass):
@@ -91,8 +91,34 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
         return self.obs, total_reward, done, {0: 0}
 
     def logging(self, obs, prev_obs, action, wb, reward):
+        if self.interface.sim.data.get_sensor('boxx') >14.715:
+            print(self.interface.sim.data.get_sensor('boxx'))
+            quit()
         print(self.interface.sim.data.sensordata.dtype)
+        print(self.interface.sim.data.get_sensor("boxx"))
+        
+
         print(self.interface.sim.data.get_sensor("td_touch_0"))
+        print(self.interface.sim.data.get_sensor("td_touch_1"))
+        print(self.interface.sim.data.get_sensor("td_touch_2"))
+        print(self.interface.sim.data.get_sensor("td_touch_3"))
+        print(self.interface.sim.data.get_sensor("td_touch_4"))
+        print(self.interface.sim.data.get_sensor("td2_touch_0"))
+        print(self.interface.sim.data.get_sensor("td2_touch_1"))
+        print(self.interface.sim.data.get_sensor("td2_touch_2"))
+        print(self.interface.sim.data.get_sensor("td2_touch_3"))
+        print(self.interface.sim.data.get_sensor("td2_touch_4"))
+        print(self.interface.sim.data.get_sensor("tp_touch_0"))
+        print(self.interface.sim.data.get_sensor("tp_touch_1"))
+        print(self.interface.sim.data.get_sensor("tp_touch_2"))
+        print(self.interface.sim.data.get_sensor("tp_touch_3"))
+        print(self.interface.sim.data.get_sensor("tp_touch_4"))
+        print(self.interface.sim.data.get_sensor("tp2_touch_0"))
+        print(self.interface.sim.data.get_sensor("tp2_touch_1"))
+        print(self.interface.sim.data.get_sensor("tp2_touch_2"))
+        print(self.interface.sim.data.get_sensor("tp2_touch_3"))
+        print(self.interface.sim.data.get_sensor("tp2_touch_4"))
+
         self.interpolation("tp")
         self.interpolation("tp2")
         self.interpolation("td")
