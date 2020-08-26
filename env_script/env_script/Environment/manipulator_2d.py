@@ -135,7 +135,7 @@ class Manipulator2D(gym.Env):
 
         self.env_boundary = 5
         self.target_speed = 1.2
-        self.episode_length = 1000
+        self.episode_length = 1500
 
         # 변수를 초기화한다.
         self.reset()
@@ -210,7 +210,7 @@ class Manipulator2D(gym.Env):
         self.n_episodes = 0
         # 매 episode가 시작될때 사용됨.
         # 사용 변수들 초기화
-        robot_rot = random.randrange(-3,3)
+        robot_rot = (random.random()-0.5)*2*3
         self.robot_tf = Transformation(rotation=robot_rot)
         self.joint1_tf = Transformation()
         self.link1_tf = Transformation(translation=(self.link1_len, 0))
@@ -223,13 +223,13 @@ class Manipulator2D(gym.Env):
         if random.randint(0,1) == 0:
             self.target_tf = Transformation(
                 translation=(
-                    random.randrange(-self.env_boundary, self.env_boundary),
-                    random.randrange(-self.env_boundary, self.env_boundary)
+                    (random.random()-0.5)*2*(self.env_boundary-0.7),
+                    (random.random()-0.5)*2*(self.env_boundary-0.7)
                 )
             )
         else:
-            x = random.randrange(-self.env_boundary, self.env_boundary)
-            y = np.tan(robot_rot)*x
+            x = (random.random()-0.5)*2*(self.env_boundary-0.7)
+            y = np.clip(np.tan(robot_rot)*x,-self.env_boundary+0.7,self.env_boundary-0.7)
             self.target_tf = Transformation(translation=(x, y))
 
         self.ou = OUNoise(dt=self.dt, theta=0.1, sigma=0.2)
@@ -261,16 +261,15 @@ class Manipulator2D(gym.Env):
         # 해당 step의 reward를 계산합니다.
         done = False
 
-        l = np.linalg.norm(
-            self.target_tf.get_translation() - self.robot_tf.get_translation()
-        )
+        mat_target_robot = self.robot_tf.inv()*self.target_tf
+        l = np.linalg.norm(mat_target_robot.get_translation())
         
         if self.action_type in ['linear', 'fused']:
             if l < self.tol: 
-                reward = 1.
+                reward = 100.
                 done = True 
-            else:
-                reward = -l**2
+            elif l > self.tol and l < 10:
+                reward = -l
         elif self.action_type == 'angular':
             reward = -abs(self._get_state()[1])
 
@@ -290,7 +289,6 @@ class Manipulator2D(gym.Env):
         if done:
             pass
             #self.render()
-
 
         return reward, done
 
