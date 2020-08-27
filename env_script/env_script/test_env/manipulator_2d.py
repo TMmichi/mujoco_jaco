@@ -101,12 +101,10 @@ class Transformation:
 class Manipulator2D(gym.Env):
     
     def __init__(self, action=None, arm1=1, arm2=1, dt=0.01, tol=0.1):
-        self.action_type = action
-        # Observation space를 구성하는 state의 최대, 최소를 지정한다.
-        self.obs_high = np.array([float('inf'), np.pi]) # x1, y1, x2, y2, xd, yd
+        self.obs_high = np.array([float('inf'), np.pi])
         self.obs_low = -self.obs_high
 
-        # Action space를 구성하는 action의 최대, 최소를 지정한다.
+        self.action_type = action
         if self.action_type == 'linear':
             self.action_high = np.array([1])
             self.action_low = np.array([-1])
@@ -120,21 +118,20 @@ class Manipulator2D(gym.Env):
             print(self.action_type)
             raise ValueError('action type not one of: linear, angular, fused')
 
-        # GYM environment에서 요구하는 변수로, 실제 observation space와 action space를 여기에서 구성한다.
         self.observation_space = spaces.Box(low = self.obs_low, high = self.obs_high, dtype = np.float32)
         self.action_space = spaces.Box(low = self.action_low, high = self.action_high, dtype = np.float32)
 
-        # 로봇암의 요소를 결정하는 변수
-        self.link1_len = arm1 # 로봇팔 길이
+        self.n_robots = 1
+        self.n_target = 1
+        self.link1_len = arm1
         self.link2_len = arm2
-        self.dt = dt # Timestep
-        self.tol = tol # 목표까지 거리
-
-        # 학습 환경에서 사용할 난수 생성에 필요한 seed를 지정한다.
-        self.seed()
-
+        self.dt = dt
+        self.tol = tol
         self.env_boundary = 5
         self.target_speed = 1.2
+
+        self.seed()
+
         self.episode_length = 1500
 
         # 변수를 초기화한다.
@@ -142,7 +139,7 @@ class Manipulator2D(gym.Env):
         self.n_episodes = 0
 
         
-    def step(self, action, weight=[0,0]):
+    def step(self, action, weight=[0,0,0]):
         self.n_episodes += 1
         #self._move_target()
 
@@ -151,7 +148,6 @@ class Manipulator2D(gym.Env):
             raise ValueError
         action = np.clip(action, self.action_low, self.action_high)
         
-
         if self.action_type == 'linear':
             self.robot_tf.transform(
                 translation=(action[0]*self.dt, 0)
@@ -174,13 +170,10 @@ class Manipulator2D(gym.Env):
 
         self.t += self.dt
 
-        # Reward와 episode 종료 여부를 확인
         reward, done = self._get_reward()
 
-        # 기타 목적으로 사용할 데이터를 담아둠
         info = {}
 
-        # 시각화 목적으로 사용할 데이터를 self.buffer 에 저장
         self.buffer.append(
             dict(
                 robot=self.robot_tf.copy(),
@@ -200,16 +193,13 @@ class Manipulator2D(gym.Env):
             if len(action) == 2:
                 print("dist:\t{0:2.3f}".format(dist),"\tang:\t{0: 2.3f}".format(ang),"\taction:\t[{0: 2.2f}\t{1: 2.2f}]".format(action[0],action[1]),"\treward:\t{0: 2.3f}".format(reward))
 
-        # 일반적으로 Gym environment의 step function은 
-        # State(observation), 현재 step에서의 reward, episode 종료 여부, 기타 정보로 구성되어있음
         return self._get_state(), reward, done, info
 
 
     def reset(self):
         print("\nreseted\n")
         self.n_episodes = 0
-        # 매 episode가 시작될때 사용됨.
-        # 사용 변수들 초기화
+
         robot_rot = (random.random()-0.5)*2*3
         self.robot_tf = Transformation(rotation=robot_rot)
         self.joint1_tf = Transformation()
@@ -219,7 +209,6 @@ class Manipulator2D(gym.Env):
         self.link1_tf_global = self.robot_tf * self.joint1_tf * self.link1_tf
         self.link2_tf_global = self.link1_tf_global * self.joint2_tf * self.link2_tf
 
-        # 목표 지점 생성
         if random.randint(0,1) == 0:
             self.target_tf = Transformation(
                 translation=(
@@ -236,9 +225,8 @@ class Manipulator2D(gym.Env):
 
         self.done = False
         self.t = 0
-        self.buffer = []    # 시각화를 위한 버퍼. episode가 리셋될 때마다 초기화.
+        self.buffer = []
 
-        # Step 함수와 다르게 reset함수는 초기 state 값 만을 반환합니다.
         return self._get_state()
 
 
@@ -258,7 +246,6 @@ class Manipulator2D(gym.Env):
 
 
     def _get_reward(self):
-        # 해당 step의 reward를 계산합니다.
         done = False
 
         mat_target_robot = self.robot_tf.inv()*self.target_tf
@@ -307,7 +294,6 @@ class Manipulator2D(gym.Env):
 
     
     def render(self):
-        # Episode 동안의 로봇암 trajectory plot
         buffer = np.array(self.buffer)
         
         # set up figure and animation
@@ -378,7 +364,7 @@ class Manipulator2D(gym.Env):
             time_text.set_text('time = %.1f' % buffer[i]['time'])
             reward_text.set_text('reward = %.3f' % buffer[i]['reward'])
             weight = buffer[i]['weight']
-            weight_text.set_text('weight: linear = {0:2.3f}, angular = {1:2.3f}'.format(weight[0], weight[1]))
+            weight_text.set_text('weight: linear = {0:2.3f}, angular = {1:2.3f}, aux = {2:2.3f}'.format(weight[0], weight[1], weight[2]))
             action = buffer[i]['actions']
             if len(action) == 1:
                 action_text.set_text('action = {0:2.3f}'.format(action[0]))
