@@ -44,8 +44,7 @@ if train:
         model = SAC_MULTI(MlpPolicy_sac, env, learning_starts=learn_start, layers=layers, tensorboard_log=tb_path, verbose=1)
 
         print("\033[91mTraining Starts, action: {0}\033[0m".format(action))
-        model.learn(total_time_step)
-        model.save(model_dir+"/"+action+"_scratch")
+        model.learn(total_time_step, save_interval=10000, save_path=model_dir+"/"+action+"_scratch")
         print("\033[91mTraining finished\033[0m")
 
         print("\033[91mTest Starts\033[0m")
@@ -109,7 +108,7 @@ if train:
                 weight = model.get_weight(obs)
                 if n_iter % 20:
                     print("dist:\t",obs[0],"\tang:\t",obs[1],"\taction:\t[{0:2.3f} {1:2.3f}]".format(action[0],action[1]),"\tweight:\t",weight)
-                obs, reward, done, _ = env.step(action, test=True)
+                obs, reward, done, _ = env.step(action, weight, test=True)
                 if done:
                     break
             env.render()
