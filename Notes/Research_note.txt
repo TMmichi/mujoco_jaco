@@ -37,6 +37,7 @@ Note
                     - fuse policies with different action space into a whole
                     - reduce learning time compared to primitives that has same, whole action space
                     - weights coordinate each primitives: not concurrent -> execute multiple primitives at once // no latent embedding -> interpretable
+                    - can be applied to policies with different action space
                 To_do: 
                     - Train primitives that are identified for certain tasks (from either expert trajectory or reward engineered RL scheme)
                     - Set task which requires multiple primitives:

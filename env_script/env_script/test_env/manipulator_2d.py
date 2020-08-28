@@ -101,7 +101,7 @@ class Transformation:
 class Manipulator2D(gym.Env):
     
     def __init__(self, action=None, arm1=1, arm2=1, dt=0.01, tol=0.1):
-        self.obs_high = np.array([float('inf'), np.pi])
+        self.obs_high = np.array([float('inf'), np.pi, np.pi])
         self.obs_low = -self.obs_high
 
         self.action_type = action
@@ -139,7 +139,7 @@ class Manipulator2D(gym.Env):
         self.n_episodes = 0
 
         
-    def step(self, action, weight=[0,0,0]):
+    def step(self, action, weight=[0,0,0], test=False):
         self.n_episodes += 1
         #self._move_target()
 
@@ -174,30 +174,32 @@ class Manipulator2D(gym.Env):
 
         info = {}
 
-        self.buffer.append(
-            dict(
-                robot=self.robot_tf.copy(),
-                link1=self.link1_tf_global.copy(),
-                link2=self.link2_tf_global.copy(),
-                target=self.target_tf.copy(),
-                time=self.t,
-                actions=action,
-                reward=reward,
-                weight=weight
+        if test:
+            self.buffer.append(
+                dict(
+                    robot=self.robot_tf.copy(),
+                    link1=self.link1_tf_global.copy(),
+                    link2=self.link2_tf_global.copy(),
+                    target=self.target_tf.copy(),
+                    time=self.t,
+                    actions=action,
+                    reward=reward,
+                    weight=weight
+                )
             )
-        )
-        dist, ang = self._get_state()
+            dist, ang, _ = self._get_state()
+        '''
         if self.n_episodes % 20:
             if len(action) == 1:
                 print("dist:\t{0:2.3f}".format(dist),"\tang:\t{0: 2.3f}".format(ang),"\taction:\t[{0: 2.2f}]".format(action[0]),"\treward:\t{0: 2.3f}".format(reward))
             if len(action) == 2:
-                print("dist:\t{0:2.3f}".format(dist),"\tang:\t{0: 2.3f}".format(ang),"\taction:\t[{0: 2.2f}\t{1: 2.2f}]".format(action[0],action[1]),"\treward:\t{0: 2.3f}".format(reward))
+                print("dist:\t{0:2.3f}".format(dist),"\tang:\t{0: 2.3f}".format(ang),"\taction:\t[{0: 2.2f}\t{1: 2.2f}]".format(action[0],action[1]),"\treward:\t{0: 2.3f}".format(reward))'''
 
         return self._get_state(), reward, done, info
 
 
     def reset(self):
-        print("\nreseted\n")
+        print("\nreset\n")
         self.n_episodes = 0
 
         robot_rot = (random.random()-0.5)*2*3
@@ -209,17 +211,19 @@ class Manipulator2D(gym.Env):
         self.link1_tf_global = self.robot_tf * self.joint1_tf * self.link1_tf
         self.link2_tf_global = self.link1_tf_global * self.joint2_tf * self.link2_tf
 
+        target_rot = (random.random()-0.5)*2*3
         if random.randint(0,1) == 0:
             self.target_tf = Transformation(
                 translation=(
                     (random.random()-0.5)*2*(self.env_boundary-0.7),
                     (random.random()-0.5)*2*(self.env_boundary-0.7)
-                )
+                ),
+                rotation=target_rot
             )
         else:
             x = (random.random()-0.5)*2*(self.env_boundary-0.7)
             y = np.clip(np.tan(robot_rot)*x,-self.env_boundary+0.7,self.env_boundary-0.7)
-            self.target_tf = Transformation(translation=(x, y))
+            self.target_tf = Transformation(translation=(x, y), rotation=target_rot)
 
         self.ou = OUNoise(dt=self.dt, theta=0.1, sigma=0.2)
 
@@ -250,8 +254,16 @@ class Manipulator2D(gym.Env):
 
         mat_target_robot = self.robot_tf.inv()*self.target_tf
         l = np.linalg.norm(mat_target_robot.get_translation())
+        a_robot = self.robot_tf.euler_angle()
+        a_target = self.target_tf.euler_angle()
+        if a_robot * a_target > 0:
+            angle_diff = abs(a_robot - a_target)
+        else:
+            angle_diff = abs(a_robot) + abs(a_target)
+            if angle_diff > np.pi:
+                angle_diff = 2*np.pi - angle_diff
         
-        if self.action_type in ['linear', 'fused']:
+        if self.action_type == 'linear':
             if l < self.tol: 
                 reward = 100.
                 done = True 
@@ -259,6 +271,14 @@ class Manipulator2D(gym.Env):
                 reward = -l
         elif self.action_type == 'angular':
             reward = -abs(self._get_state()[1])
+        elif self.action_type == 'fused':
+            if l < self.tol and angle_diff < 0.1:
+                reward = 100
+                done = True 
+            elif l >= 1:
+                reward = -l
+            else:
+                reward = -l - angle_diff/np.pi
 
         x0, y0 = self.robot_tf.get_translation()
         if abs(x0) > self.env_boundary:
@@ -285,7 +305,15 @@ class Manipulator2D(gym.Env):
         mat_target_robot = self.robot_tf.inv()*self.target_tf
         dist = np.linalg.norm(mat_target_robot.get_translation())
         ang = -np.arctan2(mat_target_robot.y(), mat_target_robot.x())
-        return np.array([dist, ang])
+        a_robot = self.robot_tf.euler_angle()
+        a_target = self.target_tf.euler_angle()
+        if a_robot * a_target > 0:
+            angle_diff = abs(a_robot - a_target)
+        else:
+            angle_diff = abs(a_robot) + abs(a_target)
+            if angle_diff > np.pi:
+                angle_diff = 2*np.pi - angle_diff
+        return np.array([dist, ang, angle_diff])
 
 
     def seed(self, seed = None):
@@ -306,7 +334,7 @@ class Manipulator2D(gym.Env):
         link1, = ax.plot([], [], 'ko-', lw=2)
         link2, = ax.plot([], [], 'k', lw=2)
         gripper, = ax.plot([], [], 'k', lw=1)
-        target, = ax.plot([], [], 'bo', ms=6)
+        target, = ax.plot([], [], 'b', lw=2)
         time_text = ax.text(0.02, 0.95, '', transform=ax.transAxes)
         action_text = ax.text(0.02, 0.90, '', transform=ax.transAxes)
         weight_text = ax.text(0.02, 0.85, '', transform=ax.transAxes)
@@ -333,6 +361,13 @@ class Manipulator2D(gym.Env):
                 [   1,    1,   1,    1]
             ]
         )
+        target_geom = np.array(
+            [
+                [0.3, -0.2, -0.2, 0.3],
+                [  0,  0.2, -0.2,   0],
+                [  1,    1,    1,   1]
+            ]
+        )
 
         def init():
             """initialize animation"""
@@ -352,6 +387,7 @@ class Manipulator2D(gym.Env):
             robot_points = buffer[i]['robot'] * robot_geom
             link2_points = buffer[i]['link2'] * link2_geom
             gripper_points = buffer[i]['link2'] * gripper_geom
+            target_points = buffer[i]['target'] * target_geom
 
             robot.set_data((robot_points[0, :], robot_points[1, :]))
             link1.set_data((
@@ -360,7 +396,8 @@ class Manipulator2D(gym.Env):
             ))
             link2.set_data((link2_points[0, :], link2_points[1, :]))
             gripper.set_data((gripper_points[0, :], gripper_points[1, :]))
-            target.set_data([buffer[i]['target'].x(), buffer[i]['target'].y()])
+            #target.set_data([buffer[i]['target'].x(), buffer[i]['target'].y()])
+            target.set_data((target_points[0, :], target_points[1, :]))
             time_text.set_text('time = %.1f' % buffer[i]['time'])
             reward_text.set_text('reward = %.3f' % buffer[i]['reward'])
             weight = buffer[i]['weight']
