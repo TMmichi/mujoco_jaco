@@ -187,13 +187,13 @@ class Manipulator2D(gym.Env):
                     weight=weight
                 )
             )
-            dist, ang, _ = self._get_state()
-        '''
-        if self.n_episodes % 20:
+        dist, ang, a_diff = self._get_state()
+
+        """ if self.n_episodes % 20:
             if len(action) == 1:
-                print("dist:\t{0:2.3f}".format(dist),"\tang:\t{0: 2.3f}".format(ang),"\taction:\t[{0: 2.2f}]".format(action[0]),"\treward:\t{0: 2.3f}".format(reward))
+                print("dist:\t{0:2.3f}".format(dist),"\tang:\t{0: 2.3f}".format(ang),"\ta_diff:\t{0: 2.3f}".format(a_diff),"\taction:\t[{0: 2.2f}]".format(action[0]),"\treward:\t{0: 2.3f}".format(reward))
             if len(action) == 2:
-                print("dist:\t{0:2.3f}".format(dist),"\tang:\t{0: 2.3f}".format(ang),"\taction:\t[{0: 2.2f}\t{1: 2.2f}]".format(action[0],action[1]),"\treward:\t{0: 2.3f}".format(reward))'''
+                print("dist:\t{0:2.3f}".format(dist),"\tang:\t{0: 2.3f}".format(ang),"\ta_diff:\t{0: 2.3f}".format(a_diff),"\taction:\t[{0: 2.2f}\t{1: 2.2f}]".format(action[0],action[1]),"\treward:\t{0: 2.3f}".format(reward)) """
 
         return self._get_state(), reward, done, info
 
@@ -276,9 +276,9 @@ class Manipulator2D(gym.Env):
                 reward = 100
                 done = True 
             elif l >= 1:
-                reward = -l
+                reward = -l - 2
             else:
-                reward = -l - angle_diff/np.pi
+                reward = -l - 1 - angle_diff/np.pi
 
         x0, y0 = self.robot_tf.get_translation()
         if abs(x0) > self.env_boundary:
@@ -307,12 +307,11 @@ class Manipulator2D(gym.Env):
         ang = -np.arctan2(mat_target_robot.y(), mat_target_robot.x())
         a_robot = self.robot_tf.euler_angle()
         a_target = self.target_tf.euler_angle()
-        if a_robot * a_target > 0:
-            angle_diff = abs(a_robot - a_target)
-        else:
-            angle_diff = abs(a_robot) + abs(a_target)
-            if angle_diff > np.pi:
-                angle_diff = 2*np.pi - angle_diff
+        angle_diff = a_robot - a_target
+        if angle_diff > np.pi:
+            angle_diff = 2*np.pi - angle_diff
+        elif angle_diff < -np.pi:
+            angle_diff = 2*np.pi + angle_diff
         return np.array([dist, ang, angle_diff])
 
 
