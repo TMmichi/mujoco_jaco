@@ -13,7 +13,10 @@ class boo(foo):
     def __init__(self):
         super(boo, self).__init__()
 
-data = {'a':1,'b':2,'c':'hi'}
+data1 = {'a':1,'b':2,'c':'hi'}
+data2 = {'a':1,'b':2,'c':'hello'}
 
-model = boo.load(data)
+model = boo.load(data1)
+print(vars(model))
+model = boo.load(data2)
 print(vars(model))

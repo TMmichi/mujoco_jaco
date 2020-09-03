@@ -66,37 +66,43 @@ if train:
             env.render()
         print("\033[91mTest Finished\033[0m")
     elif auxilary:
-        primitives = OrderedDict()
-        # TODO: remove primitive_dict from the argument, and embed it into the class variable
-        SAC_MULTI.construct_primitive_info(name='aux1', primitive_dict=primitives, freeze=False, level=1,
-                                            obs_dimension=3, obs_range=[float('inf'), np.pi], obs_index=[0, 1, 2], 
-                                            act_dimension=2, act_range=[-1, 1], act_index=[0, 1], 
+        composite_primitive_name='MCP'
+        model = SAC_MULTI(policy=MlpPolicy_sac, env=None, _init_setup_model=False, composite_primitive_name=composite_primitive_name)
+
+        aux1_obs_range = {'min': [-float('inf'), -np.pi, -np.pi], \
+                          'max': [float('inf'), np.pi, np.pi]}
+        aux1_act_range = {'min': [-1, -np.pi], \
+                          'max': [1, np.pi]}
+        model.construct_primitive_info(name='aux1', freeze=False, level=1,
+                                            # obs_dimension=3, obs_range=[float('inf'), np.pi], obs_index=[0, 1, 2],
+                                            obs_range=aux1_obs_range, obs_index=[0, 1, 2],
+                                            act_range=aux1_act_range, act_index=[0, 1],
                                             policy_layer_structure=[32, 32])
         policy_zip_path = model_path+"twowheel"+"/linear2_SAC.zip"
-        SAC_MULTI.construct_primitive_info('linear', primitives, freeze=True, level=1,
-                                            obs_dimension=None, obs_range=None, obs_index=[0, 1], 
-                                            act_dimension=None, act_range=None, act_index=[0], 
+        model.construct_primitive_info(name='linear', freeze=True, level=1,
+                                            obs_range=None, obs_index=[0, 1],
+                                            act_range=None, act_index=[0],
                                             policy_layer_structure=None,
                                             loaded_policy=SAC_MULTI._load_from_file(policy_zip_path), separate_value=True)
         policy_zip_path = model_path+"twowheel"+"/angular.zip"    
-        SAC_MULTI.construct_primitive_info('angular', primitives, freeze=True, level=1,
-                                            obs_dimension=None, obs_range=None, obs_index=[0, 1], 
-                                            act_dimension=None, act_range=None, act_index=[1], 
+        model.construct_primitive_info(name='angular', freeze=True, level=1,
+                                            obs_range=None, obs_index=[0, 1],
+                                            act_range=None, act_index=[1],
                                             policy_layer_structure=None,
                                             loaded_policy=SAC_MULTI._load_from_file(policy_zip_path), separate_value=True)
-        number_of_primitives = 3
         total_obs_dim = 3
-        SAC_MULTI.construct_primitive_info('weight', primitives, False, 1,
-                                            total_obs_dim, 0, list(range(total_obs_dim)), 
-                                            number_of_primitives, [0,1], number_of_primitives, 
-                                            [64, 64])
+        number_of_primitives = 3
+        model.construct_primitive_info(name='weight', freeze=False, level=1,
+                                            obs_range=0, obs_index=list(range(total_obs_dim)),
+                                            act_range=0, act_index=list(range(number_of_primitives)),
+                                            policy_layer_structure=[64, 64])
         tb_path = tb_dir + prefix
         total_time_step = 250000
         learn_start = int(total_time_step*0.1)
 
-        # TODO: remove primitive_dict from the argument, and use the one defined as a class variable
-        model = SAC_MULTI.pretrainer_load(policy=MlpPolicy_sac, primitives=primitives, env=env, separate_value=True,
+        model = SAC_MULTI.pretrainer_load(model=model, policy=MlpPolicy_sac, env=env, separate_value=True,
                                             buffer_size=100000, learning_starts=learn_start, ent_coef='auto', verbose=1, tensorboard_log=tb_path)
+        quit()
         print("\033[91mTraining Starts\033[0m")
         save_path = model_dir+"/fused_aux"
         os.makedirs(save_path, exist_ok=True)
