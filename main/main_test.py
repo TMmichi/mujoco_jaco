@@ -77,25 +77,25 @@ if train:
                                             # obs_dimension=3, obs_range=[float('inf'), np.pi], obs_index=[0, 1, 2],
                                             obs_range=aux1_obs_range, obs_index=[0, 1, 2],
                                             act_range=aux1_act_range, act_index=[0, 1],
-                                            policy_layer_structure=[32, 32])
+                                            layer_structure={'policy':[32, 32], 'value':[32,32]})
         policy_zip_path = model_path+"twowheel"+"/linear2_SAC.zip"
-        model.construct_primitive_info(name='linear', freeze=True, level=1,
+        model.construct_primitive_info(name='linear', freeze=False, level=1,
                                             obs_range=None, obs_index=[0, 1],
                                             act_range=None, act_index=[0],
-                                            policy_layer_structure=None,
+                                            layer_structure=None,
                                             loaded_policy=SAC_MULTI._load_from_file(policy_zip_path), separate_value=True)
         policy_zip_path = model_path+"twowheel"+"/angular.zip"    
         model.construct_primitive_info(name='angular', freeze=True, level=1,
                                             obs_range=None, obs_index=[0, 1],
                                             act_range=None, act_index=[1],
-                                            policy_layer_structure=None,
+                                            layer_structure=None,
                                             loaded_policy=SAC_MULTI._load_from_file(policy_zip_path), separate_value=True)
         total_obs_dim = 3
         number_of_primitives = 3
         model.construct_primitive_info(name='weight', freeze=False, level=1,
                                             obs_range=0, obs_index=list(range(total_obs_dim)),
                                             act_range=0, act_index=list(range(number_of_primitives)),
-                                            policy_layer_structure=[64, 64])
+                                            layer_structure={'policy':[32, 32],'value':[64, 64]})
         tb_path = tb_dir + prefix
         total_time_step = 250000
         learn_start = int(total_time_step*0.1)
