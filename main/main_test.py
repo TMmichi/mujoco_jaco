@@ -83,13 +83,13 @@ if train:
                                             obs_range=None, obs_index=[0, 1],
                                             act_range=None, act_index=[0],
                                             layer_structure=None,
-                                            loaded_policy=SAC_MULTI._load_from_file(policy_zip_path), separate_value=True)
+                                            loaded_policy=SAC_MULTI._load_from_file(policy_zip_path), load_value=True)
         policy_zip_path = model_path+"twowheel"+"/angular.zip"    
         model.construct_primitive_info(name='angular', freeze=True, level=1,
                                             obs_range=None, obs_index=[0, 1],
                                             act_range=None, act_index=[1],
                                             layer_structure=None,
-                                            loaded_policy=SAC_MULTI._load_from_file(policy_zip_path), separate_value=True)
+                                            loaded_policy=SAC_MULTI._load_from_file(policy_zip_path), load_value=True)
         total_obs_dim = 3
         number_of_primitives = 3
         model.construct_primitive_info(name='weight', freeze=False, level=1,
@@ -100,7 +100,7 @@ if train:
         total_time_step = 250000
         learn_start = int(total_time_step*0.1)
 
-        model = SAC_MULTI.pretrainer_load(model=model, policy=MlpPolicy_sac, env=env, separate_value=True,
+        model = SAC_MULTI.pretrainer_load(model=model, policy=MlpPolicy_sac, env=env,
                                             buffer_size=100000, learning_starts=learn_start, ent_coef='auto', verbose=1, tensorboard_log=tb_path)
         quit()
         print("\033[91mTraining Starts\033[0m")
