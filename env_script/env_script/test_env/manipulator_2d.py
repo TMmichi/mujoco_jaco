@@ -106,12 +106,18 @@ class Manipulator2D(gym.Env):
 
         self.action_type = action
         if self.action_type == 'linear':
+            self.obs_high = np.array([float('inf'), np.pi])
+            self.obs_low = -self.obs_high
             self.action_high = np.array([1])
             self.action_low = np.array([-1])
         elif self.action_type == 'angular':
+            self.obs_high = np.array([float('inf'), np.pi])
+            self.obs_low = -self.obs_high
             self.action_high = np.array([np.pi])
             self.action_low = np.array([-np.pi])
         elif self.action_type == 'fused':
+            self.obs_high = np.array([float('inf'), np.pi, np.pi])
+            self.obs_low = -self.obs_high
             self.action_high = np.array([1, np.pi])
             self.action_low = np.array([-1, -np.pi])
         else:
@@ -187,13 +193,16 @@ class Manipulator2D(gym.Env):
                     weight=weight
                 )
             )
-        dist, ang, a_diff = self._get_state()
+            if self.action_type == 'fused':
+                dist, ang, a_diff = self._get_state()
+            else:
+                dist, ang = self._get_state()
 
-        """ if self.n_episodes % 20:
-            if len(action) == 1:
-                print("dist:\t{0:2.3f}".format(dist),"\tang:\t{0: 2.3f}".format(ang),"\ta_diff:\t{0: 2.3f}".format(a_diff),"\taction:\t[{0: 2.2f}]".format(action[0]),"\treward:\t{0: 2.3f}".format(reward))
-            if len(action) == 2:
-                print("dist:\t{0:2.3f}".format(dist),"\tang:\t{0: 2.3f}".format(ang),"\ta_diff:\t{0: 2.3f}".format(a_diff),"\taction:\t[{0: 2.2f}\t{1: 2.2f}]".format(action[0],action[1]),"\treward:\t{0: 2.3f}".format(reward)) """
+            """ if self.n_episodes % 20:
+                if len(action) == 1:
+                    print("dist:\t{0:2.3f}".format(dist),"\tang:\t{0: 2.3f}".format(ang),"\ta_diff:\t{0: 2.3f}".format(a_diff),"\taction:\t[{0: 2.2f}]".format(action[0]),"\treward:\t{0: 2.3f}".format(reward))
+                if len(action) == 2:
+                    print("dist:\t{0:2.3f}".format(dist),"\tang:\t{0: 2.3f}".format(ang),"\ta_diff:\t{0: 2.3f}".format(a_diff),"\taction:\t[{0: 2.2f}\t{1: 2.2f}]".format(action[0],action[1]),"\treward:\t{0: 2.3f}".format(reward)) """
 
         return self._get_state(), reward, done, info
 
@@ -267,7 +276,7 @@ class Manipulator2D(gym.Env):
             if l < self.tol: 
                 reward = 100.
                 done = True 
-            elif l > self.tol and l < 10:
+            elif l >= self.tol:
                 reward = -l
         elif self.action_type == 'angular':
             reward = -abs(self._get_state()[1])
@@ -312,7 +321,10 @@ class Manipulator2D(gym.Env):
             angle_diff = 2*np.pi - angle_diff
         elif angle_diff < -np.pi:
             angle_diff = 2*np.pi + angle_diff
-        return np.array([dist, ang, angle_diff])
+        if self.action_type == 'fused':
+            return np.array([dist, ang, angle_diff])
+        else:
+            return np.array([dist, ang])
 
 
     def seed(self, seed = None):
