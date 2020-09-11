@@ -12,15 +12,36 @@ from stable_baselines.sac_multi import SAC_MULTI
 from stable_baselines.sac_multi.policies import MlpPolicy as MlpPolicy_sac
 
 
+def _write_log(model_log, info):
+    if info['layers'] != None:
+        model_log.writelines("Layers:\n")
+        model_log.write("\tpolicy:\t[")
+        for i in range(len(info['layers']['policy'])):
+            model_log.write(str(info['layers']['policy'][i]))
+            if i != len(info['layers']['policy'])-1:
+                model_log.write(", ")
+            else:
+                model_log.writelines("]\n")
+        model_log.write("\tvalue:\t[")
+        for i in range(len(info['layers']['value'])):
+            model_log.write(str(info['layers']['value'][i]))
+            if i != len(info['layers']['value'])-1:
+                model_log.write(", ")
+            else:
+                model_log.writelines("]\n\n")
+        info.pop('layers')
+    
+    for name, item in info.items():
+        model_log.writelines(name+":\t\t{0}\n".format(item))
+
+
 package_path = str(Path(__file__).resolve().parent.parent)
 model_path = package_path+"/models_baseline/"
-tb_dir = package_path+"/tensorboard_log/"
-#prefix = "trained_at_" + str(time.localtime().tm_year) + "_" + str(time.localtime().tm_mon) + "_" + str(time.localtime().tm_mday) + "_" + str(time.localtime().tm_hour) + ":" + str(time.localtime().tm_min)
-prefix = "twowheel"
+prefix = "twowheel/"
 model_dir = model_path + prefix
 os.makedirs(model_dir, exist_ok=True)
-os.makedirs(tb_dir, exist_ok=True)
-train = False
+
+train = True
 load = not train
 separate = True
 test = False and not separate
@@ -31,25 +52,31 @@ env = Manipulator2D(action='fused')
 if train:
     if separate:
         del env
-        #action = 'linear'
-        #action = 'angular'
-        action = 'fused'
-        env = Manipulator2D(action=action)
+        action_option = ['linear', 'angular', 'fused', 'pickAndplace']
+        action = action_option[3]
+        trial = 8
 
-        n_actions = env.action_space.shape[-1]
-        n_obs = env.observation_space.shape[-1]
-        layers = {"policy": [256, 256], "value": [256, 256]}
-        prefix2 = '/'+action+"_separate4"
-        tb_path = tb_dir + prefix + prefix2
-        total_time_step = 1000000
-        learn_start = int(total_time_step*0.1)
-
-        model = SAC_MULTI(MlpPolicy_sac, env, learning_starts=learn_start, layers=layers, tensorboard_log=tb_path, verbose=1)
-
-        print("\033[91mTraining Starts, action: {0}\033[0m".format(action))
+        prefix2 = action+"_separate_trial"+str(trial)
         save_path = model_dir+prefix2
         os.makedirs(save_path, exist_ok=True)
-        model.learn(total_time_step, save_interval=10000, save_path=save_path)
+        model_log = open(save_path+"/model_log.txt", 'w')
+
+        tol = 0.5
+        n_robots = 1
+        n_target = 2
+        episode_length = 3000
+        reward_method = 'time'
+        env = Manipulator2D(action=action, n_robots=n_robots, n_target=n_target, tol=tol, episode_length=episode_length, reward_method=reward_method)
+        layers = {"policy": [256, 256, 128, 128], "value": [256, 256, 128, 128]}
+        total_time_step = 5000000
+        learn_start = int(total_time_step*0.1)
+        model = SAC_MULTI(MlpPolicy_sac, env, learning_starts=learn_start, layers=layers, tensorboard_log=save_path, verbose=1)
+
+        print("\033[91mTraining Starts, action: {0}\033[0m".format(action))
+        info = {'trial': trial, 'action': action, 'layers': layers, 'tolerance': tol, 'total time steps': total_time_step, 'n_robots': n_robots, 'n_targets': n_target, 'episode_length': episode_length}
+        _write_log(model_log, info)
+        model_log.close()
+        model.learn(total_time_step, save_interval=int(total_time_step/10), save_path=save_path)
         print("\033[91mTraining finished\033[0m")
 
     elif auxilary:
@@ -93,7 +120,7 @@ if train:
         print("\033[91mTraining Starts\033[0m")
         save_path = model_dir+prefix2
         os.makedirs(save_path, exist_ok=True)
-        model.learn(total_time_step, save_interval=10000, save_path=save_path)
+        model.learn(total_time_step, save_interval=int(total_time_step/10), save_path=save_path)
         print("\033[91mTrain Finished\033[0m")
 
     elif test:

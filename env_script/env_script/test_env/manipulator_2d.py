@@ -100,11 +100,10 @@ class Transformation:
 
 class Manipulator2D(gym.Env):
     
-    def __init__(self, action=None, arm1=1, arm2=1, dt=0.01, tol=0.1):
-        self.obs_high = np.array([float('inf'), np.pi, np.pi])
-        self.obs_low = -self.obs_high
-
+    def __init__(self, action=None, n_robots=1, n_target=1, arm1=1, arm2=1, dt=0.01, tol=0.1, episode_length=1500, reward_method=None):
+        self.env_boundary = 5
         self.action_type = action
+        
         if self.action_type == 'linear':
             self.obs_high = np.array([float('inf'), np.pi])
             self.obs_low = -self.obs_high
@@ -120,31 +119,38 @@ class Manipulator2D(gym.Env):
             self.obs_low = -self.obs_high
             self.action_high = np.array([1, np.pi])
             self.action_low = np.array([-1, -np.pi])
-        elif self.action_type == 'pick_place':
-            self.obs_high = np.array([float('inf'), np.pi, np.pi])
+        elif self.action_type == 'pickAndplace':
+            # pose of the agent + joint state
+            self.obs_high = np.array([self.env_boundary, self.env_boundary, np.pi, np.pi/4, np.pi/4])
+            # grasp index
+            self.obs_high = np.append(self.obs_high, [n_target])
+            # pose of targets
+            for _ in range(n_target):
+                self.obs_high = np.append(self.obs_high, [self.env_boundary, self.env_boundary, np.pi])
+                self.obs_high = np.append(self.obs_high, [self.env_boundary, self.env_boundary, np.pi])
             self.obs_low = -self.obs_high
             self.action_high = np.array([1, np.pi, np.pi/4, np.pi/4])
-            self.action_low = np.array([-1, -np.pi, -np.pi/4, -np.pi/4])
+            self.action_low = -self.action_high
             self.grasp = -1
-            self.grasp_dist_threshold = 0.1
-            self.grasp_ang_threshold = 0.1
+            self.grasp_dist_threshold = tol
+            self.grasp_ang_threshold = tol
         else:
             print(self.action_type)
-            raise ValueError('action type not one of: linear, angular, fused, pick_place')
+            raise ValueError('action type not one of: linear, angular, fused, pickAndplace')
 
         self.observation_space = spaces.Box(low = self.obs_low, high = self.obs_high, dtype = np.float32)
         self.action_space = spaces.Box(low = self.action_low, high = self.action_high, dtype = np.float32)
 
-        self.n_robots = 1
-        self.n_target = 4
+        self.n_robots = n_robots
+        self.n_target = n_target
         self.n_obstacle = 1
         self.link1_len = arm1
         self.link2_len = arm2
         self.dt = dt
         self.tol = tol
-        self.env_boundary = 5
         self.target_speed = 1.2
         self.threshold = 0.3
+        self.reward_method = reward_method
 
         self.robot_geom = np.array(
             [
@@ -175,7 +181,7 @@ class Manipulator2D(gym.Env):
             ]
         )
 
-        self.top = top = 4.5;
+        self.top = top = 4.5
         self.bottom = bottom = top - 0.5
         self.right = right = 4.5
         self.left = left = right - 3.5
@@ -195,7 +201,6 @@ class Manipulator2D(gym.Env):
         )
 
         self.seed()
-
         self.episode_length = 1500
 
         # 변수를 초기화한다.
@@ -231,7 +236,7 @@ class Manipulator2D(gym.Env):
             )
             self.link1_tf_global = self.robot_tf * self.joint1_tf * self.link1_tf
             self.link2_tf_global = self.link1_tf_global * self.joint2_tf * self.link2_tf
-        elif self.action_type == 'pick_place':
+        elif self.action_type == 'pickAndplace':
             self.robot_tf.transform(
                 translation=(action[0]*self.dt, 0),
                 rotation=action[1]*self.dt
@@ -388,7 +393,7 @@ class Manipulator2D(gym.Env):
                 reward = -l - 2
             else:
                 reward = -l - 1 - angle_diff/np.pi
-        elif self.action_type == 'pick_place':
+        elif self.action_type == 'pickAndplace':
             if self.crash_check():
                 reward = -100
                 done = True
@@ -401,8 +406,11 @@ class Manipulator2D(gym.Env):
                 else:
                     if self.place_check():
                         reward = 100
+                        done = True
                     else:
                         reward = 0
+            if self.reward_method == 'time':
+                reward -= 0.01
 
         x0, y0 = self.robot_tf.get_translation()
         if abs(x0) > self.env_boundary:
@@ -469,8 +477,21 @@ class Manipulator2D(gym.Env):
             angle_diff = 2*np.pi + angle_diff
         if self.action_type == 'fused':
             return np.array([dist, ang, angle_diff])
-        else:
+        elif self.action_type in ['linear', 'angular']:
             return np.array([dist, ang])
+        elif self.action_type == 'pickAndplace':
+            state = self.robot_tf.get_translation()
+            state = np.append(state, self.robot_tf.euler_angle())
+            state = np.append(state, self.grasp)
+            state = np.append(state, [self.joint1_tf.euler_angle()])
+            state = np.append(state, [self.joint2_tf.euler_angle()])
+            for target_tf in self.target_tf:
+                state = np.append(state, target_tf.get_translation())
+                state = np.append(state, target_tf.euler_angle())
+            for target_place_tf in self.target_place_tf:
+                state = np.append(state, target_place_tf.get_translation())
+                state = np.append(state, target_place_tf.euler_angle())
+            return state
 
 
     def seed(self, seed = None):
@@ -496,11 +517,11 @@ class Manipulator2D(gym.Env):
         link2, = ax.plot([], [], 'k', lw=1)
         gripper, = ax.plot([], [], 'k', lw=1)
         target_list = []
-        for i in range(self.n_target):
+        for _ in range(self.n_target):
             target, = ax.plot([], [], 'b', lw=1)
             target_list.append(target)
         target_place_list = []
-        for i in range(self.n_target):
+        for _ in range(self.n_target):
             target_place, = ax.plot([], [], 'g--', lw=1)
             target_place_list.append(target_place)
         time_text = ax.text(0.98, 0.21, '', transform=ax.transAxes, ha='right')
@@ -599,7 +620,7 @@ def test(env):
     env.reset()
 
     # 10초 동안의 움직임을 관찰
-    for t in np.arange(0, 10, env.dt):
+    for _ in np.arange(0, 10, env.dt):
         # 강화학습이 아닌 위에서 계산한 값을 이용하여 목표 각도에 가까워지도록 피드백 제어
 
         # position error를 이용해 control input 계산
@@ -616,7 +637,7 @@ def test(env):
 
         # Environment의 step 함수를 호출하고, 
         # 변화된 state(observation)과 reward, episode 종료여부, 기타 정보를 가져옴
-        next_state, reward, done, info = env.step(action, test=True)
+        _, _, done, _ = env.step(action, test=True)
 
         # episode 종료
         if done:
@@ -628,4 +649,4 @@ def test(env):
 
 if __name__=='__main__':
 
-    test(Manipulator2D(tol=0.01, action='pick_place'))
+    test(Manipulator2D(tol=0.01, action='pickAndplace'))
