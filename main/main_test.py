@@ -20,9 +20,9 @@ prefix = "twowheel"
 model_dir = model_path + prefix
 os.makedirs(model_dir, exist_ok=True)
 os.makedirs(tb_dir, exist_ok=True)
-train = True
+train = False
 load = not train
-separate = False
+separate = True
 test = False and not separate
 auxilary = True and not separate
 
@@ -31,15 +31,15 @@ env = Manipulator2D(action='fused')
 if train:
     if separate:
         del env
-        action = 'linear'
+        #action = 'linear'
         #action = 'angular'
-        #action = 'fused'
+        action = 'fused'
         env = Manipulator2D(action=action)
 
         n_actions = env.action_space.shape[-1]
         n_obs = env.observation_space.shape[-1]
-        layers = {"policy": [128, 128], "value": [128, 128]}
-        prefix2 = '/'+action+"_separate2"
+        layers = {"policy": [256, 256], "value": [256, 256]}
+        prefix2 = '/'+action+"_separate4"
         tb_path = tb_dir + prefix + prefix2
         total_time_step = 1000000
         learn_start = int(total_time_step*0.1)
@@ -93,7 +93,7 @@ if train:
         print("\033[91mTraining Starts\033[0m")
         save_path = model_dir+prefix2
         os.makedirs(save_path, exist_ok=True)
-        model.learn(total_time_step, save_interval=1000000, save_path=save_path)
+        model.learn(total_time_step, save_interval=10000, save_path=save_path)
         print("\033[91mTrain Finished\033[0m")
 
     elif test:
@@ -189,10 +189,10 @@ if load:
         action_type = 'fused'
         env = Manipulator2D(action=action_type)
 
-        task = ['linear_separate', 'angular_separate', 'fused_separate', 'fused_separate2']
-        step_num = 1000000
+        task = ['linear_separate', 'angular_separate', 'fused_separate', 'fused_separate2', 'fused_separate4']
+        step_num = 940000
+        #layers = {"policy": [256, 256], "value": [256, 256]}
         layers = {"policy": [128, 128], "value": [128, 128]}
-        #layers = {"policy": [64, 64], "value": [64, 64]}
         model = SAC_MULTI.load(model_path+"twowheel/"+task[3]+"/policy_"+str(step_num), layers=layers)
 
         print("\033[91mTest Starts\033[0m")
@@ -220,8 +220,8 @@ if load:
 
     else:
         model = SAC_MULTI(policy=MlpPolicy_sac, env=None, _init_setup_model=False)
-        
-        policy_zip_path = model_path+"twowheel/MCP_aux2/policy_1400000.zip"
+        steps = 1000000
+        policy_zip_path = model_path+"twowheel/MCP_aux_test_full/policy_"+str(steps)
         model.construct_primitive_info(name=None, freeze=True, level=1,
                                             obs_range=None, obs_index=[0, 1, 2], 
                                             act_range=None, act_index=[0, 1], 
