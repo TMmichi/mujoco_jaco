@@ -82,6 +82,29 @@ Note
                     - Learning Agile Robotic Locomotion Skills by Imitating Animals (Peng, 2020)
                     - Learning to Coordinate Manipulation Skills Via Skill Behavior Diversification (Lee, 2020)
             }
+            1-1. Sub_task: test with simpler environment (multi-agent setting)
+            {
+                Contributions:
+                    - can be applied to policies with different action space (properly)
+                    - making policy explainable by incorporating known primitives
+                    - hierarchical policy
+
+                    - Increase sample efficiency (incorporate human data while TRAINING WHOLE TASK)
+                    - learn auxilary primitives that have not been told/trained (if possible)
+                    - reduce learning time compared to primitives that has same, whole action space
+                    - weights coordinate each primitives: not concurrent -> execute multiple primitives at once // no latent embedding -> interpretable
+                        -> explicit embedding: leads to explainable AI
+                
+                To Do:
+                    - create tasks which needs manipulator to get involved -> different action space
+                    - 
+
+                    - create cooperative task
+                    - create competitive task
+                
+                Done (moved from ToDO):
+                    - 
+            }
             2. Title: Who cares who I am: Policy transfer between robots without fine-tuning
             {
                 Keywords: 
