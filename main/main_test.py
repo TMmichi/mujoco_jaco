@@ -3,6 +3,7 @@ import time
 import path_config
 from pathlib import Path
 from collections import OrderedDict
+os.environ['CUDA_VISIBLE_DEVICES']='1'
 
 import numpy as np
 
@@ -54,22 +55,23 @@ if train:
         del env
         action_option = ['linear', 'angular', 'fused', 'pickAndplace']
         action = action_option[3]
-        trial = 8
+        trial = 17
 
         prefix2 = action+"_separate_trial"+str(trial)
         save_path = model_dir+prefix2
         os.makedirs(save_path, exist_ok=True)
         model_log = open(save_path+"/model_log.txt", 'w')
 
-        tol = 0.5
+        tol = 0.25
         n_robots = 1
-        n_target = 2
-        episode_length = 3000
+        n_target = 3
+        episode_length = 4000
         reward_method = 'time'
         env = Manipulator2D(action=action, n_robots=n_robots, n_target=n_target, tol=tol, episode_length=episode_length, reward_method=reward_method)
-        layers = {"policy": [256, 256, 128, 128], "value": [256, 256, 128, 128]}
-        total_time_step = 5000000
-        learn_start = int(total_time_step*0.1)
+        layers = {"policy": [256, 256, 256, 128, 129], "value": [256, 256, 256, 128]}
+        total_time_step = 1000000
+        #learn_start = int(total_time_step*0.1)
+        learn_start = 100
         model = SAC_MULTI(MlpPolicy_sac, env, learning_starts=learn_start, layers=layers, tensorboard_log=save_path, verbose=1)
 
         print("\033[91mTraining Starts, action: {0}\033[0m".format(action))
