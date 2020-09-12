@@ -14,4 +14,4 @@ tensorboard_log
 .history/
 
 *.pyc
-models_baseline/*/events.out.tfevents.*
+**/events.out.tfevents.*

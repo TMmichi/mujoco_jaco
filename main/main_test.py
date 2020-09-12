@@ -41,7 +41,7 @@ prefix = "twowheel/"
 model_dir = model_path + prefix
 os.makedirs(model_dir, exist_ok=True)
 
-train = True
+train = False
 load = not train
 separate = True
 test = False and not separate
@@ -73,7 +73,7 @@ if train:
         model = SAC_MULTI(MlpPolicy_sac, env, learning_starts=learn_start, layers=layers, tensorboard_log=save_path, verbose=1)
 
         print("\033[91mTraining Starts, action: {0}\033[0m".format(action))
-        info = {'trial': trial, 'action': action, 'layers': layers, 'tolerance': tol, 'total time steps': total_time_step, 'n_robots': n_robots, 'n_targets': n_target, 'episode_length': episode_length}
+        info = {'trial': trial, 'action': action, 'layers': layers, 'tolerance': tol, 'total time steps': total_time_step, 'n_robots': n_robots, 'n_targets': n_target, 'episode_length': episode_length, 'reward_method': reward_method}
         _write_log(model_log, info)
         model_log.close()
         model.learn(total_time_step, save_interval=int(total_time_step/10), save_path=save_path)
@@ -213,18 +213,27 @@ if train:
 if load:
     if separate:
         del env
-        action_type = 'fused'
-        env = Manipulator2D(action=action_type)
+        action_list = ['linear', 'angular', 'fused', 'pickAndplace']
+        action_type = action_list[3]
+        trial = 1
+        prefix2 = action_type+"_separate_trial"+str(trial)
+        tol = 1
+        n_robots = 1
+        n_target = 1
+        episode_length = 1500
+        #reward_method = 'time'
+        reward_method = None
+        env = Manipulator2D(action=action_type, tol=tol, n_robots=n_robots,n_target=n_target,episode_length=episode_length,reward_method=reward_method)
 
-        task = ['linear_separate', 'angular_separate', 'fused_separate', 'fused_separate2', 'fused_separate4']
-        step_num = 940000
+        step_num = 4500000
+        layers = {"policy": [256, 256, 128, 64], "value": [256, 256, 128, 64]}
         #layers = {"policy": [256, 256], "value": [256, 256]}
-        layers = {"policy": [128, 128], "value": [128, 128]}
-        model = SAC_MULTI.load(model_path+"twowheel/"+task[3]+"/policy_"+str(step_num), layers=layers)
+        #layers = {"policy": [128, 128], "value": [128, 128]}
+        model = SAC_MULTI.load(model_path+"twowheel/"+prefix2+"/policy_"+str(step_num), layers=layers)
 
         print("\033[91mTest Starts\033[0m")
         for i in range(10):
-            print("\033[91mTest iter: {0}\033[0m".format(i))
+            print("  \033[91mTest iter: {0}\033[0m".format(i))
             obs = env.reset()
             n_iter = 0
             while True:
@@ -232,13 +241,14 @@ if load:
                 action, state = model.predict(obs)
                 prim_act = model.get_primitive_action(obs)
                 prim_log_std = model.get_primitive_log_std(obs)
-                print("action:\t",prim_act)
-                print("log_std:",prim_log_std)
                 if n_iter % 20:
                     if action_type == 'fused':
-                        print("dist:\t{0:2.3f}".format(obs[0]),"\tang:\t{0: 2.3f}".format(obs[1]),"\ta_diff:\t{0: 2.3f}".format(obs[2]),"\taction:\t[{0: 2.3f} {1: 2.3f}]".format(action[0],action[1]))
-                    else:
-                        print("dist:\t{0:2.3f}".format(obs[0]),"\tang:\t{0: 2.3f}".format(obs[1]),"\taction:\t[{0:2.3f}]".format(action[0]))
+                        print("  dist:\t{0:2.3f}".format(obs[0]),"\tang:\t{0: 2.3f}".format(obs[1]),"\ta_diff:\t{0: 2.3f}".format(obs[2]),"\taction:\t[{0: 2.3f} {1: 2.3f}]".format(action[0],action[1]))
+                    elif action_type in ['linear', 'angular']:
+                        print("  dist:\t{0:2.3f}".format(obs[0]),"\tang:\t{0: 2.3f}".format(obs[1]),"\taction:\t[{0:2.3f}]".format(action[0]))
+                    elif action_type == 'pickAndplace':
+                        #print("  x, y, w: {0: 2.3f}, {1: 2.3f}, {2: 2.3f}".format(obs[0], obs[1], obs[2])," action: [{0: 2.3f}, {1: 2.3f}, {2: 2.3f}, {3: 2.3f}]".format(action[0],action[1],action[2],action[3]))
+                        pass
                 obs, reward, done, _ = env.step(action, test=True)
                 if done:
                     break
