@@ -1,0 +1,11 @@
+Layers:
+	policy:	[256, 256, 128, 128]
+	value:	[256, 256, 256]
+
+trial:		13
+action:		pickAndplace
+tolerance:		0.25
+total time steps:		5000000
+n_robots:		1
+n_targets:		2
+episode_length:		4000
