@@ -103,6 +103,7 @@ class Manipulator2D(gym.Env):
     def __init__(self, action=None, n_robots=1, n_target=1, arm1=1, arm2=1, dt=0.01, tol=0.1, episode_length=1500, reward_method=None):
         self.env_boundary = 5
         self.action_type = action
+        self.accum_reward = 0
         
         if self.action_type == 'linear':
             self.obs_high = np.array([float('inf'), np.pi])
@@ -201,7 +202,7 @@ class Manipulator2D(gym.Env):
         )
 
         self.seed()
-        self.episode_length = 1500
+        self.episode_length = episode_length
 
         # 변수를 초기화한다.
         self.reset()
@@ -262,6 +263,7 @@ class Manipulator2D(gym.Env):
         self.t += self.dt
 
         reward, done = self._get_reward()
+        self.accum_reward += reward
 
         info = {}
 
@@ -285,6 +287,7 @@ class Manipulator2D(gym.Env):
                     observations=obs,
                     actions=action,
                     reward=reward,
+                    total_reward=self.accum_reward,
                     weight=weight
                 )
             )
@@ -293,8 +296,10 @@ class Manipulator2D(gym.Env):
 
 
     def reset(self):
-        print("\nreset\n")
+        print("\n  reset")
         self.n_episodes = 0
+        self.accum_reward = 0
+        self.grasp = -1
 
         robot_rot = (random.random()-0.5)*2*3
         self.robot_tf = Transformation(rotation=robot_rot)
@@ -436,9 +441,11 @@ class Manipulator2D(gym.Env):
         y = self.robot_tf.get_translation()[1]
         if self.left - self.threshold < x < self.right + self.threshold:
             if self.bottom - self.threshold < y < self.top + self.threshold:
+                print("\033[91mCRASHED\033[0m")
                 return True
         elif -self.right - self.threshold < x < -self.left + self.threshold:
             if -self.top - self.threshold < y < -self.bottom + self.threshold:
+                print("\033[91mCRASHED\033[0m")
                 return True
         return False
 
@@ -449,6 +456,7 @@ class Manipulator2D(gym.Env):
             if np.linalg.norm(pos-target_tf.get_translation()) < self.grasp_dist_threshold:
                 if abs(ang - target_tf.euler_angle()) < self.grasp_ang_threshold:
                     self.grasp = index
+                    print("\033[92mGRASPED\033[0m")
                     return True
         else:
             return False
@@ -460,6 +468,7 @@ class Manipulator2D(gym.Env):
         if np.linalg.norm(pos-target_place_tf.get_translation()) < self.grasp_dist_threshold:
             if abs(ang - target_place_tf.euler_angle()) < self.grasp_ang_threshold:
                 self.grasp = -1
+                print("\033[92mPLACED\033[0m")
                 return True
         return False
 
@@ -584,14 +593,15 @@ class Manipulator2D(gym.Env):
             for target_place, points in zip(target_place_list, target_place_points_list):
                 target_place.set_data((points[0, :], points[1, :]))
             time_text.set_text('time = %.1f' % buffer[i]['time'])
-            reward_text.set_text('reward = %.3f' % buffer[i]['reward'])
+            reward_text.set_text('reward = {0: 1.3f}, {1: 1.3f}'.format(buffer[i]['reward'], buffer[i].get('total_reward',0)))
             weight = buffer[i]['weight']
             weight_text.set_text('weight: [{0: 2.2f}, {1: 2.2f}, {2: 2.2f}]'.format(weight[0], weight[1], weight[2]))
             action = buffer[i]['actions']
-            if len(action) == 1:
-                action_text.set_text('action: {0:2.3f}'.format(action[0]))
-            elif len(action) == 2:
-                action_text.set_text('action: [{0: 2.3f}, {1: 2.3f}]'.format(action[0],action[1]))
+            action_string = 'act: ['
+            for i in range(len(action)-1):
+                action_string += '{0: 1.2f}, '.format(action[i])
+            action_string += '{0: 1.2f}]'.format(action[len(action)-1])
+            action_text.set_text(action_string)
             obs = buffer[i]['observations']
             if len(obs) == 2:
                 observation_text.set_text('obs: [{0: 2.3f}, {1: 2.3f}]'.format(obs[0],obs[1]))

@@ -7,6 +7,8 @@ from pathlib import Path
 from math import pi
 from random import sample, randint, uniform
 
+import scipy.interpolate
+
 import numpy as np
 from numpy.random import uniform as uniform_np
 from matplotlib import pyplot as plt
@@ -164,7 +166,8 @@ class JacoMujocoEnvUtil:
     def _get_terminal_inspection(self):
         self.num_episodes += 1
         dist_diff = np.linalg.norm(self.gripper_pose[0][:3] - self.goal[0])
-        wb = np.linalg.norm(self.__get_property('EE', 'position')[0] - self.base_position[0])
+        # wb = np.linalg.norm(self.__get_property('EE', 'position')[0] - self.base_position[0])
+        wb = 0.3
         if pi - 0.1 < self.interface.get_feedback()['q'][2] < pi + 0.1:
             print("\033[91m \nUn wanted joint angle - possible singular state \033[0m")
             return True, -5, wb
@@ -234,6 +237,72 @@ class JacoMujocoEnvUtil:
     def _get_pressure(self):
         pass
 
+    def interpolation(self, string):
+        # sensor = []
+        # for i in range(5):
+        #     sensor.append(string+"_touch_" + "{}".format(i))
+    
+    #sensor0 = str+"_touch_0"
+    #sensor1 = str+"_touch_1"
+    #sensor2 = str+"_touch_2"
+    #sensor3 = str+"_touch_3"
+    #sensor4 = str+"_touch_4"
+        # if string == "tp":
+        #     a, b =0.0072, 0.0072
+        # elif string == "tp2":
+        #     a, b= 0.0072, 0.006
+        # elif string == "td":
+        #     a, b= 0.0048, 0.0048
+        # elif string == "td2":
+        #     a, b= 0.006, 0.006
+        # elif string == "ip":
+        #     a, b= 0.0072, 0.0072
+        # elif string == "ip2":
+        #     a, b= 0.0072, 0.006
+        # elif string == "id":
+        #     a, b= 0.0048, 0.0048
+        # elif string == "id2":
+        #     a, b= 0.006, 0.006
+        # elif string == "pp":
+        #     a, b= 0.0072, 0.0072
+        # elif string == "pp2":
+        #     a, b= 0.0072, 0.006
+        # elif string == "pd":
+        #     a, b= 0.0048, 0.0048
+        # elif string == "pd2":
+        #     a, b= 0.006, 0.006
+        # else:
+        #     print("not a right string")
+
+        s=[]
+        
+        # for i in range(5):
+        #     s[i]= self.interface.sim.data.get_sensor(sensor[i])
+        for i in range(5):
+            s.append(self.interface.sim.data.get_sensor(string+"_touch_" + "{}".format(i)))
+        
+        x=np.array([0,0,9,9, 1,1,1,1, 2,2,2,2, 4,4,5,5, 7,7,7,7, 8,8,8,8])
+        y=np.array([0,9,0,9, 1,2,7,8, 1,2,7,8, 4,5,4,5, 1,2,7,8, 1,2,7,8])
+        cartcoord = list(zip(x, y))
+
+        z = np.array([0,0,0,0, 
+                s[1],s[1],s[2],s[2], 
+                s[1],s[1],s[2],s[2],
+                s[0],s[0],s[0],s[0], 
+                s[3],s[3],s[4],s[4],
+                s[3],s[3],s[4],s[4]])
+
+        interp = scipy.interpolate.LinearNDInterpolator(cartcoord, z)
+
+        X = np.linspace(min(x), max(x), num=10)
+        Y = np.linspace(min(y), max(y), num=10)
+        XX, YY = np.meshgrid(X, Y)
+
+        Z = interp(XX, YY)
+        # print(Z)
+
+
+
 
 if __name__ == "__main__":
     sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../abr_control')))
@@ -242,7 +311,7 @@ if __name__ == "__main__":
     from abr_control.controllers import OSC
     from abr_control.utils import transformations
 
-    mobile = False
+    mobile = Falses
     if not mobile:
         pos = False
         vel = False
