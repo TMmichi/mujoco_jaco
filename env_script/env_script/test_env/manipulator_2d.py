@@ -99,7 +99,6 @@ class Transformation:
 
 
 class Manipulator2D(gym.Env):
-    
     def __init__(self, action=None, n_robots=1, n_target=1, arm1=1, arm2=1, dt=0.01, tol=0.1, episode_length=1500, reward_method=None):
         self.env_boundary = 5
         self.action_type = action
@@ -296,7 +295,7 @@ class Manipulator2D(gym.Env):
 
 
     def reset(self):
-        print("\n  reset")
+        print("  reset")
         self.n_episodes = 0
         self.accum_reward = 0
         self.grasp = -1

@@ -42,36 +42,35 @@ prefix = "twowheel/"
 model_dir = model_path + prefix
 os.makedirs(model_dir, exist_ok=True)
 
-train = False
+train = True
 load = not train
 separate = True
 test = False and not separate
 auxilary = True and not separate
 
-env = Manipulator2D(action='fused')
+
 
 if train:
     if separate:
         del env
         action_option = ['linear', 'angular', 'fused', 'pickAndplace']
         action = action_option[3]
-        trial = 17
+        trial = 19
 
         prefix2 = action+"_separate_trial"+str(trial)
         save_path = model_dir+prefix2
         os.makedirs(save_path, exist_ok=True)
         model_log = open(save_path+"/model_log.txt", 'w')
 
-        tol = 0.25
+        tol = 1
         n_robots = 1
-        n_target = 3
+        n_target = 1
         episode_length = 4000
         reward_method = 'time'
         env = Manipulator2D(action=action, n_robots=n_robots, n_target=n_target, tol=tol, episode_length=episode_length, reward_method=reward_method)
-        layers = {"policy": [256, 256, 256, 128, 129], "value": [256, 256, 256, 128]}
-        total_time_step = 1000000
-        #learn_start = int(total_time_step*0.1)
-        learn_start = 100
+        layers = {"policy": [256, 256, 256, 128], "value": [256, 256, 256, 128]}
+        total_time_step = 5000000
+        learn_start = int(total_time_step*0.05)
         model = SAC_MULTI(MlpPolicy_sac, env, learning_starts=learn_start, layers=layers, tensorboard_log=save_path, verbose=1)
 
         print("\033[91mTraining Starts, action: {0}\033[0m".format(action))
@@ -82,7 +81,23 @@ if train:
         print("\033[91mTraining finished\033[0m")
 
     elif auxilary:
-        composite_primitive_name='Pose_control'
+        action_option = ['linear', 'angular', 'fused', 'pickAndplace']
+        action = action_option[3]
+        trial = 1
+
+        prefix2 = action+"_auxilary_trial"+str(trial)
+        save_path = model_dir+prefix2
+        os.makedirs(save_path, exist_ok=True)
+        model_log = open(save_path+"/model_log.txt", 'w')
+
+        tol = 1
+        n_robots = 1
+        n_target = 1
+        episode_length = 4000
+        reward_method = 'time'
+        env = Manipulator2D(action=action, n_robots=n_robots, n_target=n_target, tol=tol, episode_length=episode_length, reward_method=reward_method)
+
+        composite_primitive_name='PoseControl'
         model = SAC_MULTI(policy=MlpPolicy_sac, env=None, _init_setup_model=False, composite_primitive_name=composite_primitive_name)
 
         aux1_obs_range = {'min': [-float('inf'), -np.pi, -np.pi], \
@@ -112,16 +127,12 @@ if train:
                                             obs_range=0, obs_index=list(range(total_obs_dim)),
                                             act_range=0, act_index=list(range(number_of_primitives)),
                                             layer_structure={'policy':[128, 128],'value':[128, 128]})
-        prefix2 = '/MCP_aux_test_full'
-        tb_path = tb_dir + prefix+prefix2
         total_time_step = 1000000
         learn_start = int(total_time_step*0.1)
 
         model = SAC_MULTI.pretrainer_load(model=model, policy=MlpPolicy_sac, env=env,batch_size=5,
-                                            buffer_size=100000, learning_starts=learn_start, tensorboard_log=tb_path, ent_coef='auto', verbose=1)#, tensorboard_log=tb_path)
+                                            buffer_size=100000, learning_starts=learn_start, tensorboard_log=save_path, ent_coef='auto', verbose=1)#, tensorboard_log=tb_path)
         print("\033[91mTraining Starts\033[0m")
-        save_path = model_dir+prefix2
-        os.makedirs(save_path, exist_ok=True)
         model.learn(total_time_step, save_interval=int(total_time_step/10), save_path=save_path)
         print("\033[91mTrain Finished\033[0m")
 
