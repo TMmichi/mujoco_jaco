@@ -8,7 +8,6 @@ os.environ['CUDA_VISIBLE_DEVICES']='1'
 import numpy as np
 
 from env_script.test_env.manipulator_2d import Manipulator2D
-from stable_baselines.sac import SAC
 from stable_baselines.sac_multi import SAC_MULTI
 from stable_baselines.sac_multi.policies import MlpPolicy as MlpPolicy_sac
 
@@ -52,21 +51,20 @@ auxilary = True and not separate
 
 if train:
     if separate:
-        del env
         action_option = ['linear', 'angular', 'fused', 'pickAndplace']
         action = action_option[3]
-        trial = 19
+        trial = 32
 
         prefix2 = action+"_separate_trial"+str(trial)
         save_path = model_dir+prefix2
         os.makedirs(save_path, exist_ok=True)
         model_log = open(save_path+"/model_log.txt", 'w')
 
-        tol = 1
+        tol = 0.1
         n_robots = 1
-        n_target = 1
+        n_target = 3
         episode_length = 4000
-        reward_method = 'time'
+        reward_method = 'target'
         env = Manipulator2D(action=action, n_robots=n_robots, n_target=n_target, tol=tol, episode_length=episode_length, reward_method=reward_method)
         layers = {"policy": [256, 256, 256, 128], "value": [256, 256, 256, 128]}
         total_time_step = 5000000
@@ -77,7 +75,7 @@ if train:
         info = {'trial': trial, 'action': action, 'layers': layers, 'tolerance': tol, 'total time steps': total_time_step, 'n_robots': n_robots, 'n_targets': n_target, 'episode_length': episode_length, 'reward_method': reward_method}
         _write_log(model_log, info)
         model_log.close()
-        model.learn(total_time_step, save_interval=int(total_time_step/10), save_path=save_path)
+        model.learn(total_time_step, save_interval=int(total_time_step*0.05), save_path=save_path)
         print("\033[91mTraining finished\033[0m")
 
     elif auxilary:
@@ -225,21 +223,20 @@ if train:
 
 if load:
     if separate:
-        del env
         action_list = ['linear', 'angular', 'fused', 'pickAndplace']
         action_type = action_list[3]
-        trial = 1
+        trial = 18
         prefix2 = action_type+"_separate_trial"+str(trial)
         tol = 1
         n_robots = 1
-        n_target = 1
-        episode_length = 1500
-        #reward_method = 'time'
-        reward_method = None
+        n_target = 2
+        episode_length = 4000
+        reward_method = 'time'
+        #reward_method = None
         env = Manipulator2D(action=action_type, tol=tol, n_robots=n_robots,n_target=n_target,episode_length=episode_length,reward_method=reward_method)
 
-        step_num = 4500000
-        layers = {"policy": [256, 256, 128, 64], "value": [256, 256, 128, 64]}
+        step_num = 5000000
+        layers = {"policy": [256, 256, 256, 128], "value": [256, 256, 256, 128]}
         #layers = {"policy": [256, 256], "value": [256, 256]}
         #layers = {"policy": [128, 128], "value": [128, 128]}
         model = SAC_MULTI.load(model_path+"twowheel/"+prefix2+"/policy_"+str(step_num), layers=layers)

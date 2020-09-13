@@ -2,9 +2,10 @@ import gym
 from gym import core, spaces
 from gym.utils import seeding
 import numpy as np
+import matplotlib
+#matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 from matplotlib import animation
-from matplotlib.patches import Circle
 import random
 
 #from .ou_noise import OUNoise
@@ -369,19 +370,10 @@ class Manipulator2D(gym.Env):
 
     def _get_reward(self):
         done = False
-
-        mat_target_robot = self.robot_tf.inv()*self.target_tf[0]
-        l = np.linalg.norm(mat_target_robot.get_translation())
-        a_robot = self.robot_tf.euler_angle()
-        a_target = self.target_tf[0].euler_angle()
-        if a_robot * a_target > 0:
-            angle_diff = abs(a_robot - a_target)
-        else:
-            angle_diff = abs(a_robot) + abs(a_target)
-            if angle_diff > np.pi:
-                angle_diff = 2*np.pi - angle_diff
         
         if self.action_type == 'linear':
+            mat_target_robot = self.robot_tf.inv()*self.target_tf[0]
+            l = np.linalg.norm(mat_target_robot.get_translation())
             if l < self.tol: 
                 reward = 100.
                 done = True 
@@ -390,6 +382,16 @@ class Manipulator2D(gym.Env):
         elif self.action_type == 'angular':
             reward = -abs(self._get_state()[1])
         elif self.action_type == 'fused':
+            mat_target_robot = self.robot_tf.inv()*self.target_tf[0]
+            l = np.linalg.norm(mat_target_robot.get_translation())
+            a_robot = self.robot_tf.euler_angle()
+            a_target = self.target_tf[0].euler_angle()
+            if a_robot * a_target > 0:
+                angle_diff = abs(a_robot - a_target)
+            else:
+                angle_diff = abs(a_robot) + abs(a_target)
+                if angle_diff > np.pi:
+                    angle_diff = 2*np.pi - angle_diff
             if l < self.tol and angle_diff < 0.1:
                 reward = 100
                 done = True 
@@ -406,13 +408,46 @@ class Manipulator2D(gym.Env):
                     if self.grasp_check():
                         reward = 100
                     else:
-                        reward = 0
+                        if self.reward_method == 'target':
+                            min_l = 1000000
+                            for index, target_tf in enumerate(self.target_tf):
+                                mat_target_gripper = self.link2_tf_global.inv()*target_tf
+                                l = np.linalg.norm(mat_target_gripper.get_translation())
+                                min_l = min(l, min_l)
+                                if min_l == l:
+                                    min_l_index = index
+                            a_gripper = self.link2_tf_global.euler_angle()
+                            a_target = self.target_tf[min_l_index].euler_angle()
+                            if a_gripper * a_target > 0:
+                                angle_diff = abs(a_gripper - a_target)
+                            else:
+                                angle_diff = abs(a_gripper) + abs(a_target)
+                                if angle_diff > np.pi:
+                                    angle_diff = 2*np.pi - angle_diff
+                            if l >= 1:
+                                reward = -(l+2)
+                            else:
+                                reward = -(l+1+angle_diff/np.pi)
                 else:
                     if self.place_check():
                         reward = 100
                         done = True
                     else:
-                        reward = 0
+                        if self.reward_method == 'target':
+                            mat_target_place_gripper = self.link2_tf_global.inv()*self.target_place_tf[self.grasp]
+                            l = np.linalg.norm(mat_target_place_gripper.get_translation())
+                            a_gripper = self.link2_tf_global.euler_angle()
+                            a_target = self.target_place_tf[self.grasp].euler_angle()
+                            if a_gripper * a_target > 0:
+                                angle_diff = abs(a_gripper - a_target)
+                            else:
+                                angle_diff = abs(a_gripper) + abs(a_target)
+                                if angle_diff > np.pi:
+                                    angle_diff = 2*np.pi - angle_diff
+                            if l >= 1:
+                                reward = -(l+2)
+                            else:
+                                reward = -(l+1+angle_diff/np.pi)
             if self.reward_method == 'time':
                 reward -= 0.01
 
