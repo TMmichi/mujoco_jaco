@@ -3,7 +3,7 @@ from gym import core, spaces
 from gym.utils import seeding
 import numpy as np
 import matplotlib
-#matplotlib.use('TkAgg')
+matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 from matplotlib import animation
 import random
@@ -100,24 +100,37 @@ class Transformation:
 
 
 class Manipulator2D(gym.Env):
-    def __init__(self, action=None, n_robots=1, n_target=1, arm1=1, arm2=1, dt=0.01, tol=0.1, episode_length=1500, reward_method=None):
+    def __init__(self, action=None, n_robots=1, n_target=1, arm1=1, arm2=1, dt=0.01, tol=0.1, 
+                    episode_length=1500, reward_method=None, observation_method='relative'):
         self.env_boundary = 5
         self.action_type = action
-        self.accum_reward = 0
+        self.observation_method = observation_method
         
         if self.action_type == 'linear':
-            self.obs_high = np.array([float('inf'), np.pi])
-            self.obs_low = -self.obs_high
+            if observation_method == 'absolute':
+                self.obs_high = np.array([self.env_boundary, self.env_boundary, np.pi, self.env_boundary, self.env_boundary, np.pi])
+                self.obs_low = -self.obs_high
+            elif observation_method == 'relative':
+                self.obs_high = np.array([float('inf'), np.pi])
+                self.obs_low = -self.obs_high
             self.action_high = np.array([1])
             self.action_low = np.array([-1])
         elif self.action_type == 'angular':
-            self.obs_high = np.array([float('inf'), np.pi])
-            self.obs_low = -self.obs_high
+            if observation_method == 'absolute':
+                self.obs_high = np.array([self.env_boundary, self.env_boundary, np.pi, self.env_boundary, self.env_boundary, np.pi])
+                self.obs_low = -self.obs_high
+            elif observation_method == 'relative':
+                self.obs_high = np.array([float('inf'), np.pi])
+                self.obs_low = -self.obs_high
             self.action_high = np.array([np.pi])
             self.action_low = np.array([-np.pi])
         elif self.action_type == 'fused':
-            self.obs_high = np.array([float('inf'), np.pi, np.pi])
-            self.obs_low = -self.obs_high
+            if observation_method == 'absolute':
+                self.obs_high = np.array([self.env_boundary, self.env_boundary, np.pi, self.env_boundary, self.env_boundary, np.pi])
+                self.obs_low = -self.obs_high
+            elif observation_method == 'relative':
+                self.obs_high = np.array([float('inf'), np.pi, np.pi])
+                self.obs_low = -self.obs_high
             self.action_high = np.array([1, np.pi])
             self.action_low = np.array([-1, -np.pi])
         elif self.action_type == 'pickAndplace':
@@ -207,6 +220,7 @@ class Manipulator2D(gym.Env):
         # 변수를 초기화한다.
         self.reset()
         self.n_episodes = 0
+        self.accum_reward = 0
 
         
     def step(self, action, weight=[0,0,0], test=False):
@@ -273,9 +287,12 @@ class Manipulator2D(gym.Env):
             target_tf = []
             for i in range(self.n_target):
                 target_tf.append(self.target_tf[i].copy())
-            target_place_tf = []
-            for i in range(self.n_target):
-                target_place_tf.append(self.target_place_tf[i].copy())
+            if self.action_type == 'pickAndplace':
+                target_place_tf = []
+                for i in range(self.n_target):
+                    target_place_tf.append(self.target_place_tf[i].copy())
+            else:
+                target_place_tf = []
             self.buffer.append(
                 dict(
                     robot=self.robot_tf.copy(),
@@ -311,27 +328,7 @@ class Manipulator2D(gym.Env):
         self.link2_tf_global = self.link1_tf_global * self.joint2_tf * self.link2_tf
 
         target_rot = (random.random()-0.5)*2*3
-        #choice = random.randint(0,2)
-        choice = 2
-        if choice == 0:
-            self.target_tf = [0]*self.n_target
-            for i in range(self.n_target):
-                target_tf = Transformation(
-                    translation=(
-                        (random.random()-0.5)*2*(self.env_boundary-0.7),
-                        (random.random()-0.5)*2*(self.env_boundary-0.7)
-                    ),
-                    rotation=target_rot
-                )
-                self.target_tf[i] = target_tf
-        elif choice == 1:
-            self.target_tf = [0]*self.n_target
-            for i in range(self.n_target):
-                x = (random.random()-0.5)*2*(self.env_boundary-0.7)
-                y = np.clip(np.tan(robot_rot)*x,-self.env_boundary+0.7,self.env_boundary-0.7)
-                target_tf = Transformation(translation=(x, y), rotation=target_rot)
-                self.target_tf[i] = target_tf
-        else:
+        if self.action_type == 'pickAndplace':
             self.target_tf = []
             self.target_place_tf = []
             for i in range(self.n_target):
@@ -345,6 +342,26 @@ class Manipulator2D(gym.Env):
                 y = 4.23
                 target_place_tf = Transformation(translation=(x, y), rotation=target_place_rot)
                 self.target_place_tf.append(target_place_tf)
+        else:
+            choice = random.randint(0,1)
+            if choice == 0:
+                self.target_tf = [0]*self.n_target
+                for i in range(self.n_target):
+                    target_tf = Transformation(
+                        translation=(
+                            (random.random()-0.5)*2*(self.env_boundary-0.7),
+                            (random.random()-0.5)*2*(self.env_boundary-0.7)
+                        ),
+                        rotation=target_rot
+                    )
+                    self.target_tf[i] = target_tf
+            elif choice == 1:
+                self.target_tf = [0]*self.n_target
+                for i in range(self.n_target):
+                    x = (random.random()-0.5)*2*(self.env_boundary-0.7)
+                    y = np.clip(np.tan(robot_rot)*x,-self.env_boundary+0.7,self.env_boundary-0.7)
+                    target_tf = Transformation(translation=(x, y), rotation=target_rot)
+                    self.target_tf[i] = target_tf
 
         self.done = False
         self.t = 0
@@ -375,12 +392,20 @@ class Manipulator2D(gym.Env):
             mat_target_robot = self.robot_tf.inv()*self.target_tf[0]
             l = np.linalg.norm(mat_target_robot.get_translation())
             if l < self.tol: 
-                reward = 100.
+                reward = 100
                 done = True 
-            elif l >= self.tol:
+                print("\033[92m  SUCCEEDED\033[0m")
+            else:
                 reward = -l
         elif self.action_type == 'angular':
-            reward = -abs(self._get_state()[1])
+            mat_target_robot = self.robot_tf.inv()*self.target_tf[0]
+            ang = -np.arctan2(mat_target_robot.y(), mat_target_robot.x())
+            if abs(ang) < self.tol:
+                reward = 100
+                done = True
+                print("\033[92m  SUCCEEDED\033[0m")
+            else:
+                reward = -abs(ang)
         elif self.action_type == 'fused':
             mat_target_robot = self.robot_tf.inv()*self.target_tf[0]
             l = np.linalg.norm(mat_target_robot.get_translation())
@@ -392,9 +417,10 @@ class Manipulator2D(gym.Env):
                 angle_diff = abs(a_robot) + abs(a_target)
                 if angle_diff > np.pi:
                     angle_diff = 2*np.pi - angle_diff
-            if l < self.tol and angle_diff < 0.1:
+            if l < self.tol and angle_diff < self.tol:
                 reward = 100
-                done = True 
+                done = True
+                print("\033[92m  SUCCEEDED\033[0m")
             elif l >= 1:
                 reward = -l - 2
             else:
@@ -475,11 +501,11 @@ class Manipulator2D(gym.Env):
         y = self.robot_tf.get_translation()[1]
         if self.left - self.threshold < x < self.right + self.threshold:
             if self.bottom - self.threshold < y < self.top + self.threshold:
-                print("\033[91mCRASHED\033[0m")
+                print("\033[91m  CRASHED\033[0m")
                 return True
         elif -self.right - self.threshold < x < -self.left + self.threshold:
             if -self.top - self.threshold < y < -self.bottom + self.threshold:
-                print("\033[91mCRASHED\033[0m")
+                print("\033[91m  CRASHED\033[0m")
                 return True
         return False
 
@@ -490,7 +516,7 @@ class Manipulator2D(gym.Env):
             if np.linalg.norm(pos-target_tf.get_translation()) < self.grasp_dist_threshold:
                 if abs(ang - target_tf.euler_angle()) < self.grasp_ang_threshold:
                     self.grasp = index
-                    print("\033[92mGRASPED\033[0m")
+                    print("\033[92m  GRASPED\033[0m")
                     return True
         else:
             return False
@@ -502,7 +528,7 @@ class Manipulator2D(gym.Env):
         if np.linalg.norm(pos-target_place_tf.get_translation()) < self.grasp_dist_threshold:
             if abs(ang - target_place_tf.euler_angle()) < self.grasp_ang_threshold:
                 self.grasp = -1
-                print("\033[92mPLACED\033[0m")
+                print("\033[92m  PLACED\033[0m")
                 return True
         return False
 
@@ -518,10 +544,19 @@ class Manipulator2D(gym.Env):
             angle_diff = 2*np.pi - angle_diff
         elif angle_diff < -np.pi:
             angle_diff = 2*np.pi + angle_diff
-        if self.action_type == 'fused':
-            return np.array([dist, ang, angle_diff])
-        elif self.action_type in ['linear', 'angular']:
-            return np.array([dist, ang])
+
+        if self.action_type in ['linear', 'angular', 'fused']:
+            if self.observation_method == 'absolute':
+                state = self.robot_tf.get_translation()
+                state = np.append(state, self.robot_tf.euler_angle())
+                state = np.append(state, self.target_tf[0].get_translation())
+                state = np.append(state, self.target_tf[0].euler_angle())
+                return state
+            elif self.observation_method == 'relative':
+                if self.action_type in ['linear', 'angular']:
+                    return np.array([dist, ang])
+                else:
+                    return np.array([dist, ang, angle_diff])
         elif self.action_type == 'pickAndplace':
             state = self.robot_tf.get_translation()
             state = np.append(state, self.robot_tf.euler_angle())
@@ -534,7 +569,6 @@ class Manipulator2D(gym.Env):
             for target_place_tf in self.target_place_tf:
                 state = np.append(state, target_place_tf.get_translation())
                 state = np.append(state, target_place_tf.euler_angle())
-            return state
 
 
     def seed(self, seed = None):
@@ -632,15 +666,16 @@ class Manipulator2D(gym.Env):
             weight_text.set_text('weight: [{0: 2.2f}, {1: 2.2f}, {2: 2.2f}]'.format(weight[0], weight[1], weight[2]))
             action = buffer[i]['actions']
             action_string = 'act: ['
-            for i in range(len(action)-1):
-                action_string += '{0: 1.2f}, '.format(action[i])
-            action_string += '{0: 1.2f}]'.format(action[len(action)-1])
+            for index in range(len(action)-1):
+                action_string += '{0: 1.2f}, '.format(action[index])
+            action_string += '{0: 1.2f}]'.format(action[-1])
             action_text.set_text(action_string)
             obs = buffer[i]['observations']
-            if len(obs) == 2:
-                observation_text.set_text('obs: [{0: 2.3f}, {1: 2.3f}]'.format(obs[0],obs[1]))
-            elif len(obs) == 3:
-                observation_text.set_text('obs: [{0: 2.3f}, {1: 2.3f}, {2: 2.3f}]'.format(obs[0],obs[1],obs[2]))
+            obs_string = 'obs: ['
+            for index in range(len(obs)-1):
+                obs_string += '{0: 2.2f}, '.format(obs[index])
+            obs_string += '{0: 2.2f}]'.format(obs[-1])
+            observation_text.set_text(obs_string)
             
             table_start_text.set_text('table\ntarget')
             table_target_text.set_text('table\ngoal')

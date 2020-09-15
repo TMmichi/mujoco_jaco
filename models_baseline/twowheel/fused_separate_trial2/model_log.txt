@@ -1,0 +1,13 @@
+Layers:
+	policy:	[256, 256]
+	value:	[256, 256]
+
+trial:		2
+action:		fused
+tolerance:		0.1
+total time steps:		2000000
+n_robots:		1
+n_targets:		1
+episode_length:		1500
+reward_method:		target
+observation_method:		absolute
