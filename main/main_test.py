@@ -35,19 +35,17 @@ def _write_log(model_log, info):
     for name, item in info.items():
         model_log.writelines(name+":\t\t{0}\n".format(item))
 
-
 package_path = str(Path(__file__).resolve().parent.parent)
 model_path = package_path+"/models_baseline/"
 prefix = "twowheel/"
 model_dir = model_path + prefix
 os.makedirs(model_dir, exist_ok=True)
 
-train = True
+train = False
 load = not train
 separate = True
 test = False and not separate
 auxilary = True and not separate
-
 
 
 if train:
@@ -225,21 +223,20 @@ if train:
 
 if load:
     if separate:
-        del env
         action_list = ['linear', 'angular', 'fused', 'pickAndplace']
         action_type = action_list[3]
-        trial = 1
+        trial = 14
         prefix2 = action_type+"_separate_trial"+str(trial)
-        tol = 1
+        tol = 0.25
         n_robots = 1
-        n_target = 1
-        episode_length = 1500
-        #reward_method = 'time'
-        reward_method = None
-        env = Manipulator2D(action=action_type, tol=tol, n_robots=n_robots,n_target=n_target,episode_length=episode_length,reward_method=reward_method)
+        n_target = 3
+        episode_length = 4000
+        reward_method = 'time'
+        #reward_method = None
+        env = Manipulator2D(action=action_type, tol=tol, n_robots=n_robots, n_target=n_target, episode_length=episode_length, reward_method=reward_method)
 
-        step_num = 4500000
-        layers = {"policy": [256, 256, 128, 64], "value": [256, 256, 128, 64]}
+        step_num = 5000000
+        layers = {"policy": [256, 256, 128, 128], "value": [256, 256, 256]}
         #layers = {"policy": [256, 256], "value": [256, 256]}
         #layers = {"policy": [128, 128], "value": [128, 128]}
         model = SAC_MULTI.load(model_path+"twowheel/"+prefix2+"/policy_"+str(step_num), layers=layers)
@@ -269,6 +266,16 @@ if load:
         print("\033[91mTest Finished\033[0m")
 
     else:
+        action_list = ['linear', 'angular', 'fused', 'pickAndplace']
+        action_type = action_list[3]
+        tol = 0.25
+        n_robots = 1
+        n_target = 3
+        episode_length = 4000
+        reward_method = 'time'
+        #reward_method = None
+
+        env = Manipulator2D(action=action_type, tol=tol, n_robots=n_robots, n_target=n_target, episode_length=episode_length, reward_method=reward_method)
         model = SAC_MULTI(policy=MlpPolicy_sac, env=None, _init_setup_model=False)
         steps = 1000000
         policy_zip_path = model_path+"twowheel/MCP_aux_test_full/policy_"+str(steps)

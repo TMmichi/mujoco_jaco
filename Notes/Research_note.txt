@@ -26,10 +26,8 @@ Note
                 Goal: Make policies explainable (and mimick human-like behavior - if incorporating human data while TRAINING PRIMITIVES)
                 Motivation:
                     - Shall let the users know what it's doing with human-interpretable information
-                    - Behave in a way human brain does -> composing complicated behavior with basic structures of primitives
-                        ref required
+                    - Behave in a way human brain does -> composing complicated behavior with basic structures of primitives in a hierarchical manner
                     - MCPs uses primitives that are not identifiable
-                    (WILL NOT USE: - most of the techniques uses joint angles -> restricted to the specific configuration of a robot)
                 Contributions:
                     - making policy explainable
                     - Increase sample efficiency (incorporate human data while TRAINING WHOLE TASK)
@@ -38,6 +36,8 @@ Note
                     - reduce learning time compared to primitives that has same, whole action space
                     - weights coordinate each primitives: not concurrent -> execute multiple primitives at once // no latent embedding -> interpretable
                     - can be applied to policies with different action space
+                    - configure proper states from observation to each primitives
+                
                 To_do: 
                     - Train primitives that are identified for certain tasks (from either expert trajectory or reward engineered RL scheme)
                     - Set task which requires multiple primitives:
@@ -73,37 +73,195 @@ Note
                     - Identify unknown primitives via (examining state/action sets from forward propagations)
                     - primitives with same action space -> MCP // primitives with different action space -> ?
                 References:
-                    - MLSH (Frans, 2017)
-                    - FeUdal Networks for Hierarchical Reinforcement Learning (2017)
-                    - Modular Multitask Reinforcement Learning with Policy Sketches (2017)
-                    - MCP (Peng, 2019)
-                    - Options (Sutten, 1999)
-                    # If using LofD for primitives:
-                    - Learning Agile Robotic Locomotion Skills by Imitating Animals (Peng, 2020)
-                    - Learning to Coordinate Manipulation Skills Via Skill Behavior Diversification (Lee, 2020)
+                    Compositive_policy:
+                        Additive:
+                            - Mixture Density Networks (Bishop, 1994)
+                        Multiplicative:
+                            - MCP: Learning composable hierarchical control with multiplicative compositional policies (Peng, 2019)    
+                    Hierarchical_policy:
+                        Pure_Hierarchy
+                            - FeUdal Networks for Hierarchical Reinforcement Learning (Vezhnevets, 2017)
+                            - Options (Sutten, 1999)
+                            - Hierarchical and interpretable skill acquisition in multi-task reinforcement learning (Shu, 2017)
+                            - Hierarchical Reinforcement Learning with Advantage-Based Auxiliary Rewards (Li, 2019)
+                            BT-RL
+                                - Integrating Reinforcement Learning into Behavior Trees by Hierarchical Composition (Kartasev, 2019)
+                                - QL-BT: Enhancing behaviour tree design and implementation with Q-learning (Dey, 2013)
+                        Meta_Learning
+                            - Learning to Coordinate Manipulation Skills Via Skill Behavior Diversification (Lee, 2020)
+                            - Modular Multitask Reinforcement Learning with Policy Sketches (Andreas, 2017)
+                            - Chealsea Finn paper of meta-learning
+                            - MLSH (Frans, 2017)
+                    Explainable_RL:
+                        - Hierarchical and interpretable skill acquisition in multi-task reinforcement learning (Shu, 2017)
+                    Brain_Functionality:
+                        Pure_Brain:
+                            - The Architecture of Complexity (Simon, 1962)
+                            - Hierarchical modularity in human brain functional networks (Meunier, 2009)
+                            - Functional Network Organization of the Human Brain (Power, 2011)
+                        Deep_Learning_Related:
+                            - Overcoming catastrophic forgetting in neural networks (Kirkpatrick, 2017)
+                            - Progressive neural networks (Rusu, 2016)
+                            - Sim-to-real robot learning from pixels with progressive nets (Rusu, 2017)
             }
             1-1. Sub_task: test with simpler environment (multi-agent setting)
             {
+                Motivation:
+                    - Shall let the users know what it's doing with human-interpretable information
+                    - Behave in a way human brain does -> composing complicated behavior with basic structures of primitives in a hierarchical manner
+                    - MCPs uses primitives that are not identifiable
                 Contributions:
                     - can be applied to policies with different action space (properly)
                     - making policy explainable by incorporating known primitives
                     - hierarchical policy
 
                     - Increase sample efficiency (incorporate human data while TRAINING WHOLE TASK)
-                    - learn auxilary primitives that have not been told/trained (if possible)
+                    - learn auxilary primitives that have not been told/trained (if possible) -> auxilary primitive can also achieve auxilary loss/goals to improve performance
                     - reduce learning time compared to primitives that has same, whole action space
                     - weights coordinate each primitives: not concurrent -> execute multiple primitives at once // no latent embedding -> interpretable
                         -> explicit embedding: leads to explainable AI
                 
                 To Do:
                     - create tasks which needs manipulator to get involved -> different action space
-                    - 
-
                     - create cooperative task
                     - create competitive task
                 
                 Done (moved from ToDO):
                     - 
+
+                References:
+                    Compositive_policy:
+                        Additive:
+                            - Mixture Density Networks (Bishop, 1994)
+                        Multiplicative:
+                            - MCP: Learning composable hierarchical control with multiplicative compositional policies (Peng, 2019)
+                                {
+                                    Key:
+                                        - 
+                                    Pros:
+                                        -
+                                    Cons:
+                                        -
+                                }
+                    Hierarchical_policy:
+                        Pure_Hierarchy
+                            - Hierarchical and interpretable skill acquisition in multi-task reinforcement learning (Shu, 2017)
+                                {
+                                    Key:
+                                        - 
+                                    Pros:
+                                        - Goal condition is sampled from sets of goals, so the goal is explicitly comprehensible.
+                                    Cons:
+                                        -
+                                }
+                            - Data-Efficient Hierarchical Reinforcement Learning (Nachum, 2018)
+                                {
+                                    Key:
+                                        - 
+                                    Pros:
+                                        - to remedy the challenge from off-policy learning of HRL (only sequential) by off-policy correction by re-labeling
+                                    Cons:
+                                        - 
+                                }
+                            - Hierarchical Reinforcement Learning with Advantage-Based Auxiliary Rewards (Li, 2019)
+                                {
+                                    Key:
+                                        - 
+                                    Pros:
+                                        -
+                                    Cons:
+                                        -
+                                }
+                            - Hierarchical Visuomotor Control of Humanoids (Merel, 2019)
+                                {
+                                    Key:
+                                        - 
+                                    Pros:
+                                        -
+                                    Cons:
+                                        -
+                                }
+                            BT-RL
+                                - QL-BT: Enhancing behaviour tree design and implementation with Q-learning (Dey, 2013)
+                                - Integrating Reinforcement Learning into Behavior Trees by Hierarchical Composition (Kartasev, 2019)
+                        Meta_Learning
+                            - Options (Sutten, 1999)
+                            - Bacon et al 2017
+                                {
+                                    Key:
+                                        - 
+                                    Pros:
+                                        -
+                                    Cons:
+                                        -
+                                }
+                            - Modular Multitask Reinforcement Learning with Policy Sketches (Andreas, 2017)
+                                {
+                                    Key:
+                                        - 
+                                    Pros:
+                                        -
+                                    Cons:
+                                        -
+                                }
+                            - Feature Control as Intrinsic Motivation for Hierarchical Reinforcement Learning (Dilokthanakul, 2017) 
+                                {
+                                    Key:
+                                        - Meta-controller provides sub-goal as a latent and an intrinsic reward at learning
+                                        - Meta-controller select which layer of CNN (feature) to be used @ intrinsic reward calculation
+                                    Pros:
+                                        - Using sub-goals from meta-controller can work better in sparse-reward environment
+                                    Cons: 
+                                        - learned features from feature controlling encoder cannot be explicitly interpreted -> options from meta-controller is hard to be 
+                                        - end-to-end training: can be handy but do not know its options/sub-goals explicitly.
+                                }
+                            - FeUdal Networks for Hierarchical Reinforcement Learning (Vezhnevets, 2017)
+                                {
+                                    Key:
+                                        - Manager and Worker setting where the goal from the manager is a estimated direction for the encoded state @ Manager's side
+                                        - the Manager is updated independently from the Worker in a way that the gradient of the goal is updated aligned to the direction for maximizing the Adventage of the manager
+                                    Pros:
+                                        - manager provides a meaningful and explicit goal for the workers (?)
+                                    Cons:
+                                        - if action space is large, fitting U_t from RNN of the Worker side can be hard
+                                        - Still do not have a clear understanding of what the goal intends to do in a human language
+                                }
+                            - MLSH (Frans, 2017)
+                            - Chealsea Finn paper of meta-learning
+                            - Learning Actionable Representation with Goal-Conditioned Policies (Ghosh, 2019)
+                                {
+                                    Key:
+                                        - 
+                                    Pros:
+                                        -
+                                    Cons:
+                                        -
+                                }
+                            - Learning to Coordinate Manipulation Skills Via Skill Behavior Diversification (Lee, 2020)
+                                {
+                                    Key:
+                                        - 
+                                    Pros:
+                                        -
+                                    Cons:
+                                        -
+                                }
+                    Explainable_RL:
+                        - Hierarchical and interpretable skill acquisition in multi-task reinforcement learning (Shu, 2017)
+                        -
+                    Brain_Functionality:
+                        Pure_Brain:
+                            - The Architecture of Complexity (Simon, 1962)
+                            - Hierarchical modularity in human brain functional networks (Meunier, 2009)
+                            - Functional Network Organization of the Human Brain (Power, 2011)
+                        Deep_Learning_Related:
+                            - Overcoming catastrophic forgetting in neural networks (Kirkpatrick, 2017)
+                            - Progressive neural networks (Rusu, 2016)
+                            - Sim-to-real robot learning from pixels with progressive nets (Rusu, 2017)
+                    Optimization_Algorithm:
+                        - SAC
+                        - Learning Multi-Level Hierarchies with Hindsight (Levy, 2019)
+                            -> Useful for hierarchical policies in a sequential manner, but not in the case of ours
             }
             2. Title: Who cares who I am: Policy transfer between robots without fine-tuning
             {
@@ -132,6 +290,9 @@ Note
                 Keywords: 
                 Goal: TBD
                 Motivation: TBD
+                References:
+                    Hierarchical_MARL:
+                        - Multi-Agent Manipulation via Locomotion using Hierarchical Sim2Real (Nachum, 2019)
             }
             4. Title: Screw-fixing
             {
@@ -220,7 +381,6 @@ Note
                         - Peng et al. 2019 (MCP)
                         - Shu et al. 2017 (Hierarchical and interpretable skill acquisition in multi-task reinforcement learning)
                         - Li et al. 2019 (Hierarchical Reinforcement Learning with Advantage-Based Auxiliary Rewards)
-                        - 
                 }
                 1-4. Brain Functionality
                 {
@@ -235,7 +395,7 @@ Note
                             -> Need of auxilary network, not to destruct already-trained primitive 
                                 - Overcoming catastrophic forgetting in neural networks (Kirkpatrick, 2017)
                                 - Progressive neural networks (Rusu, 2016)
-                                - Sim-to-real robot learning from pixerls with progressive nets (Rusu, 2017)
+                                - Sim-to-real robot learning from pixels with progressive nets (Rusu, 2017)
                             ** modularity -> Can it measure similarity btw NN primitives? -> btw pretrained primitives and aux networks
                                 - how well a given partition concentrates the edges within the modules based on the topological connectivity
                                 - For Neural Network, ...?
