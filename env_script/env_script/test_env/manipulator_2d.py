@@ -343,8 +343,8 @@ class Manipulator2D(gym.Env):
                 target_place_tf = Transformation(translation=(x, y), rotation=target_place_rot)
                 self.target_place_tf.append(target_place_tf)
         else:
-            choice = random.randint(0,1)
-            if choice == 0:
+            choice = random.randint(0,4)
+            if choice >= 1:
                 self.target_tf = [0]*self.n_target
                 for i in range(self.n_target):
                     target_tf = Transformation(
@@ -355,7 +355,7 @@ class Manipulator2D(gym.Env):
                         rotation=target_rot
                     )
                     self.target_tf[i] = target_tf
-            elif choice == 1:
+            elif choice == 0:
                 self.target_tf = [0]*self.n_target
                 for i in range(self.n_target):
                     x = (random.random()-0.5)*2*(self.env_boundary-0.7)
@@ -405,7 +405,7 @@ class Manipulator2D(gym.Env):
                 done = True
                 print("\033[92m  SUCCEEDED\033[0m")
             else:
-                reward = -abs(ang)
+                reward = -abs(ang/np.pi)
         elif self.action_type == 'fused':
             mat_target_robot = self.robot_tf.inv()*self.target_tf[0]
             l = np.linalg.norm(mat_target_robot.get_translation())
