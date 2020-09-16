@@ -43,7 +43,8 @@ os.makedirs(model_dir, exist_ok=True)
 
 train = True
 load = not train
-separate = False 
+separate = True
+scratch = False
 test = False and not separate
 auxilary = True and not separate
 
@@ -72,17 +73,26 @@ if train:
         #layers = {"policy": [128, 128], "value": [128, 128]}
         #layers = {"policy": [128, 128, 128], "value": [128, 128, 128]}
         layers = {"policy": [256, 256, 128, 128, 64], "value": [256, 256, 128, 128, 64]}
-        total_time_step = 10000000
+        total_time_step = 5000000
         learn_start = int(total_time_step*0.05)
-        model = SAC_MULTI(MlpPolicy_sac, env, learning_starts=learn_start, layers=layers, tensorboard_log=save_path, verbose=1)
+        if scratch:
+            model = SAC_MULTI(MlpPolicy_sac, env, learning_starts=learn_start, layers=layers, tensorboard_log=save_path, verbose=1)
+        else:
+            policy_num = 5000000
+            path = save_path+'/policy_'+str(policy_num)
+            print("loaded_policy_path: ",path)
+            model = SAC_MULTI.load(path, env=env, layers=layers)
 
         print("\033[91mTraining Starts, action: {0}\033[0m".format(action))
-        model_log = open(save_path+"/model_log.txt", 'w')
-        info = {'trial': trial, 'action': action, 'layers': layers, 'tolerance': tol, 'total time steps': total_time_step,\
+        if scratch:
+            model_log = open(save_path+"/model_log.txt", 'w')
+            info = {'trial': trial, 'action': action, 'layers': layers, 'tolerance': tol, 'total time steps': total_time_step,\
                  'n_robots': n_robots, 'n_targets': n_target, 'episode_length': episode_length, 'reward_method': reward_method, 'observation_method': observation_method}
-        _write_log(model_log, info)
-        model_log.close()
-        model.learn(total_time_step, save_interval=int(total_time_step*0.05), save_path=save_path)
+            _write_log(model_log, info)
+            model_log.close()
+            model.learn(total_time_step, save_interval=int(total_time_step*0.05), save_path=save_path)
+        else:
+            model.learn(total_time_step, loaded_step_num=policy_num, save_interval=int(total_time_step*0.05), save_path=save_path)
         print("\033[91mTraining finished\033[0m")
 
     elif auxilary:
@@ -267,8 +277,8 @@ if train:
 if load:
     if separate:
         action_list = ['linear', 'angular', 'fused', 'pickAndplace']
-        action_type = action_list[0]
-        trial = 2
+        action_type = action_list[2]
+        trial = 4
 
         tol = 0.1
         n_robots = 1
@@ -282,10 +292,13 @@ if load:
         env = Manipulator2D(action=action_type, n_robots=n_robots, n_target=n_target, tol=tol, 
                         episode_length=episode_length, reward_method=reward_method, observation_method=observation_method)
 
-        policy_num = 900000
+        policy_num = 5000000
+        layers = {"policy": [256, 256, 128, 128, 64], "value": [256, 256, 128, 128, 64]}
         #layers = {"policy": [256, 256, 256, 128], "value": [256, 256, 256, 128]}
-        layers = {"policy": [256, 256], "value": [256, 256]}
+        #layers = {"policy": [256, 256, 128], "value": [256, 256, 128]}
+        #layers = {"policy": [128, 128, 128], "value": [128, 128, 128]}
         #layers = {"policy": [128, 128], "value": [128, 128]}
+        #layers = {"policy": [256, 256], "value": [256, 256]}
 
         prefix2 = action_type+"_separate_trial"+str(trial)
         model = SAC_MULTI.load(model_path+prefix+prefix2+"/policy_"+str(policy_num), layers=layers)
@@ -320,7 +333,7 @@ if load:
         tol = 0.1
         n_robots = 1
         n_target = 1
-        episode_length = 1500
+        episode_length = 2000
         reward_method = 'target'
         #reward_method = 'time'
         #reward_method = None
@@ -330,11 +343,12 @@ if load:
                         episode_length=episode_length, reward_method=reward_method, observation_method=observation_method)
 
         if observation_method == 'absolute':
-            observation_index = list(range(3))
-        elif observation_method == 'relative':
             observation_index = list(range(6))
+        elif observation_method == 'relative':
+            observation_index = list(range(3))
+        trial=4
         policy_num = 1000000
-        policy_zip_path = model_path+prefix+"MCP_aux_test_full/policy_"+str(policy_num)
+        policy_zip_path = model_path+prefix+"fused_auxilary_trial"+str(trial)+"/policy_"+str(policy_num)
         model.construct_primitive_info(name=None, freeze=True, level=1,
                                             obs_range=None, obs_index=observation_index,
                                             act_range=None, act_index=[0, 1],
