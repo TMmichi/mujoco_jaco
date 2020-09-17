@@ -42,17 +42,21 @@ os.makedirs(model_dir, exist_ok=True)
 
 train = False
 load = not train
+<<<<<<< HEAD
 separate = True
 scratch = False
+=======
+separate = False
+scratch = True
+>>>>>>> 34d7c772d47e3382111ead6338a6e26235bf5bd2
 test = False and not separate
 auxilary = True and not separate
-
 
 if train:
     if separate:
         action_option = ['linear', 'angular', 'fused', 'pickAndplace']
-        action = action_option[1]
-        trial = 4
+        action = action_option[0]
+        trial = 8
 
         prefix2 = action+"_separate_trial"+str(trial)
         save_path = model_dir+prefix2
@@ -68,15 +72,14 @@ if train:
         observation_method = 'absolute'
         #observation_method = 'relative'
         env = Manipulator2D(action=action, n_robots=n_robots, n_target=n_target, tol=tol, 
-                        episode_length=episode_length, reward_method=reward_method, observation_method=observation_method)
+                        episode_length=episode_length, reward_method=reward_method, observation_method=observation_method, visualize=False)
 
-        #layers = {"policy": [256, 256, 128], "value": [256, 256, 128]}
-        #layers = {"policy": [256, 256, 128], "value": [256, 256, 128]}
+        layers = {"policy": [256, 256, 128], "value": [256, 256, 128]}
         #layers = {"policy": [256, 256, 256], "value": [256, 256, 256]}
         #layers = {"policy": [64, 64, 32, 32], "value": [64, 64, 32, 32]}
         #layers = {"policy": [256, 256, 128, 128], "value": [256, 256, 128, 128]}
-        layers = {"policy": [256, 256, 128, 128, 64], "value": [256, 256, 128, 128, 64]}
-        total_time_step = 5000000
+        #layers = {"policy": [256, 256, 128, 128, 128, 64, 64], "value": [256, 256, 128, 128, 128, 64 ,64]}
+        total_time_step = 10000000
         learn_start = int(total_time_step*0.05)
         ent_coef = 0.001
         if scratch:
@@ -102,7 +105,7 @@ if train:
     elif auxilary:
         action_option = ['linear', 'angular', 'fused', 'pickAndplace']
         action = action_option[2]
-        trial = 3
+        trial = 6
         prefix2 = action+"_auxilary_trial"+str(trial)
         save_path = model_dir+prefix2
         os.makedirs(save_path, exist_ok=True)
@@ -152,8 +155,8 @@ if train:
                                             layer_structure={'policy':[256, 256, 128]})
 
         prim_name = 'linear'
-        trial = 3
-        policy_num = 2000000
+        trial = 8
+        policy_num = 5500000
         policy_zip_path = model_path+prefix+prim_name+"_separate_trial"+str(trial)+"/policy_"+str(policy_num)+".zip"
         model.construct_primitive_info(name=prim_name, freeze=True, level=1,
                                             obs_range=None, obs_index=prim_obs_index,
@@ -162,8 +165,8 @@ if train:
                                             loaded_policy=SAC_MULTI._load_from_file(policy_zip_path), load_value=True)
         
         prim_name = 'angular'
-        trial = 2
-        policy_num = 1000000
+        trial = 4
+        policy_num = 5500000
         policy_zip_path = model_path+prefix+prim_name+"_separate_trial"+str(trial)+"/policy_"+str(policy_num)+".zip"
         model.construct_primitive_info(name=prim_name, freeze=True, level=1,
                                             obs_range=None, obs_index=prim_obs_index,
@@ -177,7 +180,7 @@ if train:
                                             obs_range=0, obs_index=list(range(total_obs_dim)),
                                             act_range=0, act_index=list(range(number_of_primitives)),
                                             layer_structure={'policy':[256, 256, 128],'value':[256, 256, 128, 128]})
-        total_time_step = 1000000
+        total_time_step = 10000000
         learn_start = int(total_time_step*0.1)
 
         model = SAC_MULTI.pretrainer_load(model=model, policy=MlpPolicy_sac, env=env, batch_size=64,
@@ -281,7 +284,7 @@ if train:
 if load:
     if separate:
         action_list = ['linear', 'angular', 'fused', 'pickAndplace']
-        action_type = action_list[2]
+        action_type = action_list[1]
         trial = 4
 
         tol = 0.1
@@ -296,9 +299,10 @@ if load:
         env = Manipulator2D(action=action_type, n_robots=n_robots, n_target=n_target, tol=tol, 
                         episode_length=episode_length, reward_method=reward_method, observation_method=observation_method)
 
-        policy_num = 5000000
-        layers = {"policy": [256, 256, 128, 128, 64], "value": [256, 256, 128, 128, 64]}
+        policy_num = 5500000
+        #layers = {"policy": [256, 256, 128, 128, 64], "value": [256, 256, 128, 128, 64]}
         #layers = {"policy": [256, 256, 256, 128], "value": [256, 256, 256, 128]}
+        layers = {"policy": [64, 64, 32, 32], "value": [64, 64, 32, 32]}
         #layers = {"policy": [256, 256, 128], "value": [256, 256, 128]}
         #layers = {"policy": [128, 128, 128], "value": [128, 128, 128]}
         #layers = {"policy": [128, 128], "value": [128, 128]}
@@ -354,9 +358,6 @@ if load:
             observation_index = list(range(6))
         elif observation_method == 'relative':
             observation_index = list(range(3))
-        trial=4
-        policy_num = 1000000
-        policy_zip_path = model_path+prefix+"fused_auxilary_trial"+str(trial)+"/policy_"+str(policy_num)
         model.construct_primitive_info(name=None, freeze=True, level=1,
                                             obs_range=None, obs_index=observation_index,
                                             act_range=None, act_index=[0, 1],
