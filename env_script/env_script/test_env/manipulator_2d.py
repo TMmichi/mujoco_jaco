@@ -54,6 +54,9 @@ class Transformation:
 
     def get_transformation(self):
         return self._matrix
+
+    def get_direction(self):
+        return self._matrix[0, 0:2]
     
     def x(self, x=None):
         if isinstance(x, None.__class__):
@@ -101,10 +104,11 @@ class Transformation:
 
 class Manipulator2D(gym.Env):
     def __init__(self, action=None, n_robots=1, n_target=1, arm1=1, arm2=1, dt=0.01, tol=0.1, 
-                    episode_length=1500, reward_method=None, observation_method='relative'):
+                    episode_length=1500, reward_method=None, observation_method='relative', visualize=False):
         self.env_boundary = 5
         self.action_type = action
         self.observation_method = observation_method
+        self.visualize = visualize
         
         if self.action_type == 'linear':
             if observation_method == 'absolute':
@@ -283,7 +287,7 @@ class Manipulator2D(gym.Env):
 
         obs = self._get_state()
 
-        if test:
+        if test or self.visualize:
             target_tf = []
             for i in range(self.n_target):
                 target_tf.append(self.target_tf[i].copy())
@@ -390,7 +394,9 @@ class Manipulator2D(gym.Env):
         
         if self.action_type == 'linear':
             mat_target_robot = self.robot_tf.inv()*self.target_tf[0]
-            l = np.linalg.norm(mat_target_robot.get_translation())
+            target_vector = np.dot(mat_target_robot.get_translation(), np.array([1,0])) * np.array([1,0])
+            #l = np.linalg.norm(mat_target_robot.get_translation())
+            l = np.linalg.norm(target_vector)
             if l < self.tol: 
                 reward = 100
                 done = True 
@@ -491,8 +497,8 @@ class Manipulator2D(gym.Env):
             done = True
 
         if done:
-            pass
-            #self.render()
+            if self.visualize: 
+                self.render()
 
         return reward, done
     
@@ -644,6 +650,7 @@ class Manipulator2D(gym.Env):
             for target_place_tf in buffer[i]['target_place_tf']:
                 target_place_points = target_place_tf * self.target_geom
                 target_place_points_list.append(target_place_points)
+
             robot.set_data((robot_points[0, :], robot_points[1, :]))
             fig_size = self.fig.get_size_inches()*self.fig.dpi
             robot_body._markersize = int(min(fig_size[0],fig_size[1])/30)
@@ -695,37 +702,38 @@ def test(env):
     Test script for the environment "Manipulator2D"
     '''
 
-    # 환경 초기화
-    env.reset()
+    for _ in range(10):
+        # 환경 초기화
+        env.reset()
 
-    # 10초 동안의 움직임을 관찰
-    for _ in np.arange(0, 10, env.dt):
-        # 강화학습이 아닌 위에서 계산한 값을 이용하여 목표 각도에 가까워지도록 피드백 제어
+        # 10초 동안의 움직임을 관찰
+        for _ in np.arange(0, 10, env.dt):
+            # 강화학습이 아닌 위에서 계산한 값을 이용하여 목표 각도에 가까워지도록 피드백 제어
 
-        # position error를 이용해 control input 계산
-        link2_to_target = env.link2_tf_global.inv() * env.target_tf[0].get_translation()
-        err1 = env.link2_tf * link2_to_target
-        err2 = env.link1_tf * env.joint2_tf * err1
-        err3 = env.joint1_tf * err2
-        action = [
-            np.linalg.norm(err3),
-            np.arctan2(err3[1], err3[0]),
-            np.arctan2(err2[1], err2[0]),
-            np.arctan2(err1[1], err1[0])
-        ]
+            # position error를 이용해 control input 계산
+            link2_to_target = env.link2_tf_global.inv() * env.target_tf[0].get_translation()
+            err1 = env.link2_tf * link2_to_target
+            err2 = env.link1_tf * env.joint2_tf * err1
+            err3 = env.joint1_tf * err2
+            action = [
+                np.linalg.norm(err3),
+                np.arctan2(err3[1], err3[0]),
+                np.arctan2(err2[1], err2[0]),
+                np.arctan2(err1[1], err1[0])
+            ]
 
-        # Environment의 step 함수를 호출하고, 
-        # 변화된 state(observation)과 reward, episode 종료여부, 기타 정보를 가져옴
-        _, _, done, _ = env.step(action, test=True)
+            # Environment의 step 함수를 호출하고, 
+            # 변화된 state(observation)과 reward, episode 종료여부, 기타 정보를 가져옴
+            _, _, done, _ = env.step(action, test=True)
 
-        # episode 종료
-        if done:
-            break
+            # episode 종료
+            if done:
+                break
 
-    # Episode 동안의 로봇암 trajectory plot
-    env.render()
+        # Episode 동안의 로봇암 trajectory plot
+        env.render()
 
 
 if __name__=='__main__':
 
-    test(Manipulator2D(tol=0.01, action='pickAndplace'))
+    test(Manipulator2D(tol=0.01, action='linear'))
