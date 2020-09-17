@@ -43,7 +43,7 @@ os.makedirs(model_dir, exist_ok=True)
 
 train = True
 load = not train
-separate = False
+separate = True
 scratch = True
 test = False and not separate
 auxilary = True and not separate
@@ -52,7 +52,7 @@ if train:
     if separate:
         action_option = ['linear', 'angular', 'fused', 'pickAndplace']
         action = action_option[0]
-        trial = 8
+        trial = 9
 
         prefix2 = action+"_separate_trial"+str(trial)
         save_path = model_dir+prefix2
@@ -75,7 +75,7 @@ if train:
         #layers = {"policy": [64, 64, 32, 32], "value": [64, 64, 32, 32]}
         #layers = {"policy": [256, 256, 128, 128], "value": [256, 256, 128, 128]}
         #layers = {"policy": [256, 256, 128, 128, 128, 64, 64], "value": [256, 256, 128, 128, 128, 64 ,64]}
-        total_time_step = 10000000
+        total_time_step = 5000000
         learn_start = int(total_time_step*0.05)
         ent_coef = 0.001
         if scratch:
@@ -90,7 +90,8 @@ if train:
         if scratch:
             model_log = open(save_path+"/model_log.txt", 'w')
             info = {'trial': trial, 'action': action, 'layers': layers, 'tolerance': tol, 'total time steps': total_time_step,\
-                 'n_robots': n_robots, 'n_targets': n_target, 'episode_length': episode_length, 'reward_method': reward_method, 'observation_method': observation_method, 'ent_coef': ent_coef}
+                 'n_robots': n_robots, 'n_targets': n_target, 'episode_length': episode_length, 'reward_method': reward_method, 'observation_method': observation_method, 'ent_coef': ent_coef,\
+                 'Additional Info': 'Does the scaled reward affects scale of mu and log std? -> reward to 0.01*'}
             _write_log(model_log, info)
             model_log.close()
             model.learn(total_time_step, save_interval=int(total_time_step*0.05), save_path=save_path)
@@ -99,9 +100,9 @@ if train:
         print("\033[91mTraining finished\033[0m")
 
     elif auxilary:
+        trial = 7
         action_option = ['linear', 'angular', 'fused', 'pickAndplace']
         action = action_option[2]
-        trial = 6
         prefix2 = action+"_auxilary_trial"+str(trial)
         save_path = model_dir+prefix2
         os.makedirs(save_path, exist_ok=True)
@@ -175,16 +176,17 @@ if train:
         model.construct_primitive_info(name='weight', freeze=False, level=1,
                                             obs_range=0, obs_index=list(range(total_obs_dim)),
                                             act_range=0, act_index=list(range(number_of_primitives)),
-                                            layer_structure={'policy':[256, 256, 128],'value':[256, 256, 128, 128]})
-        total_time_step = 10000000
-        learn_start = int(total_time_step*0.1)
+                                            layer_structure={'policy':[256, 256, 128],'value':[256, 256, 128]})
+        total_time_step = 10000
+        learn_start = int(total_time_step*0.05)
 
-        model = SAC_MULTI.pretrainer_load(model=model, policy=MlpPolicy_sac, env=env, batch_size=64,
+        model = SAC_MULTI.pretrainer_load(model=model, policy=MlpPolicy_sac, env=env, batch_size=5,
                                             buffer_size=100000, learning_starts=learn_start, tensorboard_log=save_path, ent_coef='auto', verbose=1)
         print("\033[91mTraining Starts\033[0m")
         model_log = open(save_path+"/model_log.txt", 'w')
         info = {'trial': trial, 'action': action, 'layers': None, 'tolerance': tol, 'total time steps': total_time_step,\
-                 'n_robots': n_robots, 'n_targets': n_target, 'episode_length': episode_length, 'reward_method': reward_method, 'observation_method': observation_method}
+                 'n_robots': n_robots, 'n_targets': n_target, 'episode_length': episode_length, 'reward_method': reward_method, 'observation_method': observation_method,\
+                 'Additional Info': '0.01 times scaled rewards'}
         _write_log(model_log, info)
         model_log.close()
         model.learn(total_time_step, save_interval=int(total_time_step*0.05), save_path=save_path)
@@ -280,8 +282,8 @@ if train:
 if load:
     if separate:
         action_list = ['linear', 'angular', 'fused', 'pickAndplace']
-        action_type = action_list[1]
-        trial = 4
+        action_type = action_list[0]
+        trial = 8
 
         tol = 0.1
         n_robots = 1
@@ -298,8 +300,8 @@ if load:
         policy_num = 5500000
         #layers = {"policy": [256, 256, 128, 128, 64], "value": [256, 256, 128, 128, 64]}
         #layers = {"policy": [256, 256, 256, 128], "value": [256, 256, 256, 128]}
-        layers = {"policy": [64, 64, 32, 32], "value": [64, 64, 32, 32]}
-        #layers = {"policy": [256, 256, 128], "value": [256, 256, 128]}
+        #layers = {"policy": [64, 64, 32, 32], "value": [64, 64, 32, 32]}
+        layers = {"policy": [256, 256, 128], "value": [256, 256, 128]}
         #layers = {"policy": [128, 128, 128], "value": [128, 128, 128]}
         #layers = {"policy": [128, 128], "value": [128, 128]}
         #layers = {"policy": [256, 256], "value": [256, 256]}

@@ -402,7 +402,7 @@ class Manipulator2D(gym.Env):
                 done = True 
                 print("\033[92m  SUCCEEDED\033[0m")
             else:
-                reward = -l
+                reward = -l * 0.01
         elif self.action_type == 'angular':
             mat_target_robot = self.robot_tf.inv()*self.target_tf[0]
             ang = -np.arctan2(mat_target_robot.y(), mat_target_robot.x())
@@ -428,9 +428,9 @@ class Manipulator2D(gym.Env):
                 done = True
                 print("\033[92m  SUCCEEDED\033[0m")
             elif l >= 1:
-                reward = -l - 2
+                reward = (-l - 2) * 0.01
             else:
-                reward = -l - 1 - angle_diff/np.pi
+                reward = (-l - 1 - angle_diff/np.pi ) * 0.01
         elif self.action_type == 'pickAndplace':
             if self.crash_check():
                 reward = -100
