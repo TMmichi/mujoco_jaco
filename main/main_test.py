@@ -97,7 +97,6 @@ if train:
             model.learn(total_time_step, save_interval=int(total_time_step*0.05), save_path=save_path)
         else:
             model.learn(total_time_step, loaded_step_num=policy_num, save_interval=int(total_time_step*0.05), save_path=save_path)
->>>>>>> 7d01ce8c48865c6509df30de709a071ba303eee3
         print("\033[91mTraining finished\033[0m")
 
     elif auxilary:

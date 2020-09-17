@@ -162,6 +162,7 @@ Note
                                         - to remedy the challenge from off-policy learning of HRL (only sequential) by off-policy correction by re-labeling
                                     Cons:
                                         - 
+                                        - same state space for high/low policy + low policy taking additionl goal as a state from high
                                 }
                             - Hierarchical Reinforcement Learning with Advantage-Based Auxiliary Rewards (Li, 2019)
                                 {
@@ -180,6 +181,7 @@ Note
                                         -
                                     Cons:
                                         -
+                                        - same state space for high/low policy + low policy taking additionl goal as a state from high
                                 }
                             BT-RL
                                 - QL-BT: Enhancing behaviour tree design and implementation with Q-learning (Dey, 2013)
@@ -214,6 +216,7 @@ Note
                                     Cons: 
                                         - learned features from feature controlling encoder cannot be explicitly interpreted -> options from meta-controller is hard to be 
                                         - end-to-end training: can be handy but do not know its options/sub-goals explicitly.
+                                        - same state space for high/low policy + low policy taking additionl goal as a state from high
                                 }
                             - FeUdal Networks for Hierarchical Reinforcement Learning (Vezhnevets, 2017)
                                 {
@@ -225,6 +228,7 @@ Note
                                     Cons:
                                         - if action space is large, fitting U_t from RNN of the Worker side can be hard
                                         - Still do not have a clear understanding of what the goal intends to do in a human language
+                                        - same state space for high/low policy + low policy taking additionl goal as a state from high
                                 }
                             - MLSH (Frans, 2017)
                             - Chealsea Finn paper of meta-learning
