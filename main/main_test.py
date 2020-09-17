@@ -34,14 +34,13 @@ def _write_log(model_log, info):
     for name, item in info.items():
         model_log.writelines(name+":\t\t{0}\n".format(item))
 
-
 package_path = str(Path(__file__).resolve().parent.parent)
 model_path = package_path+"/models_baseline/"
 prefix = "twowheel/"
 model_dir = model_path + prefix
 os.makedirs(model_dir, exist_ok=True)
 
-train = True
+train = False
 load = not train
 separate = True
 scratch = True
