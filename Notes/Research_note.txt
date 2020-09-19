@@ -264,6 +264,16 @@ Note
                             - Sim-to-real robot learning from pixels with progressive nets (Rusu, 2017)
                     Optimization_Algorithm:
                         - SAC
+                            {
+                                Key:
+                                    - 
+                                Pros:
+                                    -
+                                Cons:
+                                    -
+                                Questions:
+                                    - Why use log_std clipping?
+                            }
                         - Learning Multi-Level Hierarchies with Hindsight (Levy, 2019)
                             -> Useful for hierarchical policies in a sequential manner, but not in the case of ours
             }
