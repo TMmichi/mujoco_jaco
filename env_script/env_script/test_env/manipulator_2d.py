@@ -104,10 +104,11 @@ class Transformation:
 
 class Manipulator2D(gym.Env):
     def __init__(self, action=None, n_robots=1, n_target=1, arm1=1, arm2=1, dt=0.01, tol=0.1, 
-                    episode_length=1500, reward_method=None, observation_method='relative', visualize=False):
+                    episode_length=1500, reward_method=None, observation_method='relative', policy_name='', visualize=False):
         self.env_boundary = 5
         self.action_type = action
         self.observation_method = observation_method
+        self.policy_name = policy_name
         self.visualize = visualize
         
         if self.action_type == 'linear':
@@ -317,7 +318,7 @@ class Manipulator2D(gym.Env):
 
 
     def reset(self):
-        print("  reset")
+        print("  "+self.policy_name+" reset")
         self.n_episodes = 0
         self.accum_reward = 0
         self.grasp = -1
@@ -484,16 +485,13 @@ class Manipulator2D(gym.Env):
                 reward -= 0.01
 
         x0, y0 = self.robot_tf.get_translation()
-        if abs(x0) > self.env_boundary:
-            print("Robot이 Boundary를 벗어남.")
-            done = True
-            reward = -100
-        elif abs(y0) > self.env_boundary:
-            print("Robot이 Boundary를 벗어남.")
+        if abs(x0) > self.env_boundary or abs(y0) > self.env_boundary:
+            print("\033[91m  ROBOT Out of Boundary\033[0m")
             done = True
             reward = -100
 
         if self.n_episodes > self.episode_length:
+            print("\033[91m  TIMES UP\033[0m")
             done = True
 
         if done:
