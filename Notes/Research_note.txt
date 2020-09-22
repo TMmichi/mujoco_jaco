@@ -120,6 +120,8 @@ Note
                     - reduce learning time compared to primitives that has same, whole action space
                     - weights coordinate each primitives: not concurrent -> execute multiple primitives at once // no latent embedding -> interpretable
                         -> explicit embedding: leads to explainable AI
+                    
+                    - Presents correlation on std of SAC and MCP in vanilla and Hierarchical structure
                 
                 To Do:
                     - create tasks which needs manipulator to get involved -> different action space
@@ -461,8 +463,15 @@ Note
                 1-7. Baselines
                 {
                     - Vanilla RL
-                    - 
-                    - 
+                    - MCP with goal conditioned 1-leveled primitives
+                    - HMCP
+                }
+                1-8. Variances from Probability Distribution
+                {
+                    Question:
+                        1. What is the meaning of standard deviation of a primitive distribution while learning?
+                            - In SAC: d
+                            - In MCP: To formulate the gaussian primitive, independently influcence on the composite distribution. No info on how to optimize std, used PPO to optimize both mean and std.
                 }
             }
             2. Title: Who cares who I am: Policy transfer between robots without fine-tuning
