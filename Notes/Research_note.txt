@@ -104,7 +104,7 @@ Note
                             - Progressive neural networks (Rusu, 2016)
                             - Sim-to-real robot learning from pixels with progressive nets (Rusu, 2017)
             }
-            1-1. Sub_task: test with simpler environment (multi-agent setting)
+            1-1. Sub_task: test with simpler environment
             {
                 Motivation:
                     - Shall let the users know what it's doing with human-interpretable information
