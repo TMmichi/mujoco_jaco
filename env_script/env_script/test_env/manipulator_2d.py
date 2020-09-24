@@ -167,7 +167,7 @@ class Manipulator2D(gym.Env):
         self.link2_len = arm2
         self.dt = dt
         self.tol = tol
-        self.target_speed = 1.2
+        self.target_speed = 0.25
         self.threshold = 0.3
         self.reward_method = reward_method
 
@@ -230,7 +230,7 @@ class Manipulator2D(gym.Env):
         
     def step(self, action, weight=[0,0,0], test=False):
         self.n_episodes += 1
-        #self._move_object(target_tf, linear, angular)
+        self._move_object(self.target_tf[0], self.target_speed, (random.random()-0.5)*2)
 
         if True in np.isnan(action):
             print("ACTION NAN WARNING")
@@ -239,12 +239,14 @@ class Manipulator2D(gym.Env):
         
         if self.action_type == 'linear':
             self.robot_tf.transform(
-                translation=(action[0]*self.dt, 0)
+                translation=(action[0]*self.dt, 0),
+                rotation=(random.random()-0.5)*2*self.dt
             )
             self.link1_tf_global = self.robot_tf * self.joint1_tf * self.link1_tf
             self.link2_tf_global = self.link1_tf_global * self.joint2_tf * self.link2_tf
         elif self.action_type == 'angular':
             self.robot_tf.transform(
+                translation=(0.2*self.dt, 0),
                 rotation=action[0]*self.dt
             )
             self.link1_tf_global = self.robot_tf * self.joint1_tf * self.link1_tf
@@ -324,7 +326,13 @@ class Manipulator2D(gym.Env):
         self.grasp = -1
 
         robot_rot = (random.random()-0.5)*2*3
-        self.robot_tf = Transformation(rotation=robot_rot)
+        self.robot_tf = Transformation(
+            translation=(
+                (random.random()-0.5)*2*(self.env_boundary-0.7),
+                (random.random()-0.5)*2*(self.env_boundary-0.7)
+            ),
+            rotation=robot_rot
+            )
         self.joint1_tf = Transformation()
         self.link1_tf = Transformation(translation=(self.link1_len, 0))
         self.joint2_tf = Transformation()
@@ -403,7 +411,7 @@ class Manipulator2D(gym.Env):
                 done = True 
                 print("\033[92m  SUCCEEDED\033[0m")
             else:
-                reward = -l * 0.01
+                reward = -l * 0.5
         elif self.action_type == 'angular':
             mat_target_robot = self.robot_tf.inv()*self.target_tf[0]
             ang = -np.arctan2(mat_target_robot.y(), mat_target_robot.x())
@@ -429,9 +437,9 @@ class Manipulator2D(gym.Env):
                 done = True
                 print("\033[92m  SUCCEEDED\033[0m")
             elif l >= 1:
-                reward = (-l - 2) * 0.01
+                reward = (-l - 2) * 0.125
             else:
-                reward = (-l - 1 - angle_diff/np.pi ) * 0.01
+                reward = (-l - 1 - angle_diff/np.pi ) * 0.125
         elif self.action_type == 'pickAndplace':
             if self.crash_check():
                 reward = -100
@@ -483,12 +491,15 @@ class Manipulator2D(gym.Env):
                                 reward = -(l+1+angle_diff/np.pi)
             if self.reward_method == 'time':
                 reward -= 0.01
-
+            
         x0, y0 = self.robot_tf.get_translation()
         if abs(x0) > self.env_boundary or abs(y0) > self.env_boundary:
             print("\033[91m  ROBOT Out of Boundary\033[0m")
             done = True
-            reward = -100
+            if self.action_type in ['fused', 'pickAndplace']:
+                reward = -100
+            else:
+                reward = -1
 
         if self.n_episodes > self.episode_length:
             print("\033[91m  TIMES UP\033[0m")
