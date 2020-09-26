@@ -95,7 +95,7 @@ if train:
                  'n_robots': n_robots, 'n_targets': n_target, 'episode_length': episode_length, 'reward_method': reward_method, 'observation_method': observation_method, 'ent_coef': ent_coef,\
                  'Additional Info': \
                      'Reset from random initial pos\n\
-                      \t\tAgent roates a bit\n\
+                      \t\tAgent rotates a bit\n\
                       \t\tTarget also moves\n\
                       \t\tDeeper network'}
                      
@@ -128,32 +128,26 @@ if train:
         composite_primitive_name='PoseControl'
         model = SAC_MULTI(policy=MlpPolicy_sac, env=None, _init_setup_model=False, composite_primitive_name=composite_primitive_name)
 
-        
-
         if action == 'fused':
             if observation_method == 'absolute':
-                aux1_obs_range = {'min': [-float('inf'), -float('inf'), -np.pi, -float('inf'), -float('inf'), -np.pi],
-                                'max': [float('inf'), float('inf'), np.pi, float('inf'), float('inf'), np.pi]
-                                }
+                aux1_obs_range = {'min': [-5, -5, -np.pi, -5, -5, -np.pi],
+                                  'max': [5, 5, np.pi, 5, 5, np.pi]}
                 aux1_obs_index = list(range(6))
                 aux1_act_range = {'min': [-1, -np.pi],
-                                'max': [1, np.pi]
-                                }
+                                  'max': [1, np.pi]}
                 aux1_act_index = list(range(2))
                 total_obs_dim = 6
                 prim_obs_index = list(range(6))
             elif observation_method == 'relative':
-                aux1_obs_range = {'min': [-float('inf'), -np.pi, -np.pi],
-                                'max': [float('inf'), np.pi, np.pi]
-                                }
+                aux1_obs_range = {'min': [-5, -np.pi, -np.pi],
+                                  'max': [5, np.pi, np.pi]}
                 aux1_obs_index = list(range(3))
                 aux1_act_range = {'min': [-1, -np.pi],
-                                'max': [1, np.pi]
-                                }
+                                  'max': [1, np.pi]}
                 aux1_act_index = list(range(2))
                 total_obs_dim = 3
                 prim_obs_index = list(range(2))
-                
+
             prim_name = 'aux1'
             model.construct_primitive_info(name=prim_name, freeze=False, level=1,
                                                 obs_range=aux1_obs_range, obs_index=aux1_obs_index,
@@ -179,13 +173,16 @@ if train:
                                                 layer_structure=None,
                                                 loaded_policy=SAC_MULTI._load_from_file(policy_zip_path), load_value=True)
         elif action == 'pickAndplace':
-            aux1_obs_range = {'min': [-float('inf'), -float('inf'), -np.pi, -float('inf'), -float('inf'), -np.pi],
-                            'max': [float('inf'), float('inf'), np.pi, float('inf'), float('inf'), np.pi]
-                            }
-            aux1_obs_index = list(range(6))
+            min_bound = [-5, -5, -np.pi, -5, -5, -np.pi, -1]
+            max_bound = [5, 5, np.pi, 5, 5, np.pi, n_target]
+            for _ in range(n_target):
+                min_bound.append([-5, -5, -np.pi, -5, -5, -np.pi])
+                max_bound.append([5, 5, np.pi, 5, 5, np.pi])
+            aux1_obs_range = {'min': min_bound,
+                              'max': max_bound}
+            aux1_obs_index = list(range(6 + 6 * n_target))
             aux1_act_range = {'min': [-1, -np.pi, -np.pi/4, -np.pi/4],
-                            'max': [1, np.pi, np.pi/4, np.pi/4]
-                            }
+                              'max': [1, np.pi, np.pi/4, np.pi/4]}
             aux1_act_index = list(range(4))
             total_obs_dim = 6 + 6 * n_target
             prim_obs_index = list(range(6))
@@ -216,23 +213,23 @@ if train:
         model.construct_primitive_info(name='weight', freeze=False, level=1,
                                             obs_range=0, obs_index=list(range(total_obs_dim)),
                                             act_range=0, act_index=list(range(number_of_primitives)),
-                                            layer_structure={'policy':[256, 256, 128, 128],'value':[256, 256, 128, 128]},
+                                            layer_structure={'policy':[256, 256, 256, 256, 128, 128],'value':[256, 256, 256, 256, 128, 128]},
                                             state_transformation_index=ST_index)
         total_time_step = 10000000
         learn_start = int(total_time_step*0.01)
         batch_size = 256
         model = SAC_MULTI.pretrainer_load(model=model, policy=MlpPolicy_sac, env=env, batch_size=batch_size,
                                             buffer_size=50000, learning_starts=learn_start, tensorboard_log=save_path, ent_coef='auto', verbose=1)
-        print("\033[91mTraining Starts\033[0m")
-        model_log = open(save_path+"/model_log.txt", 'w')
         info = {'trial': trial, 'action': action, 'layers': None, 'tolerance': tol, 'total time steps': total_time_step,\
-                 'n_robots': n_robots, 'n_targets': n_target, 'episode_length': episode_length, 'reward_method': reward_method, 'observation_method': observation_method,\
-                 'batch_size': batch_size,\
-                 'Additional Info': \
-                     '0.125* scaled rewards + linear prim trained with 0.125* scaled reward\n\
-                     \t\tValue from pre-trained primitive'}
+                'n_robots': n_robots, 'n_targets': n_target, 'episode_length': episode_length, \
+                'reward_method': reward_method, 'observation_method': observation_method, 'batch_size': batch_size,\
+                'Additional Info': \
+                    '0.125* scaled rewards + linear prim trained with 0.125* scaled reward\n\
+                    \t\tValue from pre-trained primitive'}
+        model_log = open(save_path+"/model_log.txt", 'w')
         _write_log(model_log, info)
         model_log.close()
+        print("\033[91mTraining Starts\033[0m")
         model.learn(total_time_step, save_interval=int(total_time_step*0.01), save_path=save_path)
         print("\033[91mTrain Finished\033[0m")
 

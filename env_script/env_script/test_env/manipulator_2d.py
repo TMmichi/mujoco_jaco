@@ -101,7 +101,6 @@ class Transformation:
         )
 
 
-
 class Manipulator2D(gym.Env):
     def __init__(self, action=None, n_robots=1, n_target=1, arm1=1, arm2=1, dt=0.01, tol=0.1, 
                     episode_length=1500, reward_method=None, observation_method='relative', policy_name='', visualize=False):
@@ -227,7 +226,7 @@ class Manipulator2D(gym.Env):
         self.n_episodes = 0
         self.accum_reward = 0
 
-        
+
     def step(self, action, weight=[0,0,0], test=False):
         self.n_episodes += 1
         self._move_object(self.target_tf[0], self.target_speed, (random.random()-0.5)*2)
