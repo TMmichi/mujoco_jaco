@@ -61,8 +61,3 @@ e = f = c * 0
 f += 1
 print(sess.run(e))
 print(sess.run(f))
-
-g = tf.concat([0,f],1)
-print(sess.run(g))
-
-tf.zero

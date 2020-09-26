@@ -433,7 +433,7 @@ class Manipulator2D(gym.Env):
                 if angle_diff > np.pi:
                     angle_diff = 2*np.pi - angle_diff
             if l < self.tol and angle_diff < self.tol:
-                reward = 100
+                reward = 250
                 done = True
                 print("\033[92m  SUCCEEDED\033[0m")
             elif l >= 1:
