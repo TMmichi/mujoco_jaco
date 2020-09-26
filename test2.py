@@ -2,34 +2,48 @@ import os
 import tensorflow as tf
 import numpy as np
 
-'''
+
 shapes = 5
+act_shape = 2
 with tf.variable_scope("hi"):
     x = tf.placeholder(shape=(None, shapes), dtype=tf.float32)
+    action = tf.placeholder(shape=(None, act_shape), dtype=tf.float32)
     x_in = tf.layers.flatten(x)
 
-    seive = np.zeros((shapes, 3), dtype=np.float32)
-    seive[0][0] = 1
-    seive[2][1] = 1
-    seive[3][2] = 1
+    sieve = np.eye(shapes, dtype=np.float32)
+    sieve[0][0] = 0
+    sieve[3][3] = 0
 
-    x1 = tf.matmul(x_in,seive)
+    act_sieve = np.zeros([act_shape, shapes], dtype=np.float32)
+    act_sieve[0][0] = 1
+    act_sieve[1][3] = 1
+
+    x1 = tf.matmul(x_in, sieve)
+    a_shaped = tf.matmul(action, act_sieve)
+    x11 = x1 + a_shaped
     x2 = tf.layers.dense(x1, 16)
     x_out = tf.layers.dense(x2, 4, activation='softmax')
 
     sess = tf.Session()
     sess.run(tf.global_variables_initializer())
 
-    inp = np.array([[2,5,8,0,11],[0,1,2,3,4]])
+    inp = np.array(
+            [[2,5,8,1,9],
+            [0,1,2,3,4]]
+        )
+    act = np.array(
+        [[10,20],
+        [30,40]]
+        )
 
-    c = sess.run(x_out, feed_dict={x:inp})
-    #d = sess.run(x1, feed_dict={x:inp})
-    print(x1.name)
-    print(c)
-    print(np.sum(c,axis=1,))
-print(tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='hi'))
+    #c = sess.run(x_out, feed_dict={x:inp})
+    
+    d = sess.run(x1, feed_dict={x:inp, action:act})
+    e = sess.run(x11, feed_dict={x:inp, action:act})
+    print(d)
+    print(e)
+
 '''
-
 weight = []
 for i in [1,10,100]:
     sub_ = []
@@ -65,4 +79,4 @@ print(sess.run(f))
 g = tf.concat([0,f],1)
 print(sess.run(g))
 
-tf.zero
+tf.zero'''

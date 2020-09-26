@@ -128,61 +128,96 @@ if train:
         composite_primitive_name='PoseControl'
         model = SAC_MULTI(policy=MlpPolicy_sac, env=None, _init_setup_model=False, composite_primitive_name=composite_primitive_name)
 
-        if observation_method == 'absolute':
-            aux1_obs_range = {'min': [-float('inf'), -float('inf'), -np.pi, -float('inf'), -float('inf'), -np.pi],
-                              'max': [float('inf'), float('inf'), np.pi, float('inf'), float('inf'), np.pi]
-                              }
-            aux1_obs_index = list(range(6))
-            aux1_act_range = {'min': [-1, -np.pi],
-                              'max': [1, np.pi]
-                              }
-            aux1_act_index = list(range(2))
-            total_obs_dim = 6
-            prim_obs_index = list(range(6))
-        elif observation_method == 'relative':
-            aux1_obs_range = {'min': [-float('inf'), -np.pi, -np.pi],
-                              'max': [float('inf'), np.pi, np.pi]
-                              }
-            aux1_obs_index = list(range(3))
-            aux1_act_range = {'min': [-1, -np.pi],
-                              'max': [1, np.pi]
-                              }
-            aux1_act_index = list(range(2))
-            total_obs_dim = 3
-            prim_obs_index = list(range(2))
-
-        prim_name = 'aux1'
-        model.construct_primitive_info(name=prim_name, freeze=False, level=1,
-                                            obs_range=aux1_obs_range, obs_index=aux1_obs_index,
-                                            act_range=aux1_act_range, act_index=aux1_act_index,
-                                            layer_structure={'policy':[256, 256, 128, 128]})
-
-        prim_name = 'linear'
-        prim_trial = 17
-        policy_num = 4750000
-        policy_zip_path = model_path+prefix+prim_name+"_separate_trial"+str(prim_trial)+"/policy_"+str(policy_num)+".zip"
-        model.construct_primitive_info(name=prim_name, freeze=True, level=1,
-                                            obs_range=None, obs_index=prim_obs_index,
-                                            act_range=None, act_index=[0],
-                                            layer_structure=None,
-                                            loaded_policy=SAC_MULTI._load_from_file(policy_zip_path), load_value=True)
         
-        prim_name = 'angular'
-        prim_trial = 8
-        policy_num = 5000000
-        policy_zip_path = model_path+prefix+prim_name+"_separate_trial"+str(prim_trial)+"/policy_"+str(policy_num)+".zip"
-        model.construct_primitive_info(name=prim_name, freeze=True, level=1,
-                                            obs_range=None, obs_index=prim_obs_index,
-                                            act_range=None, act_index=[1],
-                                            layer_structure=None,
-                                            loaded_policy=SAC_MULTI._load_from_file(policy_zip_path), load_value=True)
 
-        total_obs_dim = 6
-        number_of_primitives = 3
+        if action == 'fused':
+            if observation_method == 'absolute':
+                aux1_obs_range = {'min': [-float('inf'), -float('inf'), -np.pi, -float('inf'), -float('inf'), -np.pi],
+                                'max': [float('inf'), float('inf'), np.pi, float('inf'), float('inf'), np.pi]
+                                }
+                aux1_obs_index = list(range(6))
+                aux1_act_range = {'min': [-1, -np.pi],
+                                'max': [1, np.pi]
+                                }
+                aux1_act_index = list(range(2))
+                total_obs_dim = 6
+                prim_obs_index = list(range(6))
+            elif observation_method == 'relative':
+                aux1_obs_range = {'min': [-float('inf'), -np.pi, -np.pi],
+                                'max': [float('inf'), np.pi, np.pi]
+                                }
+                aux1_obs_index = list(range(3))
+                aux1_act_range = {'min': [-1, -np.pi],
+                                'max': [1, np.pi]
+                                }
+                aux1_act_index = list(range(2))
+                total_obs_dim = 3
+                prim_obs_index = list(range(2))
+                
+            prim_name = 'aux1'
+            model.construct_primitive_info(name=prim_name, freeze=False, level=1,
+                                                obs_range=aux1_obs_range, obs_index=aux1_obs_index,
+                                                act_range=aux1_act_range, act_index=aux1_act_index,
+                                                layer_structure={'policy':[256, 256, 128, 128]})
+            prim_name = 'linear'
+            prim_trial = 17
+            policy_num = 4750000
+            policy_zip_path = model_path+prefix+prim_name+"_separate_trial"+str(prim_trial)+"/policy_"+str(policy_num)+".zip"
+            model.construct_primitive_info(name=prim_name, freeze=True, level=1,
+                                                obs_range=None, obs_index=prim_obs_index,
+                                                act_range=None, act_index=[0],
+                                                layer_structure=None,
+                                                loaded_policy=SAC_MULTI._load_from_file(policy_zip_path), load_value=True)
+            
+            prim_name = 'angular'
+            prim_trial = 8
+            policy_num = 5000000
+            policy_zip_path = model_path+prefix+prim_name+"_separate_trial"+str(prim_trial)+"/policy_"+str(policy_num)+".zip"
+            model.construct_primitive_info(name=prim_name, freeze=True, level=1,
+                                                obs_range=None, obs_index=prim_obs_index,
+                                                act_range=None, act_index=[1],
+                                                layer_structure=None,
+                                                loaded_policy=SAC_MULTI._load_from_file(policy_zip_path), load_value=True)
+        elif action == 'pickAndplace':
+            aux1_obs_range = {'min': [-float('inf'), -float('inf'), -np.pi, -float('inf'), -float('inf'), -np.pi],
+                            'max': [float('inf'), float('inf'), np.pi, float('inf'), float('inf'), np.pi]
+                            }
+            aux1_obs_index = list(range(6))
+            aux1_act_range = {'min': [-1, -np.pi, -np.pi/4, -np.pi/4],
+                            'max': [1, np.pi, np.pi/4, np.pi/4]
+                            }
+            aux1_act_index = list(range(4))
+            total_obs_dim = 6 + 6 * n_target
+            prim_obs_index = list(range(6))
+
+            prim_name = 'aux1'
+            model.construct_primitive_info(name=prim_name, freeze=False, level=1,
+                                                obs_range=aux1_obs_range, obs_index=aux1_obs_index,
+                                                act_range=aux1_act_range, act_index=aux1_act_index,
+                                                layer_structure={'policy':[256, 256, 256, 256, 128, 128]})
+
+            prim_name = 'PoseControl'
+            prim_trial = 1
+            policy_num = 1
+            prim_obs_index = list(range(6))
+            policy_zip_path = model_path+prefix+prim_name+"_auxilary_trial"+str(prim_trial)+"/policy_"+str(policy_num)+".zip"
+            model.construct_primitive_info(name=prim_name, freeze=True, level=1,
+                                                obs_range=None, obs_index=prim_obs_index,
+                                                act_range=None, act_index=[0,1],
+                                                layer_structure=None,
+                                                loaded_policy=SAC_MULTI._load_from_file(policy_zip_path), load_value=True)
+
+        if action == 'pickAndplace':
+            number_of_primitives = 2
+            ST_index = [3,4,5]
+        else:
+            number_of_primitives = 3
+            ST_index = None
         model.construct_primitive_info(name='weight', freeze=False, level=1,
                                             obs_range=0, obs_index=list(range(total_obs_dim)),
                                             act_range=0, act_index=list(range(number_of_primitives)),
-                                            layer_structure={'policy':[256, 256, 128, 128],'value':[256, 256, 128, 128]})
+                                            layer_structure={'policy':[256, 256, 128, 128],'value':[256, 256, 128, 128]},
+                                            state_transformation_index=ST_index)
         total_time_step = 10000000
         learn_start = int(total_time_step*0.01)
         batch_size = 256
