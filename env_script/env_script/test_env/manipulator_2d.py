@@ -229,7 +229,6 @@ class Manipulator2D(gym.Env):
 
     def step(self, action, weight=[0,0,0], test=False):
         self.n_episodes += 1
-        self._move_object(self.target_tf[0], self.target_speed, (random.random()-0.5)*2)
 
         if True in np.isnan(action):
             print("ACTION NAN WARNING")
@@ -243,6 +242,7 @@ class Manipulator2D(gym.Env):
             )
             self.link1_tf_global = self.robot_tf * self.joint1_tf * self.link1_tf
             self.link2_tf_global = self.link1_tf_global * self.joint2_tf * self.link2_tf
+            self._move_object(self.target_tf[0], self.target_speed, (random.random()-0.5)*2)
         elif self.action_type == 'angular':
             self.robot_tf.transform(
                 translation=(0.2*self.dt, 0),
@@ -250,6 +250,7 @@ class Manipulator2D(gym.Env):
             )
             self.link1_tf_global = self.robot_tf * self.joint1_tf * self.link1_tf
             self.link2_tf_global = self.link1_tf_global * self.joint2_tf * self.link2_tf
+            self._move_object(self.target_tf[0], self.target_speed, (random.random()-0.5)*2)
         elif self.action_type == 'fused':
             self.robot_tf.transform(
                 translation=(action[0]*self.dt, 0),
@@ -257,6 +258,7 @@ class Manipulator2D(gym.Env):
             )
             self.link1_tf_global = self.robot_tf * self.joint1_tf * self.link1_tf
             self.link2_tf_global = self.link1_tf_global * self.joint2_tf * self.link2_tf
+            self._move_object(self.target_tf[0], self.target_speed, (random.random()-0.5)*2)
         elif self.action_type == 'pickAndplace':
             self.robot_tf.transform(
                 translation=(action[0]*self.dt, 0),
@@ -583,6 +585,7 @@ class Manipulator2D(gym.Env):
             for target_place_tf in self.target_place_tf:
                 state = np.append(state, target_place_tf.get_translation())
                 state = np.append(state, target_place_tf.euler_angle())
+            return state
 
 
     def seed(self, seed = None):
