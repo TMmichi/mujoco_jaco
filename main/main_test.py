@@ -42,7 +42,7 @@ os.makedirs(model_dir, exist_ok=True)
 
 train = True
 load = not train
-separate = False
+separate = True
 scratch = True
 test = False and not separate
 auxilary = True and not separate
@@ -50,8 +50,10 @@ auxilary = True and not separate
 if train:
     if separate:
         action_option = ['linear', 'angular', 'fused', 'pickAndplace']
+        observation_option = ['absolute', 'relative']
+        reward_option = ['target', 'time', None]
         action = action_option[0]
-        trial = 19
+        trial = 24
 
         prefix2 = action+"_separate_trial"+str(trial)
         save_path = model_dir+prefix2
@@ -61,44 +63,43 @@ if train:
         n_robots = 1
         n_target = 1
         episode_length = 2000
-        reward_method = 'target'
-        #reward_method = 'time'
-        #reward_method = None
-        observation_method = 'absolute'
-        #observation_method = 'relative'
+        reward_method = reward_option[0]
+        observation_method = observation_option[0]
         env = Manipulator2D(action=action, n_robots=n_robots, n_target=n_target, tol=tol, 
                         episode_length=episode_length, reward_method=reward_method, observation_method=observation_method,
                         policy_name=prefix2, visualize=False)
 
-        #layers = {"policy": [256, 256, 128], "value": [256, 256, 128]}
-        #layers = {"policy": [256, 256, 256], "value": [256, 256, 256]}
-        #layers = {"policy": [64, 64, 64, 32], "value": [64, 64, 64, 32]}
-        #layers = {"policy": [64, 64, 32, 32], "value": [64, 64, 32, 32]}
-        #layers = {"policy": [256, 256, 128, 128], "value": [256, 256, 128, 128]}
-        layers = {"policy": [128, 128, 64, 64, 32], "value": [128, 128, 64, 64, 32]}
-        #layers = {"policy": [256, 256, 128, 128, 128, 64, 64], "value": [256, 256, 128, 128, 128, 64 ,64]}
+        layer_structure_list = [[256, 256, 128, 128, 128, 64, 64], \
+                                [256, 256, 128, 128, 64], [128, 128, 64, 64, 32], [64, 128, 256, 128, 64], \
+                                [256, 256, 128, 128], [128, 64, 64, 32], [64, 64, 32, 32], \
+                                [512, 256, 256], [256, 256, 128], [128, 128, 128], \
+                                [256, 256], [128, 128]]
+        layer_structure = layer_structure_list[3]
+        layers = {"policy": layer_structure, "value": layer_structure}
+
         total_time_step = 5000000
         learn_start = int(total_time_step*0.05)
         ent_coef = 'auto'
         if scratch:
             model = SAC_MULTI(MlpPolicy_sac, env, learning_starts=learn_start, layers=layers, tensorboard_log=save_path, ent_coef=ent_coef, verbose=1)
         else:
-            policy_num = 3750000
-            path = save_path+'/policy_'+str(policy_num)
+            load_policy_num = 3750000
+            path = save_path+'/policy_'+str(load_policy_num)
             print("loaded_policy_path: ",path)
             model = SAC_MULTI.load(path, env=env, learning_starts=10000, layers=layers, tensorboard_log=save_path, ent_coef=ent_coef)
 
         print("\033[91mTraining Starts, action: {0}\033[0m".format(action))
         if scratch:
-            model_log = open(save_path+"/model_log.txt", 'w')
             info = {'trial': trial, 'action': action, 'layers': layers, 'tolerance': tol, 'total time steps': total_time_step,\
                  'n_robots': n_robots, 'n_targets': n_target, 'episode_length': episode_length, 'reward_method': reward_method, 'observation_method': observation_method, 'ent_coef': ent_coef,\
                  'Additional Info': \
                      'Reset from random initial pos\n\
-                      \t\tAgent roates a bit\n\
-                      \t\tTarget also moves\n\
-                      \t\tDeeper network'}
-                     
+                      \t\tAgent roates a bit less\n\
+                      \t\tTarget also moves (randomly)\n\
+                      \t\tA shaped network\n\
+                      \t\tPositive reward\n\
+                      \t\tInitial pose a bit inward'}
+            model_log = open(save_path+"/model_log.txt", 'w')
             _write_log(model_log, info)
             model_log.close()
             model.learn(total_time_step, save_interval=int(total_time_step*0.05), save_path=save_path)
@@ -107,8 +108,10 @@ if train:
         print("\033[91mTraining finished\033[0m")
 
     elif auxilary:
-        trial = 20
+        trial = 21
         action_option = ['linear', 'angular', 'fused', 'pickAndplace']
+        observation_option = ['absolute', 'relative']
+        reward_option = ['target', 'time', None]
         action = action_option[2]
         prefix2 = action+"_auxilary_trial"+str(trial)
         save_path = model_dir+prefix2
@@ -118,11 +121,8 @@ if train:
         n_robots = 1
         n_target = 1
         episode_length = 2000
-        reward_method = 'target'
-        #reward_method = 'time'
-        #reward_method = None
-        observation_method = 'absolute'
-        #observation_method = 'relative'
+        reward_method = reward_option[0]
+        observation_method = observation_option[0]
         env = Manipulator2D(action=action, n_robots=n_robots, n_target=n_target, tol=tol, 
                         episode_length=episode_length, reward_method=reward_method, observation_method=observation_method, policy_name=prefix2)
         composite_primitive_name='PoseControl'
@@ -130,12 +130,10 @@ if train:
 
         if observation_method == 'absolute':
             aux1_obs_range = {'min': [-float('inf'), -float('inf'), -np.pi, -float('inf'), -float('inf'), -np.pi],
-                              'max': [float('inf'), float('inf'), np.pi, float('inf'), float('inf'), np.pi]
-                              }
+                              'max': [float('inf'), float('inf'), np.pi, float('inf'), float('inf'), np.pi]}
             aux1_obs_index = list(range(6))
             aux1_act_range = {'min': [-1, -np.pi],
-                              'max': [1, np.pi]
-                              }
+                              'max': [1, np.pi]}
             aux1_act_index = list(range(2))
             total_obs_dim = 6
             prim_obs_index = list(range(6))
@@ -158,14 +156,15 @@ if train:
                                             layer_structure={'policy':[256, 256, 128, 128]})
 
         prim_name = 'linear'
-        prim_trial = 17
-        policy_num = 4750000
+        prim_trial = 19
+        policy_num = 5000000
         policy_zip_path = model_path+prefix+prim_name+"_separate_trial"+str(prim_trial)+"/policy_"+str(policy_num)+".zip"
         model.construct_primitive_info(name=prim_name, freeze=True, level=1,
                                             obs_range=None, obs_index=prim_obs_index,
                                             act_range=None, act_index=[0],
                                             layer_structure=None,
-                                            loaded_policy=SAC_MULTI._load_from_file(policy_zip_path), load_value=True)
+                                            loaded_policy=SAC_MULTI._load_from_file(policy_zip_path),
+                                            load_value=True)
         
         prim_name = 'angular'
         prim_trial = 8
@@ -175,7 +174,8 @@ if train:
                                             obs_range=None, obs_index=prim_obs_index,
                                             act_range=None, act_index=[1],
                                             layer_structure=None,
-                                            loaded_policy=SAC_MULTI._load_from_file(policy_zip_path), load_value=True)
+                                            loaded_policy=SAC_MULTI._load_from_file(policy_zip_path), 
+                                            load_value=True)
 
         total_obs_dim = 6
         number_of_primitives = 3
@@ -195,7 +195,9 @@ if train:
                  'batch_size': batch_size,\
                  'Additional Info': \
                      '0.125* scaled rewards + linear prim trained with 0.125* scaled reward\n\
-                     \t\tValue from pre-trained primitive'}
+                     \t\tPrimitives unbounded\n\
+                     \t\tValue from pre-trained primitive\n\
+                     \t\tWeight activation sigmoid'}
         _write_log(model_log, info)
         model_log.close()
         model.learn(total_time_step, save_interval=int(total_time_step*0.01), save_path=save_path)
@@ -291,30 +293,27 @@ if train:
 if load:
     if separate:
         action_list = ['linear', 'angular', 'fused', 'pickAndplace']
+        observation_option = ['absolute', 'relative']
+        reward_option = ['target', 'time', None]
         action_type = action_list[0]
-        trial = 18
+        trial = 23
 
         tol = 0.1
         n_robots = 1
         n_target = 1
         episode_length = 1000
-        reward_method = 'target'
-        #reward_method = 'time'
-        #reward_method = None
-        observation_method = 'absolute'
-        #observation_method = 'relative'
+        reward_method = reward_option[0]
+        observation_method = observation_option[0]
         env = Manipulator2D(action=action_type, n_robots=n_robots, n_target=n_target, tol=tol, 
                         episode_length=episode_length, reward_method=reward_method, observation_method=observation_method)
 
-        policy_num = 5000000 #1500000
-        #layers = {"policy": [256, 256, 128, 128, 64], "value": [256, 256, 128, 128, 64]}
-        layers = {"policy": [256, 256, 128, 128], "value": [256, 256, 128, 128]}
-        #layers = {"policy": [128, 64, 64, 32], "value": [128, 64, 64, 32]}
-        #layers = {"policy": [64, 64, 32, 32], "value": [64, 64, 32, 32]}
-        #layers = {"policy": [256, 256, 128], "value": [256, 256, 128]}
-        #layers = {"policy": [128, 128, 128], "value": [128, 128, 128]}
-        #layers = {"policy": [128, 128], "value": [128, 128]}
-        #layers = {"policy": [256, 256], "value": [256, 256]}
+        policy_num = 250000
+        layer_structure_list = [[256, 256, 128, 128, 64], [128, 128, 64, 64, 32], [64, 128, 256, 128, 64], \
+                                [256, 256, 128, 128], [128, 64, 64, 32], [64, 64, 32, 32], \
+                                [512, 256, 256], [256, 256, 128], [128, 128, 128], \
+                                [256, 256], [128, 128]]
+        layer_structure = layer_structure_list[5]
+        layers = {"policy": layer_structure, "value": layer_structure}
 
         prefix2 = action_type+"_separate_trial"+str(trial)
         model = SAC_MULTI.load(model_path+prefix+prefix2+"/policy_"+str(policy_num), layers=layers)
@@ -346,19 +345,18 @@ if load:
 
     else:
         action_list = ['linear', 'angular', 'fused', 'pickAndplace']
+        observation_option = ['absolute', 'relative']
+        reward_option = ['target', 'time', None]
         action_type = action_list[2]
-        trial = 20
+        trial = 23
         prefix2 = action_type+"_auxilary_trial"+str(trial)
 
         tol = 0.1
         n_robots = 1
         n_target = 1
-        episode_length = 2000
-        reward_method = 'target'
-        #reward_method = 'time'
-        #reward_method = None
-        observation_method = 'absolute'
-        #observation_method = 'relative'
+        episode_length = 1000
+        reward_method = reward_option[0]
+        observation_method = observation_option[0]
         env = Manipulator2D(action=action_type, n_robots=n_robots, n_target=n_target, tol=tol, 
                         episode_length=episode_length, reward_method=reward_method, observation_method=observation_method)
         composite_primitive_name='PoseControl'
@@ -368,7 +366,7 @@ if load:
             observation_index = list(range(6))
         elif observation_method == 'relative':
             observation_index = list(range(3))
-        policy_num = 100000
+        policy_num = 250000
         policy_zip_path = model_path+prefix+prefix2+"/policy_"+str(policy_num)+".zip"
         model.construct_primitive_info(name=None, freeze=True, level=1,
                                             obs_range=None, obs_index=observation_index,
@@ -395,8 +393,10 @@ if load:
                 act_lin = np.tanh((coef00*prim_act['level1_aux1'][0][0] + coef1*prim_act['level1_linear/level0'][0][0]) / (coef00+coef1))
                 act_ang = np.tanh((coef01*prim_act['level1_aux1'][0][1] + coef2*prim_act['level1_angular/level0'][0][0]) / (coef01+coef2))
                 act_ang = act_ang * np.pi
-                #weight=[[0,0,0]]
+                real_weight_lin = [coef00/(coef00+coef1), coef1/(coef00+coef1)]
+                real_weight_ang = [coef01/(coef01+coef2), coef2/(coef01+coef2)]
                 if n_iter % 1 == 0:
+                    print()
                     print("Mu:",end='\t')
                     for name, item in prim_act.items():
                         print(name, item, end='\t')
@@ -405,9 +405,9 @@ if load:
                     for name, item in prim_log_std.items():
                         print(name, item, end='\t')
                     print()
-                    #print("action:\t",prim_act)
-                    #print("log_std:",prim_log_std)
                     print("action:\t[{0: 2.3f} {1: 2.3f}]".format(action[0],action[1]),"\tweight:\t",weight[0])
+                    print("Real weight: ",real_weight_lin, real_weight_ang)
+                    
                 obs, reward, done, _ = env.step(action, weight[0], test=True)
                 if done:
                     break

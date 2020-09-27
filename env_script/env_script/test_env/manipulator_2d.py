@@ -170,6 +170,7 @@ class Manipulator2D(gym.Env):
         self.target_speed = 0.25
         self.threshold = 0.3
         self.reward_method = reward_method
+        self.reward_sign = 'positive'
 
         self.robot_geom = np.array(
             [
@@ -239,11 +240,11 @@ class Manipulator2D(gym.Env):
         if self.action_type == 'linear':
             self.robot_tf.transform(
                 translation=(action[0]*self.dt, 0),
-                rotation=(random.random()-0.5)*2*self.dt
+                rotation=(random.random()-0.5)*0.5*self.dt
             )
             self.link1_tf_global = self.robot_tf * self.joint1_tf * self.link1_tf
             self.link2_tf_global = self.link1_tf_global * self.joint2_tf * self.link2_tf
-            self._move_object(self.target_tf[0], self.target_speed, (random.random()-0.5)*2)
+            self._move_object(self.target_tf[0], (random.random()-0.5), (random.random()-0.5)*2)
         elif self.action_type == 'angular':
             self.robot_tf.transform(
                 translation=(0.2*self.dt, 0),
@@ -251,7 +252,7 @@ class Manipulator2D(gym.Env):
             )
             self.link1_tf_global = self.robot_tf * self.joint1_tf * self.link1_tf
             self.link2_tf_global = self.link1_tf_global * self.joint2_tf * self.link2_tf
-            self._move_object(self.target_tf[0], self.target_speed, (random.random()-0.5)*2)
+            self._move_object(self.target_tf[0], (random.random()-0.5), (random.random()-0.5)*2)
         elif self.action_type == 'fused':
             self.robot_tf.transform(
                 translation=(action[0]*self.dt, 0),
@@ -330,8 +331,8 @@ class Manipulator2D(gym.Env):
         robot_rot = (random.random()-0.5)*2*3
         self.robot_tf = Transformation(
             translation=(
-                (random.random()-0.5)*2*(self.env_boundary-0.7),
-                (random.random()-0.5)*2*(self.env_boundary-0.7)
+                (random.random()-0.5)*2*(self.env_boundary-1.5),
+                (random.random()-0.5)*2*(self.env_boundary-1.5)
             ),
             rotation=robot_rot
             )
@@ -364,8 +365,8 @@ class Manipulator2D(gym.Env):
                 for i in range(self.n_target):
                     target_tf = Transformation(
                         translation=(
-                            (random.random()-0.5)*2*(self.env_boundary-0.7),
-                            (random.random()-0.5)*2*(self.env_boundary-0.7)
+                            (random.random()-0.5)*2*(self.env_boundary-1.5),
+                            (random.random()-0.5)*2*(self.env_boundary-1.5)
                         ),
                         rotation=target_rot
                     )
@@ -373,8 +374,8 @@ class Manipulator2D(gym.Env):
             elif choice == 0:
                 self.target_tf = [0]*self.n_target
                 for i in range(self.n_target):
-                    x = (random.random()-0.5)*2*(self.env_boundary-0.7)
-                    y = np.clip(np.tan(robot_rot)*x,-self.env_boundary+0.7,self.env_boundary-0.7)
+                    x = (random.random()-0.5)*2*(self.env_boundary-1.5)
+                    y = np.clip(np.tan(robot_rot)*x,-self.env_boundary+1,self.env_boundary-1)
                     target_tf = Transformation(translation=(x, y), rotation=target_rot)
                     self.target_tf[i] = target_tf
 
@@ -408,12 +409,20 @@ class Manipulator2D(gym.Env):
             target_vector = np.dot(mat_target_robot.get_translation(), np.array([1,0])) * np.array([1,0])
             #l = np.linalg.norm(mat_target_robot.get_translation())
             l = np.linalg.norm(target_vector)
-            if l < self.tol: 
-                reward = 100
-                done = True 
-                print("\033[92m  SUCCEEDED\033[0m")
+            if self.reward_sign == 'negative':
+                if l < self.tol: 
+                    reward = 100
+                    done = True 
+                    print("\033[92m  SUCCEEDED\033[0m")
+                else:
+                    reward = -l * 0.5
             else:
-                reward = -l * 0.5
+                if l < self.tol:
+                    reward = 100
+                    done = True 
+                    print("\033[92m  SUCCEEDED\033[0m")
+                else:
+                    reward = np.exp(-(l-self.tol)**0.25)*0.1
         elif self.action_type == 'angular':
             mat_target_robot = self.robot_tf.inv()*self.target_tf[0]
             ang = -np.arctan2(mat_target_robot.y(), mat_target_robot.x())
@@ -434,14 +443,22 @@ class Manipulator2D(gym.Env):
                 angle_diff = abs(a_robot) + abs(a_target)
                 if angle_diff > np.pi:
                     angle_diff = 2*np.pi - angle_diff
-            if l < self.tol and angle_diff < self.tol:
-                reward = 250
-                done = True
-                print("\033[92m  SUCCEEDED\033[0m")
-            elif l >= 1:
-                reward = (-l - 2) * 0.125
+            if self.reward_sign == 'negative':
+                if l < self.tol and angle_diff < self.tol:
+                    reward = 100
+                    done = True
+                    print("\033[92m  SUCCEEDED\033[0m")
+                elif l >= 1:
+                    reward = (-l - 2) * 0.125
+                else:
+                    reward = (-l - 1 - angle_diff/np.pi ) * 0.125
             else:
-                reward = (-l - 1 - angle_diff/np.pi ) * 0.125
+                if l < self.tol and angle_diff < self.tol:
+                    reward = 100
+                    done = True
+                    print("\033[92m  SUCCEEDED\033[0m")      
+                else:
+                    reward = np.exp(-(l-self.tol)**2*0.25)*0.05 + np.exp(-(angle_diff/np.pi/max(l,1))**2*0.25)*0.05
         elif self.action_type == 'pickAndplace':
             if self.crash_check():
                 reward = -100
@@ -501,7 +518,7 @@ class Manipulator2D(gym.Env):
             if self.action_type in ['fused', 'pickAndplace']:
                 reward = -100
             else:
-                reward = -1
+                reward = 0
 
         if self.n_episodes > self.episode_length:
             print("\033[91m  TIMES UP\033[0m")
