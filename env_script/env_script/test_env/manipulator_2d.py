@@ -1,14 +1,14 @@
-import gym
-from gym import core, spaces
-from gym.utils import seeding
+import random
 import numpy as np
+
+import gym
+from gym import spaces
+from gym.utils import seeding
+
 import matplotlib
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 from matplotlib import animation
-import random
-
-#from .ou_noise import OUNoise
 
 
 class Transformation:
@@ -104,7 +104,8 @@ class Transformation:
 
 class Manipulator2D(gym.Env):
     def __init__(self, action=None, n_robots=1, n_target=1, arm1=1, arm2=1, dt=0.01, tol=0.1, 
-                    episode_length=1500, reward_method=None, observation_method='relative', her=False, policy_name='', visualize=False):
+                    episode_length=1500, reward_method=None, observation_method='relative', 
+                    her=False, policy_name='', visualize=False):
         self.env_boundary = 5
         self.action_type = action
         self.observation_method = observation_method
@@ -259,7 +260,7 @@ class Manipulator2D(gym.Env):
             )
             self.link1_tf_global = self.robot_tf * self.joint1_tf * self.link1_tf
             self.link2_tf_global = self.link1_tf_global * self.joint2_tf * self.link2_tf
-            self._move_object(self.target_tf[0], (random.random()-0.5), (random.random()-0.5)*2)
+            #self._move_object(self.target_tf[0], (random.random()-0.5), (random.random()-0.5)*2)
         elif self.action_type == 'angular':
             self.robot_tf.transform(
                 translation=(0.2*self.dt, 0),
@@ -275,7 +276,7 @@ class Manipulator2D(gym.Env):
             )
             self.link1_tf_global = self.robot_tf * self.joint1_tf * self.link1_tf
             self.link2_tf_global = self.link1_tf_global * self.joint2_tf * self.link2_tf
-            self._move_object(self.target_tf[0], self.target_speed, (random.random()-0.5)*2)
+            #self._move_object(self.target_tf[0], self.target_speed, (random.random()-0.5)*2)
         elif self.action_type == 'pickAndplace':
             self.robot_tf.transform(
                 translation=(action[0]*self.dt, 0),
@@ -499,7 +500,7 @@ class Manipulator2D(gym.Env):
                     if l < self.tol and angle_diff < self.tol:
                         reward = 100
                         done = True
-                        print("\033[92m  SUCCEEDED\033[0m")      
+                        print("\033[92m  SUCCEEDED\033[0m")
                     else:
                         reward = np.exp(-(l-self.tol)**2*0.25)*0.05 + np.exp(-(angle_diff/np.pi/max(l,1))**2*0.25)*0.05
         elif self.action_type == 'pickAndplace':
