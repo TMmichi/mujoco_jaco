@@ -2,7 +2,7 @@ Layers:
 	policy:	[512, 256, 256]
 	value:	[512, 256, 256]
 
-trial:		27
+trial:		31
 action:		linear
 tolerance:		0.1
 total time steps:		50000000
@@ -14,7 +14,7 @@ observation_method:		absolute
 ent_coef:		auto
 Additional Info:		Reset from random initial pos
                         		Agent roates a bit less
-                        		Target stay in position
+                        		Target does not stay in position
                         		shallower network
                         		Positive reward
                         		Initial pose a bit inward

@@ -1,0 +1,17 @@
+Layers:
+	policy:	[512, 256, 256]
+	value:	[512, 256, 256]
+
+trial:		6
+action:		fused
+tolerance:		0.1
+total time steps:		5000000
+n_robots:		1
+n_targets:		1
+episode_length:		2000
+reward_method:		target
+observation_method:		absolute
+ent_coef:		auto
+Additional Info:		Reset from random initial pos
+                      		Shallower+Wider network
+                      		Positive reward

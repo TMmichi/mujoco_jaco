@@ -1,4 +1,4 @@
-trial:		4
+trial:		18
 action:		fused
 layers:		None
 tolerance:		0.1
@@ -9,5 +9,6 @@ episode_length:		2000
 reward_method:		target
 observation_method:		absolute
 batch_size:		256
-Additional Info:		0.01* scaled rewards + linear prim trained with 0.01* scaled reward
-	-> Exploded due to the large outlier from logp_pi with ext high log_std_MCP
+Additional Info:		0.5* scaled rewards + linear prim trained with 0.5* scaled reward
+				Log std clipping @ primitive side
+				non-log std value from primitive network

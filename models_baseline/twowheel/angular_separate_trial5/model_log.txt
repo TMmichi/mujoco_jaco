@@ -1,0 +1,16 @@
+Layers:
+	policy:	[64, 64, 32, 32]
+	value:	[64, 64, 32, 32]
+
+trial:		5
+action:		angular
+tolerance:		0.1
+total time steps:		5000000
+n_robots:		1
+n_targets:		1
+episode_length:		2000
+reward_method:		target
+observation_method:		absolute
+ent_coef:		auto
+Additional Info:		Does the scaled reward affects scale of mu and log std? -> reward to 0.01*
+                      		log_std clipping max increased to 10
