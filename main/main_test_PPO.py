@@ -54,7 +54,7 @@ if __name__ == '__main__':
     model_dir = model_path + prefix
     os.makedirs(model_dir, exist_ok=True)
 
-    train = False
+    train = True
     load = not train
     separate = True
     scratch = True
@@ -63,12 +63,11 @@ if __name__ == '__main__':
 
     if train:
         if separate:
-            num_cpu = 14
             action_option = ['linear', 'angular', 'fused', 'pickAndplace']
             observation_option = ['absolute', 'relative']
             reward_option = ['target', 'time', None]
             action = action_option[0]
-            trial = 26
+            trial = 35
 
             prefix2 = action+"_separate_trial"+str(trial)
             save_path = model_dir+prefix2
@@ -83,6 +82,7 @@ if __name__ == '__main__':
             info_dict = {'action': action, 'n_robots': n_robots, 'n_target':n_target, 'tol':tol, 
                         'episode_length':episode_length, 'reward_method':reward_method, 'observation_method':observation_method, 
                         'policy_name':prefix2}
+            num_cpu = 16
             env = SubprocVecEnv([make_env(i, **info_dict) for i in range(num_cpu)])
             
             layer_structure_list = [[256, 256, 128, 128, 128, 64, 64], \
@@ -95,15 +95,15 @@ if __name__ == '__main__':
             policy_kwargs={'net_arch': [net_arch], 'act_fun': tf.nn.relu, 'squash':True}
 
             total_time_step = 50000000
-            learn_start = int(total_time_step*0.05)
-            ent_coef = 'auto'
+            model_dict = {'learning_rate': 1.5e-4, 'gamma':0.99, 'nminibatches': 256, 'cliprange': 0.02,
+                            'tensorboard_log': save_path, 'policy_kwargs': policy_kwargs}
             if scratch:
-                model = PPO2(MlpPolicy, env, tensorboard_log=save_path, policy_kwargs=policy_kwargs)
+                model = PPO2(MlpPolicy, env, **model_dict)
             else:
                 load_policy_num = 29958658
                 path = save_path+'/policy_'+str(load_policy_num)
                 print("loaded_policy_path: ",path)
-                model = PPO2.load(path, env=env, tensorboard_log=save_path, policy_kwargs=policy_kwargs)
+                model = PPO2.load(path, env=env, **model_dict)
 
             print("\033[91mTraining Starts, action: {0}\033[0m".format(action))
             if scratch:
@@ -112,12 +112,13 @@ if __name__ == '__main__':
                     'Additional Info': \
                         'Reset from random initial pos\n\
                         \t\tAgent roates a bit less\n\
-                        \t\tTarget stay in position\n\
+                        \t\tTarget does not stay in position\n\
                         \t\tshallower network\n\
                         \t\tPositive reward\n\
                         \t\tInitial pose a bit inward\n\
                         \t\tPPO MPI\n\
-                        \t\tusing tanh to squash action'}
+                        \t\tusing tanh to squash action\n\
+                        \t\tlearning_rate: 1e-4, gamma:0.99, nminibatches: 256, cliprange: 0.02'}
                 model_log = open(save_path+"/model_log.txt", 'w')
                 _write_log(model_log, info)
                 model_log.close()
@@ -228,7 +229,7 @@ if __name__ == '__main__':
             action_list = ['linear', 'angular', 'fused', 'pickAndplace']
             observation_option = ['absolute', 'relative']
             reward_option = ['target', 'time', None]
-            action_type = action_list[0]
+            action = action_list[0]
             trial = 26
 
             tol = 0.1
@@ -237,12 +238,12 @@ if __name__ == '__main__':
             episode_length = 1000
             reward_method = reward_option[0]
             observation_method = observation_option[0]
-            env = Manipulator2D(action=action_type, n_robots=n_robots, n_target=n_target, tol=tol, 
-                            episode_length=episode_length, reward_method=reward_method, observation_method=observation_method)
+            info_dict = {'action': action, 'n_robots': n_robots, 'n_target':n_target, 'tol':tol, 
+                        'episode_length':episode_length, 'reward_method':reward_method, 'observation_method':observation_method}
+            env = Manipulator2D(visualize=False, **info_dict)
 
-            policy_num = 4997889
-            layer_structure_list = [[256, 256, 128, 128, 128, 64, 64], \
-                                    [256, 256, 128, 128, 64], [128, 128, 64, 64, 32], [64, 128, 256, 128, 64], \
+            policy_num = 2496513
+            layer_structure_list = [[256, 256, 128, 128, 64], [128, 128, 64, 64, 32], [64, 128, 256, 128, 64], \
                                     [256, 256, 128, 128], [128, 64, 64, 32], [64, 64, 32, 32], \
                                     [512, 256, 256], [256, 256, 128], [128, 128, 128], \
                                     [256, 256], [128, 128]]
@@ -250,7 +251,7 @@ if __name__ == '__main__':
             net_arch = {"pi": layer_structure, "vf": layer_structure}
             policy_kwargs={'net_arch': [net_arch], 'act_fun': tf.nn.relu, 'squash':True}
 
-            prefix2 = action_type+"_separate_trial"+str(trial)
+            prefix2 = action+"_separate_trial"+str(trial)
             model = PPO2.load(model_path+prefix+prefix2+"/policy_"+str(policy_num), policy_kwargs=policy_kwargs)
 
             print("\033[91mTest Starts\033[0m")
@@ -261,14 +262,15 @@ if __name__ == '__main__':
                 while True:
                     n_iter += 1
                     action, state = model.predict(obs, deterministic=False)
+                    print(action)
                     logstd = model.logstd(obs)
                     if n_iter % 20:
                         print('logstd: ',logstd)
-                        if action_type == 'fused':
+                        if action == 'fused':
                             print("  dist:\t{0:2.3f}".format(obs[0]),"\tang:\t{0: 2.3f}".format(obs[1]),"\ta_diff:\t{0: 2.3f}".format(obs[2]),"\taction:\t[{0: 2.3f} {1: 2.3f}]".format(action[0],action[1]))
-                        elif action_type in ['linear', 'angular']:
+                        elif action in ['linear', 'angular']:
                             print("  dist:\t{0:2.3f}".format(obs[0]),"\tang:\t{0: 2.3f}".format(obs[1]),"\taction:\t[{0:2.3f}]".format(action[0]))
-                        elif action_type == 'pickAndplace':
+                        elif action == 'pickAndplace':
                             #print("  x, y, w: {0: 2.3f}, {1: 2.3f}, {2: 2.3f}".format(obs[0], obs[1], obs[2])," action: [{0: 2.3f}, {1: 2.3f}, {2: 2.3f}, {3: 2.3f}]".format(action[0],action[1],action[2],action[3]))
                             pass
                     obs, reward, done, _ = env.step(action, test=True)

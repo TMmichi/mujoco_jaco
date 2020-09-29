@@ -260,7 +260,7 @@ class Manipulator2D(gym.Env):
             )
             self.link1_tf_global = self.robot_tf * self.joint1_tf * self.link1_tf
             self.link2_tf_global = self.link1_tf_global * self.joint2_tf * self.link2_tf
-            #self._move_object(self.target_tf[0], (random.random()-0.5), (random.random()-0.5)*2)
+            self._move_object(self.target_tf[0], (random.random()-0.5), (random.random()-0.5)*2)
         elif self.action_type == 'angular':
             self.robot_tf.transform(
                 translation=(0.2*self.dt, 0),
