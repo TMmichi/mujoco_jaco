@@ -168,10 +168,6 @@ class Manipulator2D(gym.Env):
                 'desired_goal': gym.Space([0])
             })
             self.action_space = spaces.Box(low = self.action_low, high = self.action_high, dtype = np.float32)
-            # self.action_space = spaces.Dict()
-            # self.action_space.spaces = {}
-            # self.action_space.shape = self.action_low.shape[0]
-            # self.action_space.dtype = np.float32
         else:
             self.observation_space = spaces.Box(low = self.obs_low, high = self.obs_high, dtype = np.float32)
             self.action_space = spaces.Box(low = self.action_low, high = self.action_high, dtype = np.float32)
