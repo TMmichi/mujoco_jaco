@@ -10,4 +10,6 @@ reward_method:		target
 observation_method:		absolute
 batch_size:		256
 Additional Info:		0.01* scaled rewards + linear prim trained with 0.01* scaled reward
-	-> Exploded due to the large outlier from logp_pi with ext high log_std_MCP
+                     		log_std clipped within the construct_actor_graph
+                     		log_std_MCP clipped
+		-> gradient exploded

@@ -2,7 +2,7 @@ Layers:
 	policy:	[512, 256, 256]
 	value:	[512, 256, 256]
 
-trial:		27
+trial:		29
 action:		linear
 tolerance:		0.1
 total time steps:		50000000
@@ -20,4 +20,4 @@ Additional Info:		Reset from random initial pos
                         		Initial pose a bit inward
                         		PPO MPI
                         		using tanh to squash action
-                        		learning_rate: 1.5e-4, gamma:0.995
+                        		learning_rate: 1.5e-4, gamma:0.99

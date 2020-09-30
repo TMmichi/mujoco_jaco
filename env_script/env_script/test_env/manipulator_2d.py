@@ -689,9 +689,8 @@ class Manipulator2D(gym.Env):
                 return state
 
 
-    def compute_reward(self, achieved_goal, desired_goal, info):
-        
-        return 0
+    def compute_reward(self):
+        pass
 
     def seed(self, seed = None):
         self.np_random, seed = seeding.np_random(seed)

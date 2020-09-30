@@ -1,0 +1,20 @@
+Layers:
+	policy:	[64, 128, 256, 128, 64]
+	value:	[64, 128, 256, 128, 64]
+
+trial:		24
+action:		linear
+tolerance:		0.1
+total time steps:		5000000
+n_robots:		1
+n_targets:		1
+episode_length:		2000
+reward_method:		target
+observation_method:		absolute
+ent_coef:		auto
+Additional Info:		Reset from random initial pos
+                      		Agent roates a bit less
+                      		Target also moves (randomly)
+                      		A shaped network
+                      		Positive reward
+                      		Initial pose a bit inward

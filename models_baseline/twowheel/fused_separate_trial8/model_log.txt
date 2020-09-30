@@ -2,10 +2,10 @@ Layers:
 	policy:	[512, 256, 256]
 	value:	[512, 256, 256]
 
-trial:		27
-action:		linear
+trial:		8
+action:		fused
 tolerance:		0.1
-total time steps:		50000000
+total time steps:		30000000
 n_robots:		1
 n_targets:		1
 episode_length:		2000
@@ -19,5 +19,3 @@ Additional Info:		Reset from random initial pos
                         		Positive reward
                         		Initial pose a bit inward
                         		PPO MPI
-                        		using tanh to squash action
-                        		learning_rate: 1.5e-4, gamma:0.995
