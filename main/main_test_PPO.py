@@ -62,7 +62,7 @@ if __name__ == '__main__':
         observation_option = ['absolute', 'relative']
         reward_option = ['target', 'time', None]
         action = action_option[0]
-        trial = 38
+        trial = 39
 
         prefix2 = action+"_separate_trial"+str(trial)
         save_path = model_dir+prefix2
@@ -115,7 +115,7 @@ if __name__ == '__main__':
                     \t\tPPO MPI\n\
                     \t\tusing tanh to squash action\n\
                     \t\tlearning_rate: 5e-5, gamma:0.99, n_steps:4096, nminibatches:256, cliprange:0.02\n\
-                    \t\tBeta policy'}
+                    \t\tBeta policy with alpha, beta > 1'}
             model_log = open(save_path+"/model_log.txt", 'w')
             _write_log(model_log, info)
             model_log.close()
