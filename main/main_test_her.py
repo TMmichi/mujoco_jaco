@@ -78,13 +78,13 @@ if train:
         layer_structure = layer_structure_list[3]
         layers = {"policy": layer_structure, "value": layer_structure}
 
-        total_time_step = 5000000
+        total_time_step = 500
         learn_start = int(total_time_step*0.05)
         ent_coef = 'auto'
         if scratch:
-            #model = SAC_MULTI(MlpPolicy_sac, env, learning_starts=learn_start, layers=layers, tensorboard_log=save_path, ent_coef=ent_coef, verbose=1)
             model_class = SAC_MULTI
-            model = HER(MlpPolicy_sac, env, model_class)
+            model = HER(MlpPolicy_sac, env, model_class, learning_starts=learn_start, layers=layers, 
+                        tensorboard_log=save_path, ent_coef=ent_coef, verbose=1)
         else:
             load_policy_num = 3750000
             path = save_path+'/policy_'+str(load_policy_num)
