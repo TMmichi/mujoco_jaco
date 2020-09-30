@@ -67,7 +67,7 @@ if __name__ == '__main__':
             observation_option = ['absolute', 'relative']
             reward_option = ['target', 'time', None]
             action = action_option[0]
-            trial = 0
+            trial = 38
 
             prefix2 = action+"_separate_trial"+str(trial)
             save_path = model_dir+prefix2
@@ -82,7 +82,7 @@ if __name__ == '__main__':
             info_dict = {'action': action, 'n_robots': n_robots, 'n_target':n_target, 'tol':tol, 
                         'episode_length':episode_length, 'reward_method':reward_method, 'observation_method':observation_method, 
                         'policy_name':prefix2}
-            num_cpu = 8 #16
+            num_cpu = 16
             env = SubprocVecEnv([make_env(i, **info_dict) for i in range(num_cpu)])
             #env = env = Manipulator2D(visualize=False, **info_dict)
             
@@ -119,8 +119,8 @@ if __name__ == '__main__':
                         \t\tInitial pose a bit inward\n\
                         \t\tPPO MPI\n\
                         \t\tusing tanh to squash action\n\
-                        \t\tlearning_rate: 5e-5, gamma:0.99, nminibatches: 256, cliprange: 0.02\n\
-                        \t\tBeta policy test'}
+                        \t\tlearning_rate: 5e-5, gamma:0.99, n_steps:4096, nminibatches:256, cliprange:0.02\n\
+                        \t\tBeta policy'}
                 model_log = open(save_path+"/model_log.txt", 'w')
                 _write_log(model_log, info)
                 model_log.close()
@@ -232,7 +232,7 @@ if __name__ == '__main__':
             observation_option = ['absolute', 'relative']
             reward_option = ['target', 'time', None]
             action = action_list[0]
-            trial = 26
+            trial = 38
 
             tol = 0.1
             n_robots = 1
@@ -251,7 +251,7 @@ if __name__ == '__main__':
                                     [256, 256], [128, 128]]
             layer_structure = layer_structure_list[6]
             net_arch = {"pi": layer_structure, "vf": layer_structure}
-            policy_kwargs={'net_arch': [net_arch], 'act_fun': tf.nn.relu, 'squash':True}
+            policy_kwargs={'net_arch': [net_arch], 'act_fun': tf.nn.relu, 'squash':False, 'beta':True}
 
             prefix2 = action+"_separate_trial"+str(trial)
             model = PPO2.load(model_path+prefix+prefix2+"/policy_"+str(policy_num), policy_kwargs=policy_kwargs)
