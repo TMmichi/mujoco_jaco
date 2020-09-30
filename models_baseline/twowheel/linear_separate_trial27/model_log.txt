@@ -5,7 +5,7 @@ Layers:
 trial:		27
 action:		linear
 tolerance:		0.1
-total time steps:		5000000
+total time steps:		500
 n_robots:		1
 n_targets:		1
 episode_length:		2000
