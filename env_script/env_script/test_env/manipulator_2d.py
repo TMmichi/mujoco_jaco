@@ -1,14 +1,15 @@
-import random
-import numpy as np
-
 import gym
-from gym import spaces
+from gym import core, spaces
 from gym.utils import seeding
-
+import numpy as np
+from collections import OrderedDict
 import matplotlib
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 from matplotlib import animation
+import random
+
+#from .ou_noise import OUNoise
 
 
 class Transformation:
@@ -104,8 +105,7 @@ class Transformation:
 
 class Manipulator2D(gym.Env):
     def __init__(self, action=None, n_robots=1, n_target=1, arm1=1, arm2=1, dt=0.01, tol=0.1, 
-                    episode_length=1500, reward_method=None, observation_method='relative', 
-                    her=False, policy_name='', visualize=False):
+                    episode_length=1500, reward_method=None, observation_method='relative', her=False, policy_name='', visualize=False):
         self.env_boundary = 5
         self.action_type = action
         self.observation_method = observation_method
@@ -160,14 +160,18 @@ class Manipulator2D(gym.Env):
             raise ValueError('action type not one of: linear, angular, fused, pickAndplace')
 
         if self.her:
-            self.goal_high = np.array([self.env_boundary, self.env_boundary, np.pi])
+            self.goal_high = np.array([float('inf')])
             self.goal_low = -self.goal_high
             self.observation_space = spaces.Dict({
                 'observation': spaces.Box(low = self.obs_low, high = self.obs_high, dtype = np.float32),
-                'achieved_goal': gym.Space([0]),
-                'desired_goal': gym.Space([0])
+                'achieved_goal': spaces.Box(low=self.goal_low, high = self.goal_high, dtype = np.float32),
+                'desired_goal': spaces.Box(low=self.goal_low, high = self.goal_high, dtype = np.float32)
             })
             self.action_space = spaces.Box(low = self.action_low, high = self.action_high, dtype = np.float32)
+            # self.action_space = spaces.Dict()
+            # self.action_space.spaces = {}
+            # self.action_space.shape = self.action_low.shape[0]
+            # self.action_space.dtype = np.float32
         else:
             self.observation_space = spaces.Box(low = self.obs_low, high = self.obs_high, dtype = np.float32)
             self.action_space = spaces.Box(low = self.action_low, high = self.action_high, dtype = np.float32)
@@ -246,7 +250,7 @@ class Manipulator2D(gym.Env):
 
         if True in np.isnan(action):
             print("ACTION NAN WARNING")
-            raise ValueError
+            #raise ValueError
         action = np.clip(action, self.action_low, self.action_high)
         
         if self.action_type == 'linear':
@@ -272,7 +276,7 @@ class Manipulator2D(gym.Env):
             )
             self.link1_tf_global = self.robot_tf * self.joint1_tf * self.link1_tf
             self.link2_tf_global = self.link1_tf_global * self.joint2_tf * self.link2_tf
-            #self._move_object(self.target_tf[0], self.target_speed, (random.random()-0.5)*2)
+            self._move_object(self.target_tf[0], self.target_speed, (random.random()-0.5)*2)
         elif self.action_type == 'pickAndplace':
             self.robot_tf.transform(
                 translation=(action[0]*self.dt, 0),
@@ -305,11 +309,11 @@ class Manipulator2D(gym.Env):
 
         obs = self._get_state()
         if self.her:
-            obs['achieved_goal'] = gym.Space([reward])
+            obs['achieved_goal'] = [reward]
             if self.reward_method == 'sparse':
-                obs['desired_goal'] = gym.Space([1])
+                obs['desired_goal'] = [0]
             else:
-                obs['achieved_goal'] = gym.Space([100])
+                obs['achieved_goal'] = [1]
 
 
         if test or self.visualize:
@@ -496,7 +500,7 @@ class Manipulator2D(gym.Env):
                     if l < self.tol and angle_diff < self.tol:
                         reward = 100
                         done = True
-                        print("\033[92m  SUCCEEDED\033[0m")
+                        print("\033[92m  SUCCEEDED\033[0m")      
                     else:
                         reward = np.exp(-(l-self.tol)**2*0.25)*0.05 + np.exp(-(angle_diff/np.pi/max(l,1))**2*0.25)*0.05
         elif self.action_type == 'pickAndplace':
@@ -626,24 +630,21 @@ class Manipulator2D(gym.Env):
                     state = np.append(state, self.robot_tf.euler_angle())
                     state = np.append(state, self.target_tf[0].get_translation())
                     state = np.append(state, self.target_tf[0].euler_angle())
-                    obs = spaces.Dict({
-                            'observation': state,
-                            'achieved_goal': gym.Space([0]),
-                            'desired_goal': gym.Space([1])})
-                    return obs
+                    return OrderedDict([
+                                ('observation', state),
+                                ('achieved_goal', [0]),
+                                ('desired_goal', [1])])
                 elif self.observation_method == 'relative':
                     if self.action_type in ['linear', 'angular']:
-                        obs = spaces.Dict({
-                            'observation': [dist, ang],
-                            'achieved_goal': gym.Space([0]),
-                            'desired_goal': gym.Space([1])})
-                        return obs
+                        return OrderedDict([
+                                ('observation', [dist, ang]),
+                                ('achieved_goal', [0]),
+                                ('desired_goal', [1])])
                     else:
-                        obs = spaces.Dict({
-                            'observation': [dist, ang, angle_diff],
-                            'achieved_goal': gym.Space([0]),
-                            'desired_goal': gym.Space([1])})
-                        return obs
+                        return OrderedDict([
+                                ('observation', [dist, ang]),
+                                ('achieved_goal', [0]),
+                                ('desired_goal', [1])])
             elif self.action_type == 'pickAndplace':
                 state = self.robot_tf.get_translation()
                 state = np.append(state, self.robot_tf.euler_angle())
@@ -656,11 +657,10 @@ class Manipulator2D(gym.Env):
                 for target_place_tf in self.target_place_tf:
                     state = np.append(state, target_place_tf.get_translation())
                     state = np.append(state, target_place_tf.euler_angle())
-                obs = spaces.Dict({
-                        'observation': state,
-                        'achieved_goal': gym.Space([0]),
-                        'desired_goal': gym.Space([1])})
-                return obs
+                return OrderedDict([
+                        ('observation', state),
+                        ('achieved_goal', [0]),
+                        ('desired_goal', [1])])
         else:
             if self.action_type in ['linear', 'angular', 'fused']:
                 if self.observation_method == 'absolute':
@@ -688,6 +688,9 @@ class Manipulator2D(gym.Env):
                     state = np.append(state, target_place_tf.euler_angle())
                 return state
 
+
+    def compute_reward(self):
+        pass
 
     def seed(self, seed = None):
         self.np_random, seed = seeding.np_random(seed)
