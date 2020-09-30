@@ -246,7 +246,7 @@ class Manipulator2D(gym.Env):
 
         if True in np.isnan(action):
             print("ACTION NAN WARNING")
-            raise ValueError
+            #raise ValueError
         action = np.clip(action, self.action_low, self.action_high)
         
         if self.action_type == 'linear':
