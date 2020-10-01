@@ -91,7 +91,7 @@ if __name__ == '__main__':
         policy_kwargs={'net_arch': [net_arch], 'act_fun': tf.nn.relu, 'squash':False, 'box_dist': 'beta'}
 
         total_time_step = 50000000
-        model_dict = {'learning_rate': 1e-4, 'gamma':0.99, 'n_steps':4096, 'nminibatches': 256, 'cliprange': 0.2,
+        model_dict = {'learning_rate': 1e-4, 'gamma': 0.99, 'n_steps': 1024, 'nminibatches': 256, 'cliprange': 0.2,
                         'tensorboard_log': save_path, 'policy_kwargs': policy_kwargs}
         if scratch:
             model = PPO2(MlpPolicy, env, **model_dict)
