@@ -62,7 +62,7 @@ if __name__ == '__main__':
         observation_option = ['absolute', 'relative']
         reward_option = ['target', 'time', None]
         action = action_option[0]
-        trial = 40
+        trial = 0
 
         prefix2 = action+"_separate_trial"+str(trial)
         save_path = model_dir+prefix2
@@ -77,9 +77,9 @@ if __name__ == '__main__':
         info_dict = {'action': action, 'n_robots': n_robots, 'n_target':n_target, 'tol':tol, 
                     'episode_length':episode_length, 'reward_method':reward_method, 'observation_method':observation_method, 
                     'policy_name':prefix2}
-        num_cpu = 16
+        num_cpu = 2
         env = SubprocVecEnv([make_env(i, **info_dict) for i in range(num_cpu)])
-        #env = env = Manipulator2D(visualize=False, **info_dict)
+        #env = Manipulator2D(visualize=False, **info_dict)
         
         layer_structure_list = [[256, 256, 128, 128, 128, 64, 64], \
                                 [256, 256, 128, 128, 64], [128, 128, 64, 64, 32], [64, 128, 256, 128, 64], \
@@ -91,7 +91,7 @@ if __name__ == '__main__':
         policy_kwargs={'net_arch': [net_arch], 'act_fun': tf.nn.relu, 'squash':False, 'box_dist': 'beta'}
 
         total_time_step = 50000000
-        model_dict = {'learning_rate': 5e-5, 'gamma':0.99, 'n_steps':4096, 'nminibatches': 256, 'cliprange': 0.02,
+        model_dict = {'learning_rate': 1e-4, 'gamma':0.99, 'n_steps':4096, 'nminibatches': 256, 'cliprange': 0.2,
                         'tensorboard_log': save_path, 'policy_kwargs': policy_kwargs}
         if scratch:
             model = PPO2(MlpPolicy, env, **model_dict)

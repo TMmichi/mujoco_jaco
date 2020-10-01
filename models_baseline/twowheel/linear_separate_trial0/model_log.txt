@@ -12,12 +12,12 @@ episode_length:		2000
 reward_method:		target
 observation_method:		absolute
 Additional Info:		Reset from random initial pos
-                        		Agent rotates a bit less
-                        		Target does not stay in position
-                        		shallower network
-                        		Positive reward
-                        		Initial pose a bit inward
-                        		PPO MPI
-                        		using tanh to squash action
-                        		learning_rate: 5e-5, gamma:0.99, nminibatches: 256, cliprange: 0.02
-                        		Beta policy test
+                    		Agent rotates a bit less
+                    		Target does not stay in position
+                    		shallower network
+                    		Positive reward
+                    		Initial pose a bit inward
+                    		PPO MPI
+                    		using tanh to squash action
+                    		learning_rate: 5e-5, gamma:0.99, n_steps:4096, nminibatches:256, cliprange:0.02
+                    		Beta policy with alpha, beta > 1 + mean -> mode
