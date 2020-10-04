@@ -62,7 +62,7 @@ if __name__ == '__main__':
         observation_option = ['absolute', 'relative']
         reward_option = ['target', 'time', None]
         action = action_option[0]
-        trial = 0
+        trial = 46
 
         prefix2 = action+"_separate_trial"+str(trial)
         save_path = model_dir+prefix2
@@ -77,7 +77,7 @@ if __name__ == '__main__':
         info_dict = {'action': action, 'n_robots': n_robots, 'n_target':n_target, 'tol':tol, 
                     'episode_length':episode_length, 'reward_method':reward_method, 'observation_method':observation_method, 
                     'policy_name':prefix2}
-        num_cpu = 2
+        num_cpu = 16
         env = SubprocVecEnv([make_env(i, **info_dict) for i in range(num_cpu)])
         #env = Manipulator2D(visualize=False, **info_dict)
         
@@ -91,7 +91,7 @@ if __name__ == '__main__':
         policy_kwargs={'net_arch': [net_arch], 'act_fun': tf.nn.relu, 'squash':False, 'box_dist': 'beta'}
 
         total_time_step = 50000000
-        model_dict = {'learning_rate': 1e-4, 'gamma': 0.99, 'n_steps': 1024, 'nminibatches': 256, 'cliprange': 0.2,
+        model_dict = {'learning_rate': 1e-4, 'gamma': 0.99, 'n_steps': 4096, 'nminibatches': 256, 'cliprange': 0.02,
                         'tensorboard_log': save_path, 'policy_kwargs': policy_kwargs}
         if scratch:
             model = PPO2(MlpPolicy, env, **model_dict)
@@ -108,14 +108,17 @@ if __name__ == '__main__':
                 'Additional Info': \
                     'Reset from random initial pos\n\
                     \t\tAgent rotates a bit less\n\
-                    \t\tTarget does not stay in position\n\
+                    \t\tTarget stay in position\n\
                     \t\tshallower network\n\
                     \t\tPositive reward\n\
                     \t\tInitial pose a bit inward\n\
                     \t\tPPO MPI\n\
                     \t\tusing tanh to squash action\n\
-                    \t\tlearning_rate: 5e-5, gamma:0.99, n_steps:4096, nminibatches:256, cliprange:0.02\n\
-                    \t\tBeta policy with alpha, beta > 1 + mean -> mode'}
+                    \t\tlearning_rate: 2e-4, gamma:0.995, n_steps:1024, nminibatches:256, cliprange:0.3\n\
+                    \t\tBeta policy with alpha, beta > 1 + mean -> mode\n\
+                    \t\tAlpha, beta exponentialized, scaled by 5 within exp\n\
+                    \t\tinit_scale to 2\n\
+                    \t\talpha and beta from mu and sigma'}
             model_log = open(save_path+"/model_log.txt", 'w')
             _write_log(model_log, info)
             model_log.close()
@@ -129,7 +132,7 @@ if __name__ == '__main__':
         observation_option = ['absolute', 'relative']
         reward_option = ['target', 'time', None]
         action = action_list[0]
-        trial = 38
+        trial = 44
 
         tol = 0.1
         n_robots = 1
@@ -141,14 +144,14 @@ if __name__ == '__main__':
                     'episode_length':episode_length, 'reward_method':reward_method, 'observation_method':observation_method}
         env = Manipulator2D(visualize=False, **info_dict)
 
-        policy_num = 2496513
+        policy_num = 49790977
         layer_structure_list = [[256, 256, 128, 128, 64], [128, 128, 64, 64, 32], [64, 128, 256, 128, 64], \
                                 [256, 256, 128, 128], [128, 64, 64, 32], [64, 64, 32, 32], \
                                 [512, 256, 256], [256, 256, 128], [128, 128, 128], \
                                 [256, 256], [128, 128]]
         layer_structure = layer_structure_list[6]
         net_arch = {"pi": layer_structure, "vf": layer_structure}
-        policy_kwargs={'net_arch': [net_arch], 'act_fun': tf.nn.relu, 'squash':False, 'beta':True}
+        policy_kwargs={'net_arch': [net_arch], 'act_fun': tf.nn.relu, 'squash':False, 'box_dist':'beta'}
 
         prefix2 = action+"_separate_trial"+str(trial)
         model = PPO2.load(model_path+prefix+prefix2+"/policy_"+str(policy_num), policy_kwargs=policy_kwargs)
@@ -162,9 +165,9 @@ if __name__ == '__main__':
                 n_iter += 1
                 action, state = model.predict(obs, deterministic=False)
                 print(action)
-                logstd = model.logstd(obs)
+                #logstd = model.logstd(obs)
                 if n_iter % 20:
-                    print('logstd: ',logstd)
+                    #print('logstd: ',logstd)
                     if action == 'fused':
                         print("  dist:\t{0:2.3f}".format(obs[0]),"\tang:\t{0: 2.3f}".format(obs[1]),"\ta_diff:\t{0: 2.3f}".format(obs[2]),"\taction:\t[{0: 2.3f} {1: 2.3f}]".format(action[0],action[1]))
                     elif action in ['linear', 'angular']:

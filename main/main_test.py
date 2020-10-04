@@ -55,9 +55,9 @@ if __name__ == '__main__':
         if separate:
             action_option = ['linear', 'angular', 'fused', 'pickAndplace']
             observation_option = ['absolute', 'relative']
-            reward_option = ['target', 'time', None]
-            action = action_option[0]
-            trial = 26
+            reward_option = ['target', 'time', 'sparse', None]
+            action = action_option[1]
+            trial = 9
 
             prefix2 = action+"_separate_trial"+str(trial)
             save_path = model_dir+prefix2
@@ -67,7 +67,7 @@ if __name__ == '__main__':
             n_robots = 1
             n_target = 1
             episode_length = 2000
-            reward_method = reward_option[0]
+            reward_method = reward_option[2]
             observation_method = observation_option[0]
             info_dict = {'action': action, 'n_robots': n_robots, 'n_target':n_target, 'tol':tol, 
                         'episode_length':episode_length, 'reward_method':reward_method, 'observation_method':observation_method, 
@@ -86,7 +86,10 @@ if __name__ == '__main__':
             learn_start = int(total_time_step*0.05)
             ent_coef = 'auto'
             if scratch:
-                model = SAC_MULTI(MlpPolicy_sac, env, learning_starts=learn_start, layers=layers, tensorboard_log=save_path, ent_coef=ent_coef, verbose=1)
+                model_dict = {'learning_starts': learn_start, 'layers': layers, 'batch_size':256, \
+                            'gamma':0.995, 'learning_rate': 5e-5, 'ent_coef': ent_coef, \
+                            'tensorboard_log': save_path, 'verbose': 1, 'box_dist': 'beta'}
+                model = SAC_MULTI(MlpPolicy_sac, env, **model_dict)
             else:
                 load_policy_num = 3750000
                 path = save_path+'/policy_'+str(load_policy_num)
@@ -102,9 +105,10 @@ if __name__ == '__main__':
                         \t\tAgent roates a bit less\n\
                         \t\tTarget also moves (randomly)\n\
                         \t\tA shaped network\n\
-                        \t\tPositive reward\n\
+                        \t\tPositive Sparse reward\n\
                         \t\tInitial pose a bit inward\n\
-                        \t\tSAC MPI'}
+                        \t\tSAC MPI\n\
+                        \t\tPolicy changed from the Gaussian to Beta'}
                 model_log = open(save_path+"/model_log.txt", 'w')
                 _write_log(model_log, info)
                 model_log.close()
@@ -303,8 +307,8 @@ if __name__ == '__main__':
             action_list = ['linear', 'angular', 'fused', 'pickAndplace']
             observation_option = ['absolute', 'relative']
             reward_option = ['target', 'time', None]
-            action_type = action_list[0]
-            trial = 22
+            action = action_list[1]
+            trial = 9
 
             tol = 0.1
             n_robots = 1
@@ -313,19 +317,19 @@ if __name__ == '__main__':
             reward_method = reward_option[0]
             observation_method = observation_option[0]
             info_dict = {'action': action, 'n_robots': n_robots, 'n_target':n_target, 'tol':tol, 
-                        'episode_length':episode_length, 'reward_method':reward_method, 'observation_method':observation_method, 
-                        'policy_name':prefix2}
+                        'episode_length':episode_length, 'reward_method':reward_method, 'observation_method':observation_method}
             env = Manipulator2D(visualize=False, **info_dict)
 
-            policy_num = 4750000
-            layer_structure_list = [[256, 256, 128, 128, 64], [128, 128, 64, 64, 32], [64, 128, 256, 128, 64], \
+            policy_num = 750000
+            layer_structure_list = [[256, 256, 128, 128, 128, 64, 64], \
+                                    [256, 256, 128, 128, 64], [128, 128, 64, 64, 32], [64, 128, 256, 128, 64], \
                                     [256, 256, 128, 128], [128, 64, 64, 32], [64, 64, 32, 32], \
                                     [512, 256, 256], [256, 256, 128], [128, 128, 128], \
                                     [256, 256], [128, 128]]
-            layer_structure = layer_structure_list[6]
+            layer_structure = layer_structure_list[3]
             layers = {"policy": layer_structure, "value": layer_structure}
 
-            prefix2 = action_type+"_separate_trial"+str(trial)
+            prefix2 = action+"_separate_trial"+str(trial)
             model = SAC_MULTI.load(model_path+prefix+prefix2+"/policy_"+str(policy_num), layers=layers)
 
             print("\033[91mTest Starts\033[0m")
@@ -335,18 +339,17 @@ if __name__ == '__main__':
                 n_iter = 0
                 while True:
                     n_iter += 1
-                    action, state = model.predict(obs, deterministic=True)
+                    actions, state = model.predict(obs, deterministic=True)
                     prim_act = model.get_primitive_action(obs)
-                    prim_log_std = model.get_primitive_log_std(obs)
-                    if n_iter % 20:
-                        if action_type == 'fused':
-                            print("  dist:\t{0:2.3f}".format(obs[0]),"\tang:\t{0: 2.3f}".format(obs[1]),"\ta_diff:\t{0: 2.3f}".format(obs[2]),"\taction:\t[{0: 2.3f} {1: 2.3f}]".format(action[0],action[1]))
-                        elif action_type in ['linear', 'angular']:
-                            print("  dist:\t{0:2.3f}".format(obs[0]),"\tang:\t{0: 2.3f}".format(obs[1]),"\taction:\t[{0:2.3f}]".format(action[0]))
-                        elif action_type == 'pickAndplace':
-                            #print("  x, y, w: {0: 2.3f}, {1: 2.3f}, {2: 2.3f}".format(obs[0], obs[1], obs[2])," action: [{0: 2.3f}, {1: 2.3f}, {2: 2.3f}, {3: 2.3f}]".format(action[0],action[1],action[2],action[3]))
-                            pass
-                    obs, reward, done, _ = env.step(action, test=True)
+                    # if n_iter % 20:
+                    #     if action == 'fused':
+                    #         print("  dist:\t{0:2.3f}".format(obs[0]),"\tang:\t{0: 2.3f}".format(obs[1]),"\ta_diff:\t{0: 2.3f}".format(obs[2]),"\taction:\t[{0: 2.3f} {1: 2.3f}]".format(action[0],action[1]))
+                    #     elif action in ['linear', 'angular']:
+                    #         print("  dist:\t{0:2.3f}".format(obs[0]),"\tang:\t{0: 2.3f}".format(obs[1]),"\taction:\t[{0:2.3f}]".format(action[0]))
+                    #     elif action == 'pickAndplace':
+                    #         #print("  x, y, w: {0: 2.3f}, {1: 2.3f}, {2: 2.3f}".format(obs[0], obs[1], obs[2])," action: [{0: 2.3f}, {1: 2.3f}, {2: 2.3f}, {3: 2.3f}]".format(action[0],action[1],action[2],action[3]))
+                    #         pass
+                    obs, reward, done, _ = env.step(actions, test=True)
                     if done:
                         print(reward)
                         break

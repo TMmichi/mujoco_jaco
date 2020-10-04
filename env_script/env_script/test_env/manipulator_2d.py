@@ -168,10 +168,6 @@ class Manipulator2D(gym.Env):
                 'desired_goal': spaces.Box(low=self.goal_low, high = self.goal_high, dtype = np.float32)
             })
             self.action_space = spaces.Box(low = self.action_low, high = self.action_high, dtype = np.float32)
-            # self.action_space = spaces.Dict()
-            # self.action_space.spaces = {}
-            # self.action_space.shape = self.action_low.shape[0]
-            # self.action_space.dtype = np.float32
         else:
             self.observation_space = spaces.Box(low = self.obs_low, high = self.obs_high, dtype = np.float32)
             self.action_space = spaces.Box(low = self.action_low, high = self.action_high, dtype = np.float32)
@@ -260,7 +256,7 @@ class Manipulator2D(gym.Env):
             )
             self.link1_tf_global = self.robot_tf * self.joint1_tf * self.link1_tf
             self.link2_tf_global = self.link1_tf_global * self.joint2_tf * self.link2_tf
-            self._move_object(self.target_tf[0], (random.random()-0.5), (random.random()-0.5)*2)
+            #self._move_object(self.target_tf[0], (random.random()-0.5), (random.random()-0.5)*2)
         elif self.action_type == 'angular':
             self.robot_tf.transform(
                 translation=(0.2*self.dt, 0),
@@ -314,7 +310,6 @@ class Manipulator2D(gym.Env):
                 obs['desired_goal'] = [0]
             else:
                 obs['achieved_goal'] = [1]
-
 
         if test or self.visualize:
             target_tf = []
@@ -427,7 +422,6 @@ class Manipulator2D(gym.Env):
         if self.action_type == 'linear':
             mat_target_robot = self.robot_tf.inv()*self.target_tf[0]
             target_vector = np.dot(mat_target_robot.get_translation(), np.array([1,0])) * np.array([1,0])
-            #l = np.linalg.norm(mat_target_robot.get_translation())
             l = np.linalg.norm(target_vector)
             if self.reward_method == 'sparse':
                 if l < self.tol:
@@ -559,8 +553,11 @@ class Manipulator2D(gym.Env):
         if abs(x0) > self.env_boundary or abs(y0) > self.env_boundary:
             print("\033[91m  ROBOT Out of Boundary\033[0m")
             done = True
-            if self.action_type in ['fused', 'pickAndplace']:
-                reward = -100
+            if self.action_type in ['angular', 'fused', 'pickAndplace']:
+                if self.reward_method == 'sparse':
+                    reward = -1
+                else:
+                    reward = -100
             else:
                 reward = 0
 
