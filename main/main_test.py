@@ -1,11 +1,13 @@
 import os
 import time
 import path_config
+from configuration import env_configuration, model_configuration, info, total_time_step
 from pathlib import Path
 from collections import OrderedDict
 #os.environ['CUDA_VISIBLE_DEVICES']='3'
 
 import numpy as np
+import tensorflow as tf
 
 from env_script.test_env.manipulator_2d import Manipulator2D
 from stable_baselines.sac_multi import SAC_MULTI
@@ -14,7 +16,9 @@ from stable_baselines.common.vec_env import SubprocVecEnv
 from stable_baselines.common import set_global_seeds
 
 
-def _write_log(model_log, info):
+def _write_log(save_path, info, trial):
+    model_log = open(save_path+"/model_log.txt", 'w')
+    model_log.writelines("Trial: "+str(trial))
     if info['layers'] != None:
         model_log.writelines("Layers:\n")
         model_log.write("\tpolicy:\t[")
@@ -35,6 +39,7 @@ def _write_log(model_log, info):
     
     for name, item in info.items():
         model_log.writelines(name+":\t\t{0}\n".format(item))
+    model_log.close()
 
 
 if __name__ == '__main__':
@@ -53,68 +58,26 @@ if __name__ == '__main__':
 
     if train:
         if separate:
-            action_option = ['linear', 'angular', 'fused', 'pickAndplace']
-            observation_option = ['absolute', 'relative']
-            reward_option = ['target', 'time', 'sparse', None]
-            action = action_option[1]
             trial = 9
 
-            prefix2 = action+"_separate_trial"+str(trial)
+            prefix2 = env_configuration['action']+"_separate_trial"+str(trial)
             save_path = model_dir+prefix2
             os.makedirs(save_path, exist_ok=True)
+            env_configuration['policy_name'] = prefix2
+            env = Manipulator2D(**env_configuration)
 
-            tol = 0.1
-            n_robots = 1
-            n_target = 1
-            episode_length = 2000
-            reward_method = reward_option[2]
-            observation_method = observation_option[0]
-            info_dict = {'action': action, 'n_robots': n_robots, 'n_target':n_target, 'tol':tol, 
-                        'episode_length':episode_length, 'reward_method':reward_method, 'observation_method':observation_method, 
-                        'policy_name':prefix2}
-            env = Manipulator2D(visualize=False, **info_dict)
+            model_configuration['tensorboard_log'] = save_path
 
-            layer_structure_list = [[256, 256, 128, 128, 128, 64, 64], \
-                                    [256, 256, 128, 128, 64], [128, 128, 64, 64, 32], [64, 128, 256, 128, 64], \
-                                    [256, 256, 128, 128], [128, 64, 64, 32], [64, 64, 32, 32], \
-                                    [512, 256, 256], [256, 256, 128], [128, 128, 128], \
-                                    [256, 256], [128, 128]]
-            layer_structure = layer_structure_list[3]
-            layers = {"policy": layer_structure, "value": layer_structure}
-
-            total_time_step = 5000000
-            learn_start = int(total_time_step*0.05)
-            ent_coef = 'auto'
+            print("\033[91mTraining Starts, action: {0}\033[0m".format(env_configuration['action']))
             if scratch:
-                model_dict = {'learning_starts': learn_start, 'layers': layers, 'batch_size':256, \
-                            'gamma':0.995, 'learning_rate': 5e-5, 'ent_coef': ent_coef, \
-                            'tensorboard_log': save_path, 'verbose': 1, 'box_dist': 'beta'}
-                model = SAC_MULTI(MlpPolicy_sac, env, **model_dict)
+                _write_log(save_path, info, trial)
+                model = SAC_MULTI(MlpPolicy_sac, env, **model_configuration)
+                model.learn(total_time_step, save_interval=model_configuration['learning_starts'], save_path=save_path)
             else:
-                load_policy_num = 3750000
+                load_policy_num = 6000000
                 path = save_path+'/policy_'+str(load_policy_num)
-                print("loaded_policy_path: ",path)
-                model = SAC_MULTI.load(path, env=env, learning_starts=10000, layers=layers, tensorboard_log=save_path, ent_coef=ent_coef)
-
-            print("\033[91mTraining Starts, action: {0}\033[0m".format(action))
-            if scratch:
-                info = {'trial': trial, 'action': action, 'layers': layers, 'tolerance': tol, 'total time steps': total_time_step,\
-                    'n_robots': n_robots, 'n_targets': n_target, 'episode_length': episode_length, 'reward_method': reward_method, 'observation_method': observation_method, 'ent_coef': ent_coef,\
-                    'Additional Info': \
-                        'Reset from random initial pos\n\
-                        \t\tAgent roates a bit less\n\
-                        \t\tTarget also moves (randomly)\n\
-                        \t\tA shaped network\n\
-                        \t\tPositive Sparse reward\n\
-                        \t\tInitial pose a bit inward\n\
-                        \t\tSAC MPI\n\
-                        \t\tPolicy changed from the Gaussian to Beta'}
-                model_log = open(save_path+"/model_log.txt", 'w')
-                _write_log(model_log, info)
-                model_log.close()
-                model.learn(total_time_step, save_interval=int(total_time_step*0.05), save_path=save_path)
-            else:
-                model.learn(total_time_step, loaded_step_num=policy_num, save_interval=int(total_time_step*0.05), save_path=save_path)
+                model = SAC_MULTI.load(path, env=env, **model_configuration)
+                model.learn(total_time_step, loaded_step_num=load_policy_num, save_interval=model_configuration['learning_starts'], save_path=save_path)
             print("\033[91mTraining finished\033[0m")
 
         elif auxilary:
@@ -306,31 +269,32 @@ if __name__ == '__main__':
         if separate:
             action_list = ['linear', 'angular', 'fused', 'pickAndplace']
             observation_option = ['absolute', 'relative']
-            reward_option = ['target', 'time', None]
-            action = action_list[1]
-            trial = 9
+            reward_option = ['target', 'time', 'sparse', None]
+            action = action_list[0]
+            trial = 51
 
             tol = 0.1
             n_robots = 1
             n_target = 1
             episode_length = 1000
-            reward_method = reward_option[0]
+            reward_method = reward_option[2]
             observation_method = observation_option[0]
             info_dict = {'action': action, 'n_robots': n_robots, 'n_target':n_target, 'tol':tol, 
                         'episode_length':episode_length, 'reward_method':reward_method, 'observation_method':observation_method}
             env = Manipulator2D(visualize=False, **info_dict)
 
-            policy_num = 750000
+            policy_num = 2500000
             layer_structure_list = [[256, 256, 128, 128, 128, 64, 64], \
                                     [256, 256, 128, 128, 64], [128, 128, 64, 64, 32], [64, 128, 256, 128, 64], \
                                     [256, 256, 128, 128], [128, 64, 64, 32], [64, 64, 32, 32], \
                                     [512, 256, 256], [256, 256, 128], [128, 128, 128], \
                                     [256, 256], [128, 128]]
-            layer_structure = layer_structure_list[3]
+            layer_structure = layer_structure_list[7]
             layers = {"policy": layer_structure, "value": layer_structure}
 
             prefix2 = action+"_separate_trial"+str(trial)
-            model = SAC_MULTI.load(model_path+prefix+prefix2+"/policy_"+str(policy_num), layers=layers)
+            model_dict = {'layers': layers, 'box_dist': 'beta'}
+            model = SAC_MULTI.load(model_path+prefix+prefix2+"/policy_"+str(policy_num), **model_dict)
 
             print("\033[91mTest Starts\033[0m")
             for i in range(10):
@@ -339,8 +303,8 @@ if __name__ == '__main__':
                 n_iter = 0
                 while True:
                     n_iter += 1
-                    actions, state = model.predict(obs, deterministic=True)
-                    prim_act = model.get_primitive_action(obs)
+                    actions, state = model.predict(obs, deterministic=True)                    
+                    # prim_act = model.get_primitive_action(obs)
                     # if n_iter % 20:
                     #     if action == 'fused':
                     #         print("  dist:\t{0:2.3f}".format(obs[0]),"\tang:\t{0: 2.3f}".format(obs[1]),"\ta_diff:\t{0: 2.3f}".format(obs[2]),"\taction:\t[{0: 2.3f} {1: 2.3f}]".format(action[0],action[1]))

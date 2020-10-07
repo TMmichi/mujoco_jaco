@@ -235,6 +235,7 @@ class Manipulator2D(gym.Env):
         self.seed()
         self.episode_length = episode_length
 
+        # 변수를 초기화한다.
         self.reset()
         self.n_episodes = 0
         self.accum_reward = 0
@@ -809,11 +810,16 @@ def test(env):
     '''
     Test script for the environment "Manipulator2D"
     '''
+
     for _ in range(10):
+        # 환경 초기화
         env.reset()
 
+        # 10초 동안의 움직임을 관찰
         for _ in np.arange(0, 10, env.dt):
+            # 강화학습이 아닌 위에서 계산한 값을 이용하여 목표 각도에 가까워지도록 피드백 제어
 
+            # position error를 이용해 control input 계산
             link2_to_target = env.link2_tf_global.inv() * env.target_tf[0].get_translation()
             err1 = env.link2_tf * link2_to_target
             err2 = env.link1_tf * env.joint2_tf * err1
@@ -825,11 +831,15 @@ def test(env):
                 np.arctan2(err1[1], err1[0])
             ]
 
+            # Environment의 step 함수를 호출하고, 
+            # 변화된 state(observation)과 reward, episode 종료여부, 기타 정보를 가져옴
             _, _, done, _ = env.step(action, test=True)
 
+            # episode 종료
             if done:
                 break
 
+        # Episode 동안의 로봇암 trajectory plot
         env.render()
 
 
