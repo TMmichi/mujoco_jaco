@@ -1,0 +1,22 @@
+Layers:
+	policy:	[512, 256, 256]
+	value:	[512, 256, 256]
+
+trial:		49
+action:		linear
+tolerance:		0.1
+total time steps:		5000000
+n_robots:		1
+n_targets:		1
+episode_length:		2000
+reward_method:		sparse
+observation_method:		absolute
+ent_coef:		auto
+Additional Info:		Reset from random initial pos
+                        		Agent roates a bit less
+                        		Target also moves (randomly)
+                        		A shaped network
+                        		Positive Sparse reward
+                        		Initial pose a bit inward
+                        		SAC MPI
+                        		Policy changed from the Gaussian to Beta
