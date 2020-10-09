@@ -48,14 +48,25 @@ def _write_log(save_path, info, trial):
     model_log.close()
 
 
+def _open_connection():
+    try:            
+        print("Opening connection to SpaceNav driver ...")
+        spacenav.open()
+        print("... connection established.")
+    except spacenav.ConnectionError:
+        print("No connection to the SpaceNav driver. Is spacenavd running?")
+
+def _close_connection():
+    atexit.register(spacenav.close)
+
 def _expert_3d(_obs):
     if sys.platform in ['linux', 'linux2']:
         event = spacenav.poll()
         if type(event) is spacenav.MotionEvent:
-            action = np.array([event.x/350*0.99, -event.ry/350*3.14])
+            action = np.array([event.z/350*0.99, event.ry/350*3.14])
         else:
-            action = [0,0,0,0,0,0,0,0]
-        spacenav.remove_events(1)
+            action = [0,0]
+        #spacenav.remove_events(1)
         return action
     else:
         action = [0,0,0,0,0,0,0,0]
@@ -92,7 +103,9 @@ if __name__ == '__main__':
             if train_mode == 'expert':
                 n_episodes = 10000
                 #traj_dict = generate_expert_traj(env.calculate_desired_action, model_dir+"/trajectory_10000", env, n_episodes=n_episodes)
+                _open_connection()
                 traj_dict = generate_expert_traj(_expert_3d, model_dir+"/trajectory_test", env, n_episodes=n_episodes)
+                _close_connection()
                 quit()
                 traj_dict = np.load(model_dir+"/trajectory_10000.npz", allow_pickle=True)
                 for name, elem in traj_dict.items():
