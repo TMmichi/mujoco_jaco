@@ -235,16 +235,14 @@ class Manipulator2D(gym.Env):
         self.seed()
         self.episode_length = episode_length
 
+        # 변수를 초기화한다.
         self.reset()
-        self.n_timesteps = 0
         self.n_episodes = 0
         self.accum_reward = 0
-        if self.visualize:
-            self.render_init()
 
         
     def step(self, action, weight=[0,0,0], test=False):
-        self.n_timesteps += 1
+        self.n_episodes += 1
 
         if True in np.isnan(action):
             print("ACTION NAN WARNING")
@@ -338,14 +336,13 @@ class Manipulator2D(gym.Env):
                     weight=weight
                 )
             )
-            self.realtime_render()
-            self.buffer = []
             
         return obs, reward, done, info
 
     def reset(self):
         print("  "+self.policy_name+" reset")
-        self.n_timesteps = 0
+        self.n_episodes = 0
+        self.accum_reward = 0
         self.grasp = -1
 
         robot_rot = (random.random()-0.5)*2*3
@@ -561,13 +558,11 @@ class Manipulator2D(gym.Env):
             else:
                 reward = -100
 
-        if self.n_timesteps > self.episode_length:
+        if self.n_episodes > self.episode_length:
             print("\033[91m  TIMES UP\033[0m")
             done = True
 
         if done:
-            self.n_episodes += 1
-            print("Num epidoes: ",self.n_episodes,"\tSuccess rate: {0:3.2f}%".format(self.accum_reward/self.n_episodes*100))
             if self.visualize: 
                 self.render()
 
@@ -695,21 +690,9 @@ class Manipulator2D(gym.Env):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
 
-    @staticmethod
-    def calculate_desired_action(obs):
-        robot_tf = Transformation(translation=obs[:2],rotation=obs[2])
-        target_tf = Transformation(translation=obs[3:5],rotation=obs[5])
-        # print(robot_tf)
-        # print(target_tf)
-        mat_target_robot = robot_tf.inv()*target_tf
-        target_vector = np.dot(mat_target_robot.get_translation(), np.array([1,0])) * np.array([1,0])
-        if target_vector[0] > 0:
-            return [np.clip(0.8 + np.random.normal()*0.05, -0.99, 0.99)]
-        else:
-            return [np.clip(-0.8 + np.random.normal()*0.05, -0.99, 0.99)]
-
     
     def render(self):
+
         buffer = np.array(self.buffer)
         
         # set up figure and animation
@@ -822,119 +805,21 @@ class Manipulator2D(gym.Env):
         plt.show()
 
 
-    def render_init(self):        
-        # set up figure and animation
-        self.fig = plt.figure()
-        ax = self.fig.add_subplot(111, aspect='equal', autoscale_on=False,
-                            xlim=(-self.env_boundary, self.env_boundary), ylim=(-self.env_boundary, self.env_boundary))
-        ax.grid()
-
-        robot, = ax.plot([], [], 'g', lw=1)
-        robot_body, = ax.plot([], [], 'go-', fillstyle='none', ms=20)
-        table_start, = ax.plot([], [], 'k-', lw=1)
-        table_target, = ax.plot([], [], 'k-', lw=1)
-        link1, = ax.plot([], [], 'ko-', lw=1, ms=2)
-        link2, = ax.plot([], [], 'k', lw=1)
-        gripper, = ax.plot([], [], 'k', lw=1)
-        target_list = []
-        for _ in range(self.n_target):
-            target, = ax.plot([], [], 'b', lw=1)
-            target_list.append(target)
-        target_place_list = []
-        for _ in range(self.n_target):
-            target_place, = ax.plot([], [], 'g--', lw=1)
-            target_place_list.append(target_place)
-        time_text = ax.text(0.98, 0.21, '', transform=ax.transAxes, ha='right')
-        reward_text = ax.text(0.98, 0.16, '', transform=ax.transAxes, ha='right')
-        observation_text = ax.text(0.98, 0.11, '', transform=ax.transAxes, ha='right')
-        action_text = ax.text(0.98, 0.06, '', transform=ax.transAxes, ha='right')
-        weight_text = ax.text(0.98, 0.01, '', transform=ax.transAxes, ha='right')
-        table_start_text = ax.text(0.03, 0.12, '', transform=ax.transAxes)
-        table_target_text = ax.text(0.89, 0.80, '', transform=ax.transAxes)
-        
-        robot.set_data([], [])
-        robot_body.set_data([], [])
-        table_start.set_data([], [])
-        table_target.set_data([], [])
-        link1.set_data([], [])
-        link2.set_data([], [])
-        gripper.set_data([], [])
-        for target in target_list:
-            target.set_data([], [])
-        for target_place in target_place_list:
-            target_place.set_data([], [])
-        time_text.set_text('')
-        observation_text.set_text('')
-        action_text.set_text('')
-        reward_text.set_text('')
-        weight_text.set_text('')
-        table_start_text.set_text('table\ntarget')
-        table_target_text.set_text('table\ngoal')
-
-    def realtime_render(self):
-        buffer = np.array(self.buffer)
-
-        """perform animation step"""
-        robot_points = buffer[0]['robot'] * self.robot_geom
-        link2_points = buffer[0]['link2'] * self.link2_geom
-        gripper_points = buffer[0]['link2'] * self.gripper_geom
-        target_points_list = []
-        for target_tf in buffer[0]['target']:
-            target_points = target_tf * self.target_geom
-            target_points_list.append(target_points)
-        target_place_points_list = []
-        for target_place_tf in buffer[0]['target_place_tf']:
-            target_place_points = target_place_tf * self.target_geom
-            target_place_points_list.append(target_place_points)
-
-        robot.set_data((robot_points[0, :], robot_points[1, :]))
-        fig_size = self.fig.get_size_inches()*self.fig.dpi
-        robot_body._markersize = int(min(fig_size[0],fig_size[1])/30)
-        robot_body.set_data((buffer[0]['robot'].get_translation()[0], buffer[0]['robot'].get_translation()[1]))
-        table_start.set_data((self.table_start[0, :], self.table_start[1, :]))
-        table_target.set_data((self.table_target[0, :], self.table_target[1, :]))
-        link1.set_data((
-            [buffer[0]['robot'].x(), buffer[0]['link1'].x()],
-            [buffer[0]['robot'].y(), buffer[0]['link1'].y()]
-        ))
-        link2.set_data((link2_points[0, :], link2_points[1, :]))
-        gripper.set_data((gripper_points[0, :], gripper_points[1, :]))
-        for target, points in zip(target_list, target_points_list):
-            target.set_data((points[0, :], points[1, :]))
-        for target_place, points in zip(target_place_list, target_place_points_list):
-            target_place.set_data((points[0, :], points[1, :]))
-        time_text.set_text('time = %.1f' % buffer[0]['time'])
-        reward_text.set_text('reward = {0: 1.3f}, {1: 1.3f}'.format(buffer[0]['reward'], buffer[0].get('total_reward',0)))
-        weight = buffer[0]['weight']
-        weight_text.set_text('weight: [{0: 2.2f}, {1: 2.2f}, {2: 2.2f}]'.format(weight[0], weight[1], weight[2]))
-        action = buffer[0]['actions']
-        action_string = 'act: ['
-        for index in range(len(action)-1):
-            action_string += '{0: 1.2f}, '.format(action[index])
-        action_string += '{0: 1.2f}]'.format(action[-1])
-        action_text.set_text(action_string)
-        obs = buffer[0]['observations']
-        obs_string = 'obs: ['
-        for index in range(len(obs)-1):
-            obs_string += '{0: 2.2f}, '.format(obs[index])
-        obs_string += '{0: 2.2f}]'.format(obs[-1])
-        observation_text.set_text(obs_string)
-        
-        table_start_text.set_text('table\ntarget')
-        table_target_text.set_text('table\ngoal')
-
-        plt.show()
-
 
 def test(env):
     '''
     Test script for the environment "Manipulator2D"
     '''
+
     for _ in range(10):
+        # 환경 초기화
         env.reset()
 
+        # 10초 동안의 움직임을 관찰
         for _ in np.arange(0, 10, env.dt):
+            # 강화학습이 아닌 위에서 계산한 값을 이용하여 목표 각도에 가까워지도록 피드백 제어
 
+            # position error를 이용해 control input 계산
             link2_to_target = env.link2_tf_global.inv() * env.target_tf[0].get_translation()
             err1 = env.link2_tf * link2_to_target
             err2 = env.link1_tf * env.joint2_tf * err1
@@ -946,11 +831,15 @@ def test(env):
                 np.arctan2(err1[1], err1[0])
             ]
 
+            # Environment의 step 함수를 호출하고, 
+            # 변화된 state(observation)과 reward, episode 종료여부, 기타 정보를 가져옴
             _, _, done, _ = env.step(action, test=True)
 
+            # episode 종료
             if done:
                 break
 
+        # Episode 동안의 로봇암 trajectory plot
         env.render()
 
 

@@ -1,0 +1,26 @@
+Trial: 9Layers:
+	policy:	[512, 256, 256]
+	value:	[512, 256, 256]
+
+action:		fused
+total_time_steps:		10000000
+batch_size:		2048
+buffer_size:		1000000
+gamma:		0.995
+learning_rate:		1e-05
+ent_coef:		auto
+train_freq:		10
+verbose:		1
+box_dist:		beta
+non_lin:		swish
+n_robots:		1
+n_target:		1
+tolerance:		0.1
+episode_length:		2000
+reward_method:		sparse
+observation_method:		absolute
+Additional Info:		Reset from random initial pos
+            		Agent roates a bit less
+            		Target also moves (randomly)
+            		Initial pose a bit inward
+            		weights no biases

@@ -1,0 +1,25 @@
+Layers:
+	policy:	[512, 256, 256]
+	value:	[512, 256, 256]
+
+trial:		53
+action:		linear
+tolerance:		0.1
+total time steps:		50000000
+n_robots:		1
+n_targets:		1
+episode_length:		2000
+reward_method:		sparse
+observation_method:		absolute
+Additional Info:		Reset from random initial pos
+                    		Agent rotates a bit less
+                    		Target stay in position
+                    		shallower network
+                    		Positive sparse reward
+                    		Initial pose a bit inward
+                    		PPO MPI
+                    		using tanh to squash action
+                    		learning_rate: 1e-4, gamma:0.99, n_steps:4096, nminibatches:1024, cliprange:0.02
+                    		Beta policy with alpha, beta > 1 + mean -> mode
+                    		init_scale to 2
+                    		alpha and beta from mu and sigma

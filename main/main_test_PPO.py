@@ -41,7 +41,7 @@ def _write_log(model_log, info):
 
 def make_env(rank, seed=0, **kwargs):
     def _init():
-        env = Manipulator2D(visualize=False, **kwargs)
+        env = Manipulator2D(**kwargs)
         env.seed(seed + rank)
         return env
     set_global_seeds(seed)
@@ -54,15 +54,15 @@ if __name__ == '__main__':
     model_dir = model_path + prefix
     os.makedirs(model_dir, exist_ok=True)
 
-    train = True
+    train = False
     scratch = True
 
     if train:
         action_option = ['linear', 'angular', 'fused', 'pickAndplace']
         observation_option = ['absolute', 'relative']
-        reward_option = ['target', 'time', None]
+        reward_option = ['target', 'time', 'sparse', None]
         action = action_option[0]
-        trial = 0
+        trial = 53
 
         prefix2 = action+"_separate_trial"+str(trial)
         save_path = model_dir+prefix2
@@ -72,12 +72,12 @@ if __name__ == '__main__':
         n_target = 1
         tol = 0.1
         episode_length = 2000
-        reward_method = reward_option[0]
+        reward_method = reward_option[2]
         observation_method = observation_option[0]
         info_dict = {'action': action, 'n_robots': n_robots, 'n_target':n_target, 'tol':tol, 
                     'episode_length':episode_length, 'reward_method':reward_method, 'observation_method':observation_method, 
                     'policy_name':prefix2}
-        num_cpu = 2
+        num_cpu = 16
         env = SubprocVecEnv([make_env(i, **info_dict) for i in range(num_cpu)])
         #env = Manipulator2D(visualize=False, **info_dict)
         
@@ -88,15 +88,15 @@ if __name__ == '__main__':
                                 [256, 256], [128, 128]]
         layer_structure = layer_structure_list[7]
         net_arch = {"pi": layer_structure, "vf": layer_structure}
-        policy_kwargs={'net_arch': [net_arch], 'act_fun': tf.nn.relu, 'squash':False, 'box_dist': 'beta'}
+        policy_kwargs={'net_arch': [net_arch], 'act_fun': tf.nn.swish, 'squash':False, 'box_dist': 'beta'}
 
         total_time_step = 50000000
-        model_dict = {'learning_rate': 1e-4, 'gamma': 0.99, 'n_steps': 1024, 'nminibatches': 256, 'cliprange': 0.2,
+        model_dict = {'learning_rate': 1e-4, 'gamma': 0.99, 'n_steps': 4096, 'nminibatches': 1024, 'cliprange': 0.02,
                         'tensorboard_log': save_path, 'policy_kwargs': policy_kwargs}
         if scratch:
             model = PPO2(MlpPolicy, env, **model_dict)
         else:
-            load_policy_num = 29958658
+            load_policy_num = 49741825
             path = save_path+'/policy_'+str(load_policy_num)
             print("loaded_policy_path: ",path)
             model = PPO2.load(path, env=env, **model_dict)
@@ -108,14 +108,16 @@ if __name__ == '__main__':
                 'Additional Info': \
                     'Reset from random initial pos\n\
                     \t\tAgent rotates a bit less\n\
-                    \t\tTarget does not stay in position\n\
+                    \t\tTarget stay in position\n\
                     \t\tshallower network\n\
-                    \t\tPositive reward\n\
+                    \t\tPositive sparse reward\n\
                     \t\tInitial pose a bit inward\n\
                     \t\tPPO MPI\n\
                     \t\tusing tanh to squash action\n\
-                    \t\tlearning_rate: 5e-5, gamma:0.99, n_steps:4096, nminibatches:256, cliprange:0.02\n\
-                    \t\tBeta policy with alpha, beta > 1 + mean -> mode'}
+                    \t\tlearning_rate: 1e-4, gamma:0.99, n_steps:4096, nminibatches:1024, cliprange:0.02\n\
+                    \t\tBeta policy with alpha, beta > 1 + mean -> mode\n\
+                    \t\tinit_scale to 2\n\
+                    \t\talpha and beta from mu and sigma'}
             model_log = open(save_path+"/model_log.txt", 'w')
             _write_log(model_log, info)
             model_log.close()
@@ -127,9 +129,9 @@ if __name__ == '__main__':
     else:
         action_list = ['linear', 'angular', 'fused', 'pickAndplace']
         observation_option = ['absolute', 'relative']
-        reward_option = ['target', 'time', None]
+        reward_option = ['target', 'time', 'sparse', None]
         action = action_list[0]
-        trial = 38
+        trial = 53
 
         tol = 0.1
         n_robots = 1
@@ -138,20 +140,21 @@ if __name__ == '__main__':
         reward_method = reward_option[0]
         observation_method = observation_option[0]
         info_dict = {'action': action, 'n_robots': n_robots, 'n_target':n_target, 'tol':tol, 
-                    'episode_length':episode_length, 'reward_method':reward_method, 'observation_method':observation_method}
-        env = Manipulator2D(visualize=False, **info_dict)
+                    'episode_length':episode_length, 'reward_method':reward_method, 'observation_method':observation_method,
+                    'visualize': True}
+        env = SubprocVecEnv([make_env(i, **info_dict) for i in range(1)])
 
-        policy_num = 2496513
+        policy_num = 49741825
         layer_structure_list = [[256, 256, 128, 128, 64], [128, 128, 64, 64, 32], [64, 128, 256, 128, 64], \
                                 [256, 256, 128, 128], [128, 64, 64, 32], [64, 64, 32, 32], \
                                 [512, 256, 256], [256, 256, 128], [128, 128, 128], \
                                 [256, 256], [128, 128]]
         layer_structure = layer_structure_list[6]
         net_arch = {"pi": layer_structure, "vf": layer_structure}
-        policy_kwargs={'net_arch': [net_arch], 'act_fun': tf.nn.relu, 'squash':False, 'beta':True}
+        policy_kwargs={'net_arch': [net_arch], 'act_fun': tf.nn.swish, 'squash':False, 'box_dist':'beta'}
 
         prefix2 = action+"_separate_trial"+str(trial)
-        model = PPO2.load(model_path+prefix+prefix2+"/policy_"+str(policy_num), policy_kwargs=policy_kwargs)
+        model = PPO2.load(model_path+prefix+prefix2+"/policy_"+str(policy_num), env=env, policy_kwargs=policy_kwargs)
 
         print("\033[91mTest Starts\033[0m")
         for i in range(10):
@@ -162,9 +165,9 @@ if __name__ == '__main__':
                 n_iter += 1
                 action, state = model.predict(obs, deterministic=False)
                 print(action)
-                logstd = model.logstd(obs)
+                #logstd = model.logstd(obs)
                 if n_iter % 20:
-                    print('logstd: ',logstd)
+                    #print('logstd: ',logstd)
                     if action == 'fused':
                         print("  dist:\t{0:2.3f}".format(obs[0]),"\tang:\t{0: 2.3f}".format(obs[1]),"\ta_diff:\t{0: 2.3f}".format(obs[2]),"\taction:\t[{0: 2.3f} {1: 2.3f}]".format(action[0],action[1]))
                     elif action in ['linear', 'angular']:
@@ -172,9 +175,8 @@ if __name__ == '__main__':
                     elif action == 'pickAndplace':
                         #print("  x, y, w: {0: 2.3f}, {1: 2.3f}, {2: 2.3f}".format(obs[0], obs[1], obs[2])," action: [{0: 2.3f}, {1: 2.3f}, {2: 2.3f}, {3: 2.3f}]".format(action[0],action[1],action[2],action[3]))
                         pass
-                obs, reward, done, _ = env.step(action, test=True)
+                obs, reward, done, _ = env.step(action)
                 if done:
                     print(reward)
                     break
-            env.render()
         print("\033[91mTest Finished\033[0m")
