@@ -10,6 +10,7 @@ import numpy as np
 import tensorflow as tf
 
 from env_script.test_env.manipulator_2d import Manipulator2D
+from stable_baselines.gail import generate_expert_traj
 from stable_baselines.sac_multi import SAC_MULTI
 from stable_baselines.sac_multi.policies import MlpPolicy as MlpPolicy_sac
 from stable_baselines.common.vec_env import SubprocVecEnv
@@ -42,6 +43,10 @@ def _write_log(save_path, info, trial):
     model_log.close()
 
 
+def _expert_action(_obs):
+    action = []
+    return action
+
 if __name__ == '__main__':
     package_path = str(Path(__file__).resolve().parent.parent)
     model_path = package_path+"/models_baseline/"
@@ -53,6 +58,7 @@ if __name__ == '__main__':
     load = not train
     separate = True
     scratch = True
+    expert = False
     test = False and not separate
     auxilary = True and not separate
 
@@ -69,6 +75,9 @@ if __name__ == '__main__':
             model_configuration['tensorboard_log'] = save_path
 
             print("\033[91mTraining Starts, action: {0}\033[0m".format(env_configuration['action']))
+            if expert:
+                n_episodes = 10
+                generate_expert_traj(_expert_action, 'expert_traj', env, n_episodes=n_episodes)
             if scratch:
                 _write_log(save_path, info, trial)
                 model = SAC_MULTI(MlpPolicy_sac, env, **model_configuration)
