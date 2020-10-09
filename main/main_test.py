@@ -47,7 +47,6 @@ def _write_log(save_path, info, trial):
         model_log.writelines(name+":\t\t{0}\n".format(item))
     model_log.close()
 
-
 def _open_connection():
     try:            
         print("Opening connection to SpaceNav driver ...")
@@ -82,8 +81,8 @@ if __name__ == '__main__':
 
     train = True
     separate = True
-    train_mode_list = ['expert', 'scratch', 'load']
-    train_mode = train_mode_list[0]
+    train_mode_list = ['human', 'auto', 'scratch', 'load']
+    train_mode = train_mode_list[1]
     test = False and not separate
     auxilary = True and not separate
 
@@ -101,12 +100,22 @@ if __name__ == '__main__':
 
             print("\033[91mTraining Starts, action: {0}\033[0m".format(env_configuration['action']))
             if train_mode == 'expert':
+                n_episodes = 100
+                _open_connection()
+                traj_dict = generate_expert_traj(_expert_3d, model_dir+"/trajectory_expert", env, n_episodes=n_episodes)
+                _close_connection()
+                traj_dict = np.load(model_dir+"/trajectory_expert.npz", allow_pickle=True)
+                for name, elem in traj_dict.items():
+                    print('nan in ',name, np.any(np.isnan(elem)))
+                dataset = ExpertDataset(traj_data=traj_dict, batch_size=1024)
+                model = SAC_MULTI(MlpPolicy_sac, env, **model_configuration)
+                model.pretrain(dataset, n_epochs=1000, learning_rate=1e-6, val_interval=10)
+                del dataset
+                model.learn(total_time_step, save_interval=model_configuration['learning_starts'], save_path=save_path)
+            if train_mode == 'auto':
                 n_episodes = 10000
                 #traj_dict = generate_expert_traj(env.calculate_desired_action, model_dir+"/trajectory_10000", env, n_episodes=n_episodes)
-                _open_connection()
-                traj_dict = generate_expert_traj(_expert_3d, model_dir+"/trajectory_test", env, n_episodes=n_episodes)
-                _close_connection()
-                quit()
+                #quit()
                 traj_dict = np.load(model_dir+"/trajectory_10000.npz", allow_pickle=True)
                 for name, elem in traj_dict.items():
                     print('nan in ',name, np.any(np.isnan(elem)))
