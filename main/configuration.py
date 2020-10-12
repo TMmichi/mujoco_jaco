@@ -2,6 +2,7 @@ import tensorflow as tf
 
 env_configuration = {}
 model_configuration = {}
+pretrain_configuration = {}
 info = {}
 
 #####################################################################################################
@@ -16,13 +17,14 @@ env_configuration['arm1'] = 1
 env_configuration['arm2'] = 1
 env_configuration['dt'] = 0.01
 env_configuration['tol'] = 0.1
-env_configuration['episode_length'] = 2000
-env_configuration['reward_method'] = reward_option[2]
+env_configuration['episode_length'] = 2500
 env_configuration['observation_method'] = observation_option[0]
+env_configuration['reward_method'] = reward_option[2]
 env_configuration['her'] = False
 env_configuration['visualize'] = True
 #####################################################################################################
 #####################################################################################################
+total_time_step = 1000000
 layer_structure_list = [[256, 256, 128, 128, 128, 64, 64], \
                         [256, 256, 128, 128, 64], [128, 128, 64, 64, 32], [64, 128, 256, 128, 64], \
                         [256, 256, 128, 128], [128, 64, 64, 32], [64, 64, 32, 32], \
@@ -31,10 +33,9 @@ layer_structure_list = [[256, 256, 128, 128, 128, 64, 64], \
 layer_structure = layer_structure_list[7]
 layers = {"policy": layer_structure, "value": layer_structure}
 
-total_time_step = 1000000
 model_configuration['learning_starts'] = 100
 model_configuration['layers'] = layers
-model_configuration['batch_size'] = 2048
+model_configuration['batch_size'] = 1024
 model_configuration['buffer_size'] = 1000000
 model_configuration['gamma'] = 0.995
 model_configuration['learning_rate'] = 1e-6
@@ -43,16 +44,23 @@ model_configuration['train_freq'] = 10
 model_configuration['verbose'] = 1
 model_configuration['box_dist'] = 'beta'
 model_configuration['policy_kwargs'] = {'act_fun':tf.nn.swish}
+pretrain_configuration['n_epochs'] = 500
+pretrain_configuration['learning_rate'] = 2.5e-7
+pretrain_configuration['val_interval'] = 1
 #####################################################################################################
 info['non_lin'] = 'swish'
-info['Additional Info']= \
-            'Reset from random initial pos\n\
-            \t\tAgent roates a bit less\n\
-            \t\tTarget also moves (randomly)\n\
-            \t\tInitial pose a bit inward\n\
-            \t\tweights no biases\n\
-            \t\tBeta pre-training with pi params\n\
-            \t\tPre-train with more expert data'
+info['Additional Info']='Weight normalized\n\
+    \t\tTarget does not move\n\
+    \t\tDense Positive reward'
+# info['Additional Info']= \
+#             'Reset from random initial pos\n\
+#             \t\tAgent roates a bit less\n\
+#             \t\tTarget also moves (randomly)\n\
+#             \t\tInitial pose a bit inward\n\
+#             \t\tweights no biases\n\
+#             \t\tBeta pre-training with all params\n\
+#             \t\tPre-train with more expert data\n\
+#             \t\tLearning rate with e decay'
 
 
 

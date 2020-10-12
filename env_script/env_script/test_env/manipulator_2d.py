@@ -112,7 +112,7 @@ class Manipulator2D(gym.Env):
         self.her = her
         self.policy_name = policy_name
         self.visualize = visualize
-        self.vis_freq = 5
+        self.vis_freq = 1
         
         if self.action_type == 'linear':
             if observation_method == 'absolute':
@@ -239,6 +239,7 @@ class Manipulator2D(gym.Env):
         self.reset()
         self.n_timesteps = 0
         self.n_episodes = 0
+        self.episode_reward = 0
         self.accum_reward = 0
         if self.visualize:
             self.render_init()
@@ -262,12 +263,12 @@ class Manipulator2D(gym.Env):
             #self._move_object(self.target_tf[0], (random.random()-0.5), (random.random()-0.5)*2)
         elif self.action_type == 'angular':
             self.robot_tf.transform(
-                translation=(0.2*self.dt, 0),
+                translation=(0.1*self.dt, 0),
                 rotation=action[0]*self.dt
             )
             self.link1_tf_global = self.robot_tf * self.joint1_tf * self.link1_tf
             self.link2_tf_global = self.link1_tf_global * self.joint2_tf * self.link2_tf
-            self._move_object(self.target_tf[0], (random.random()-0.5), (random.random()-0.5)*2)
+            #self._move_object(self.target_tf[0], (random.random()-0.5)*0.1, (random.random()-0.5)*2)
         elif self.action_type == 'fused':
             self.robot_tf.transform(
                 translation=(action[0]*self.dt, 0),
@@ -275,7 +276,7 @@ class Manipulator2D(gym.Env):
             )
             self.link1_tf_global = self.robot_tf * self.joint1_tf * self.link1_tf
             self.link2_tf_global = self.link1_tf_global * self.joint2_tf * self.link2_tf
-            self._move_object(self.target_tf[0], (random.random()-0.5)*2, (random.random()-0.5)*2)
+            #self._move_object(self.target_tf[0], (random.random()-0.5)*2, (random.random()-0.5)*2)
         elif self.action_type == 'pickAndplace':
             self.robot_tf.transform(
                 translation=(action[0]*self.dt, 0),
@@ -302,6 +303,7 @@ class Manipulator2D(gym.Env):
         self.t += self.dt
 
         reward, done = self._get_reward()
+        self.episode_reward += reward
         self.accum_reward += reward
 
         info = {}
@@ -315,40 +317,46 @@ class Manipulator2D(gym.Env):
                 obs['achieved_goal'] = [1]
 
         if test or self.visualize:
-            target_tf = []
-            for i in range(self.n_target):
-                target_tf.append(self.target_tf[i].copy())
-            if self.action_type == 'pickAndplace':
-                target_place_tf = []
-                for i in range(self.n_target):
-                    target_place_tf.append(self.target_place_tf[i].copy())
-            else:
-                target_place_tf = []
-            self.buffer.append(
-                dict(
-                    robot=self.robot_tf.copy(),
-                    link1=self.link1_tf_global.copy(),
-                    link2=self.link2_tf_global.copy(),
-                    target=target_tf,
-                    target_place_tf=target_place_tf,
-                    time=self.t,
-                    observations=obs,
-                    actions=action,
-                    reward=reward,
-                    total_reward=self.accum_reward,
-                    weight=weight
-                )
-            )
-            self.realtime_render(self.buffer)
             if self.n_timesteps % self.vis_freq == 0:
-                self.update_render()
-            self.buffer = []
+                target_tf = []
+                for i in range(self.n_target):
+                    target_tf.append(self.target_tf[i].copy())
+                if self.action_type == 'pickAndplace':
+                    target_place_tf = []
+                    for i in range(self.n_target):
+                        target_place_tf.append(self.target_place_tf[i].copy())
+                else:
+                    target_place_tf = []
+                self.buffer.append(
+                    dict(
+                        robot=self.robot_tf.copy(),
+                        link1=self.link1_tf_global.copy(),
+                        link2=self.link2_tf_global.copy(),
+                        target=target_tf,
+                        target_place_tf=target_place_tf,
+                        time=self.t,
+                        observations=obs,
+                        actions=action,
+                        reward=reward,
+                        total_reward=self.episode_reward,
+                        weight=weight
+                    )
+                )
+                try:
+                    self.realtime_render(self.buffer)
+                    self.update_render()
+                    self.buffer = []
+                except Exception:
+                    done = True
             
         return obs, reward, done, info
 
-    def reset(self):
+    def reset(self, test=False):
+        if test:
+            self.render_init()
         print("  "+self.policy_name+" reset")
         self.n_timesteps = 0
+        self.episode_reward = 0
         self.grasp = -1
 
         robot_rot = (random.random()-0.5)*2*3
@@ -502,7 +510,8 @@ class Manipulator2D(gym.Env):
                         done = True
                         print("\033[92m  SUCCEEDED\033[0m")      
                     else:
-                        reward = np.exp(-(l-self.tol)**2*0.25)*0.05 + np.exp(-(angle_diff/np.pi/max(l,1))**2*0.25)*0.05
+                        #reward = np.exp(-(l-self.tol)**2*0.25)*0.05 + np.exp(-(angle_diff/np.pi/max(l,1))**2*0.25)*0.05
+                        reward = 2/(l+2) * 0.01 + (np.pi+2)/(angle_diff+2) * 0.005
         elif self.action_type == 'pickAndplace':
             if self.crash_check():
                 reward = -100
@@ -695,18 +704,24 @@ class Manipulator2D(gym.Env):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
 
-    @staticmethod
-    def calculate_desired_action(obs):
+    def calculate_desired_action(self, obs):
         robot_tf = Transformation(translation=obs[:2],rotation=obs[2])
         target_tf = Transformation(translation=obs[3:5],rotation=obs[5])
-        # print(robot_tf)
-        # print(target_tf)
         mat_target_robot = robot_tf.inv()*target_tf
-        target_vector = np.dot(mat_target_robot.get_translation(), np.array([1,0])) * np.array([1,0])
-        if target_vector[0] > 0:
-            return [np.clip(0.8 + np.random.normal()*0.05, -0.99, 0.99)]
-        else:
-            return [np.clip(-0.8 + np.random.normal()*0.05, -0.99, 0.99)]
+        if self.action_type == 'linear':
+            target_vector = np.dot(mat_target_robot.get_translation(), np.array([1,0])) * np.array([1,0])
+            if target_vector[0] > 0:
+                del robot_tf, target_tf
+                return [np.clip(0.8 + np.random.normal()*0.05, -0.99, 0.99)]
+            else:
+                del robot_tf, target_tf
+                return [np.clip(-0.8 + np.random.normal()*0.05, -0.99, 0.99)]
+        elif self.action_type == 'angular':
+            ang = -np.arctan2(mat_target_robot.y(), mat_target_robot.x())
+            if ang > 0:
+                return [np.clip(-2 + np.random.normal()*0.05, -np.pi, np.pi)]
+            else:
+                return [np.clip(2 + np.random.normal()*0.05, -np.pi, np.pi)]
 
 
     def render_init(self):        

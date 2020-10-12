@@ -12,6 +12,12 @@ with tf.variable_scope("hi"):
     b_in = tf.layers.flatten(b)
     #b_in = tf.layers.dense(b_in, len(b_in.shape)-1, activation=tf.nn.softplus)
 
+    c = tf.zeros_like(a)
+    d = tf.zeros((3,5))
+    e = tf.matmul(c,d)
+    #print(c.shape)
+    print(e.shape)
+
     dist = tf.distributions.Beta(concentration1=a_in, concentration0=b_in, validate_args=True, allow_nan_stats=False)
 
     gaus = a_in + b_in * tf.random_normal(tf.shape(a_in), dtype=a_in.dtype)
@@ -30,12 +36,4 @@ with tf.variable_scope("hi"):
 ainp = np.array([[1,2,3],[1,2,3],[1,2,3]])
 binp = np.array([[1,2,3],[1,2,3],[1,2,3]])
 
-then = time.time()
-for i in range(200):
-    c = sess.run(dist.mean(), feed_dict={a:ainp, b:binp})
-print(time.time()-then)
-then = time.time()
-for i in range(200):
-    d = sess.run(gaus, feed_dict={a:ainp, b:binp})
-print(time.time()-then)
-    
+c = sess.run(dist.mean(), feed_dict={a:ainp, b:binp})
