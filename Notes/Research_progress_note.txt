@@ -1,0 +1,224 @@
+2020 10 13 (Tue)
+
+- angular_separate_trial15 reset
+    Policy: Beta
+    ==== Training progress 100.00% ====
+    Epoch 450
+    Training loss: 0.474153, Validation loss: 0.472563
+    -------------------------------------------
+    | current_lr              | 4.5e-07       |
+    | ent_coef                | 1.0043164     |
+    | ent_coef_loss           | -0.0024440344 |
+    | entropy                 | -1.5266002    |
+    | episodes                | 440           |
+    | fps                     | 219           |
+    | mean 100 episode reward | 0.92          |
+    | n_updates               | 9949          |
+    | policy_loss             | 2.203872      |
+    | qf1_loss                | 0.023535093   |
+    | qf2_loss                | 0.0214932     |
+    | time_elapsed            | 458           |
+    | total timesteps         | 100511        |
+    | value_loss              | 1.2701457     |
+    -------------------------------------------
+    -------------------------------------------
+    | current_lr              | 1.75e-10      |
+    | ent_coef                | 1.0040003     |
+    | ent_coef_loss           | 0.00033442373 |
+    | entropy                 | -0.93191975   |
+    | episodes                | 2808          |
+    | fps                     | 266           |
+    | mean 100 episode reward | 0.78          |
+    | n_updates               | 99863         |
+    | policy_loss             | 24.311306     |
+    | qf1_loss                | 3.518248      |
+    | qf2_loss                | 3.8738937     |
+    | time_elapsed            | 3746          |
+    | total timesteps         | 999659        |
+    | value_loss              | 0.32423455    |
+    -------------------------------------------
+    Num episodes:  2807 	Success rate: 82.37%
+  
+- linear_separate_trial75 reset
+    Policy: Beta
+    ==== Training progress 100.00% ====
+    Epoch 450
+    Training loss: 0.020438, Validation loss: 0.020475
+    ------------------------------------------
+    | current_lr              | 8.99e-08     |
+    | ent_coef                | 1.0009283    |
+    | ent_coef_loss           | -0.000368347 |
+    | entropy                 | -1.4098951   |
+    | episodes                | 256          |
+    | fps                     | 278          |
+    | mean 100 episode reward | 0.9          |
+    | n_updates               | 9972         |
+    | policy_loss             | 1.4506013    |
+    | qf1_loss                | 0.0029765775 |
+    | qf2_loss                | 0.0027535474 |
+    | time_elapsed            | 361          |
+    | total timesteps         | 100740       |
+    | value_loss              | 1.2169098    |
+    ------------------------------------------
+    --------------------------------------------
+    | current_lr              | 3.21e-11       |
+    | ent_coef                | 1.0048677      |
+    | ent_coef_loss           | -0.00037705468 |
+    | entropy                 | -1.0982203     |
+    | episodes                | 1784           |
+    | fps                     | 273            |
+    | mean 100 episode reward | 0.52           |
+    | n_updates               | 99866          |
+    | policy_loss             | 1.7835755      |
+    | qf1_loss                | 0.0066446015   |
+    | qf2_loss                | 0.0059192907   |
+    | time_elapsed            | 3650           |
+    | total timesteps         | 999683         |
+    | value_loss              | 0.82774407     |
+    --------------------------------------------
+    Num episodes:  1783 	Success rate: 62.25%
+  
+- linear_separate_trial78 reset
+    Policy: Gaussian
+    ==== Training progress 100.00% ====
+    Epoch 500
+    Training loss: 0.045013, Validation loss: 0.045024
+    -------------------------------------------
+    | current_lr              | 8.99e-07      |
+    | ent_coef                | 0.9973579     |
+    | ent_coef_loss           | -0.0024807393 |
+    | entropy                 | 1.1784866     |
+    | episodes                | 104           |
+    | fps                     | 391           |
+    | mean 100 episode reward | 0.7           |
+    | n_updates               | 9992          |
+    | policy_loss             | 0.78643835    |
+    | qf1_loss                | 0.0024392277  |
+    | qf2_loss                | 0.0024410982  |
+    | time_elapsed            | 257           |
+    | total timesteps         | 100944        |
+    | value_loss              | 1.6504693     |
+    -------------------------------------------
+    -----------------------------------------
+    | current_lr              | 1.07e-09    |
+    | ent_coef                | 0.9573729   |
+    | ent_coef_loss           | -0.07187698 |
+    | entropy                 | 1.429819    |
+    | episodes                | 636         |
+    | fps                     | 381         |
+    | mean 100 episode reward | 0.32        |
+    | n_updates               | 99791       |
+    | policy_loss             | -54.583008  |
+    | qf1_loss                | 0.064368464 |
+    | qf2_loss                | 0.07137745  |
+    | time_elapsed            | 2615        |
+    | total timesteps         | 998936      |
+    | value_loss              | 0.08441347  |
+    -----------------------------------------
+    Num episodes:  635 	Success rate: 45.67%
+
+- angular_adj_separate_trial2 reset
+    Policy: Beta
+    -------------------------------------------
+    | current_lr              | 4.96e-06      |
+    | ent_coef                | 1.0029414     |
+    | ent_coef_loss           | -0.0024531025 |
+    | entropy                 | -1.8388793    |
+    | episodes                | 52            |
+    | fps                     | 131           |
+    | mean 100 episode reward | 1             |
+    | n_updates               | 630           |
+    | policy_loss             | 1.9426062     |
+    | qf1_loss                | 0.0049558384  |
+    | qf2_loss                | 0.0050073643  |
+    | time_elapsed            | 55            |
+    | total timesteps         | 7326          |
+    | value_loss              | 3.1696966     |
+    -------------------------------------------
+    Num episodes:  52 	Success rate: 99.99%
+
+2020 10 14 (Wed)
+
+- fused_auxilary_trial32
+    BC: Adam
+    Learning: Adam
+    -------------------------------------------
+    | current_lr              | 3.88e-09      |
+    | ent_coef                | 1.0250524     |
+    | ent_coef_loss           | -0.0076833563 |
+    | entropy                 | -1.1443769    |
+    | episodes                | 432           |
+    | fps                     | 125           |
+    | mean 100 episode reward | 38.6          |
+    | n_updates               | 99123         |
+    | policy_loss             | 35.268112     |
+    | qf1_loss                | 0.4174384     |
+    | qf2_loss                | 0.46016067    |
+    | time_elapsed            | 7890          |
+    | total timesteps         | 992259        |
+    | value_loss              | 2.0085697     |
+    -------------------------------------------
+    Num episodes:  434 	Success rate: 10.14%
+
+- fused_auxilary_trial33 reset
+    BC: RAdam
+    Learning: Adam
+    ------------------------------------------
+    | current_lr              | 5.11e-10     |
+    | ent_coef                | 1.025032     |
+    | ent_coef_loss           | -0.007936968 |
+    | entropy                 | -1.1574274   |
+    | episodes                | 444          |
+    | fps                     | 135          |
+    | mean 100 episode reward | -5.49        |
+    | n_updates               | 99796        |
+    | policy_loss             | 29.939817    |
+    | qf1_loss                | 2.7700684    |
+    | qf2_loss                | 1.876455     |
+    | time_elapsed            | 7391         |
+    | total timesteps         | 998987       |
+    | value_loss              | 1.2694768    |
+    ------------------------------------------
+    Num episodes:  443 	Success rate: 9.71%
+
+- fused_auxilary_trial34 reset
+    BC: Adam
+    Learning: RAdam
+    -----------------------------------------
+    | current_lr              | 4.27e-08    |
+    | ent_coef                | 0.6641457   |
+    | ent_coef_loss           | -0.16365853 |
+    | entropy                 | -0.7960597  |
+    | episodes                | 404         |
+    | fps                     | 96          |
+    | mean 100 episode reward | 9.29        |
+    | n_updates               | 198090      |
+    | policy_loss             | 196.75035   |
+    | qf1_loss                | 0.32494348  |
+    | qf2_loss                | 0.32608828  |
+    | time_elapsed            | 10241       |
+    | total timesteps         | 991474      |
+    | value_loss              | 0.17325646  |
+    -----------------------------------------
+    Num episodes:  406 	Success rate: 1.97%
+
+- fused_auxilary_trial35 reset
+    BC: RAdam
+    Learning: RAdam
+    ------------------------------------------
+    | current_lr              | 1.51e-08     |
+    | ent_coef                | 0.8478695    |
+    | ent_coef_loss           | -0.046509862 |
+    | entropy                 | -0.86510396  |
+    | episodes                | 412          |
+    | fps                     | 97           |
+    | mean 100 episode reward | 5.21         |
+    | n_updates               | 198788       |
+    | policy_loss             | 281.17612    |
+    | qf1_loss                | 0.9335018    |
+    | qf2_loss                | 0.92602193   |
+    | time_elapsed            | 10194        |
+    | total timesteps         | 994962       |
+    | value_loss              | 0.35661218   |
+    ------------------------------------------
+    Num episodes:  412 	Success rate: 2.18%
