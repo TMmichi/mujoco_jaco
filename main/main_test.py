@@ -82,16 +82,16 @@ if __name__ == '__main__':
     model_dir = model_path + prefix
     os.makedirs(model_dir, exist_ok=True)
 
-    train = True
-    separate = False
+    train = False
+    separate = True
     train_mode_list = ['human', 'auto', 'scratch', 'load']
-    train_mode = train_mode_list[0]
-    auxilary = True and not separate
+    train_mode = train_mode_list[1]
+    auxilary = False and not separate
     test = False and not separate
 
     if train:
         if separate:
-            trial = 78
+            trial = 2
 
             prefix2 = env_configuration['action']+"_separate_trial"+str(trial)
             save_path = model_dir+prefix2
@@ -119,8 +119,8 @@ if __name__ == '__main__':
                 _write_log(save_path, info, trial)
                 model.learn(total_time_step, save_interval=int(total_time_step*0.05), save_path=save_path)
             if train_mode == 'auto':
-                # n_episodes = 10000
-                # traj_dict = generate_expert_traj(env.calculate_desired_action, model_dir+"/angular_10000", env, n_episodes=n_episodes)
+                n_episodes = 10000
+                traj_dict = generate_expert_traj(env.calculate_desired_action, model_dir+env_configuration['action']+"_10000", env, n_episodes=n_episodes)
                 # quit()
                 traj_dict = np.load(model_dir+env_configuration['action']+"_10000.npz", allow_pickle=True)
                 for name, elem in traj_dict.items():
@@ -149,7 +149,7 @@ if __name__ == '__main__':
             print("\033[91mTraining finished\033[0m")
 
         elif auxilary:
-            trial = 0
+            trial = 35
 
             prefix2 = env_configuration['action']+"_auxilary_trial"+str(trial)
             save_path = model_dir+prefix2
@@ -185,7 +185,7 @@ if __name__ == '__main__':
             model.construct_primitive_info(name=prim_name, freeze=False, level=1,
                                                 obs_range=aux1_obs_range, obs_index=aux1_obs_index,
                                                 act_range=aux1_act_range, act_index=aux1_act_index,
-                                                layer_structure={'policy':[512, 256, 256]})
+                                                layer_structure={'policy':[64, 64]})
 
             prim_name = 'linear'
             prim_trial = 75
@@ -208,9 +208,20 @@ if __name__ == '__main__':
                                                 layer_structure=None,
                                                 loaded_policy=SAC_MULTI._load_from_file(policy_zip_path), 
                                                 load_value=True)
+            
+            prim_name = 'angular_adj'
+            prim_trial = 2
+            policy_num = 0
+            policy_zip_path = model_path+prefix+prim_name+"_separate_trial"+str(prim_trial)+"/policy_"+str(policy_num)+".zip"
+            model.construct_primitive_info(name=prim_name, freeze=True, level=1,
+                                                obs_range=None, obs_index=prim_obs_index,
+                                                act_range=None, act_index=[1],
+                                                layer_structure=None,
+                                                loaded_policy=SAC_MULTI._load_from_file(policy_zip_path), 
+                                                load_value=True)
 
             total_obs_dim = 6
-            number_of_primitives = 3
+            number_of_primitives = 4
             model.construct_primitive_info(name='weight', freeze=False, level=1,
                                                 obs_range=0, obs_index=list(range(total_obs_dim)),
                                                 act_range=0, act_index=list(range(number_of_primitives)),
@@ -221,11 +232,11 @@ if __name__ == '__main__':
 
             print("\033[91mTraining Starts\033[0m")
             if train_mode == 'human':
-                n_episodes = 100
-                _open_connection()
-                traj_dict = generate_expert_traj(_expert_3d, model_dir+"/fused_100", env, n_episodes=n_episodes)
-                _close_connection()
-                quit()
+                # n_episodes = 100
+                # _open_connection()
+                # traj_dict = generate_expert_traj(env.calculate_desired_action, model_dir+env_configuration['action']+"_100", env, n_episodes=n_episodes)
+                # _close_connection()
+                # quit()
                 traj_dict = np.load(model_dir+env_configuration['action']+"_100.npz", allow_pickle=True)
                 for name, elem in traj_dict.items():
                     if np.any(np.isnan(elem)):
@@ -233,7 +244,6 @@ if __name__ == '__main__':
                         quit()
                 dataset = ExpertDataset(traj_data=traj_dict, batch_size=1024)
                 model_configuration['learning_rate'] = _lr_scheduler
-                model = SAC_MULTI(MlpPolicy_sac, env, **model_configuration)
                 model.pretrain(dataset, **pretrain_configuration)
                 model.save(save_path+"/policy_0")
                 del dataset
@@ -280,73 +290,109 @@ if __name__ == '__main__':
             print("\033[91mTrain Finished\033[0m")
 
         else:
-            composite_primitive_name='MCP'
+            trial = 32
+
+            prefix2 = env_configuration['action']+"_auxilary_trial"+str(trial)
+            save_path = model_dir+prefix2
+            os.makedirs(save_path, exist_ok=True)
+            env_configuration['policy_name'] = prefix2
+            env = Manipulator2D(**env_configuration)
+
+            model_configuration['tensorboard_log'] = save_path
+
+            composite_primitive_name='PoseControl'
             model = SAC_MULTI(policy=MlpPolicy_sac, env=None, _init_setup_model=False, composite_primitive_name=composite_primitive_name)
 
-            policy_zip_path = model_path+"twowheel"+"/linear2_SAC.zip"
-            model.construct_primitive_info(name='linear', freeze=False, level=1,
-                                                obs_range=None, obs_index=[0, 1],
+            if env_configuration['observation_method'] == 'absolute':
+                total_obs_dim = 6
+                prim_obs_index = list(range(6))
+            elif env_configuration['observation_method'] == 'relative':
+                total_obs_dim = 3
+                prim_obs_index = list(range(2))
+
+            prim_name = 'linear'
+            prim_trial = 75
+            policy_num = 100000
+            policy_zip_path = model_path+prefix+prim_name+"_separate_trial"+str(prim_trial)+"/policy_"+str(policy_num)+".zip"
+            model.construct_primitive_info(name=prim_name, freeze=True, level=1,
+                                                obs_range=None, obs_index=prim_obs_index,
                                                 act_range=None, act_index=[0],
                                                 layer_structure=None,
-                                                loaded_policy=SAC_MULTI._load_from_file(policy_zip_path), load_value=True)
-            policy_zip_path = model_path+"twowheel"+"/angular.zip"    
-            model.construct_primitive_info(name='angular', freeze=True, level=1,
-                                                obs_range=None, obs_index=[0, 1],
+                                                loaded_policy=SAC_MULTI._load_from_file(policy_zip_path),
+                                                load_value=True)
+
+            prim_name = 'angular'
+            prim_trial = 15
+            policy_num = 100000
+            policy_zip_path = model_path+prefix+prim_name+"_separate_trial"+str(prim_trial)+"/policy_"+str(policy_num)+".zip"
+            model.construct_primitive_info(name=prim_name, freeze=True, level=1,
+                                                obs_range=None, obs_index=prim_obs_index,
                                                 act_range=None, act_index=[1],
                                                 layer_structure=None,
-                                                loaded_policy=SAC_MULTI._load_from_file(policy_zip_path), load_value=True)
-            total_obs_dim = 2
+                                                loaded_policy=SAC_MULTI._load_from_file(policy_zip_path), 
+                                                load_value=True)
+            
+            prim_name = 'angular_adj'
+            prim_trial = 2
+            policy_num = 0
+            policy_zip_path = model_path+prefix+prim_name+"_separate_trial"+str(prim_trial)+"/policy_"+str(policy_num)+".zip"
+            model.construct_primitive_info(name=prim_name, freeze=True, level=1,
+                                                obs_range=None, obs_index=prim_obs_index,
+                                                act_range=None, act_index=[1],
+                                                layer_structure=None,
+                                                loaded_policy=SAC_MULTI._load_from_file(policy_zip_path), 
+                                                load_value=True)
+
+            total_obs_dim = 6
             number_of_primitives = 2
             model.construct_primitive_info(name='weight', freeze=False, level=1,
                                                 obs_range=0, obs_index=list(range(total_obs_dim)),
                                                 act_range=0, act_index=list(range(number_of_primitives)),
-                                                layer_structure={'policy':[32, 32],'value':[64, 64]})
-            tb_path = tb_dir + prefix
-            total_time_step = 10
-            learn_start = 0 #int(total_time_step*0.1)
+                                                layer_structure={'policy':[512, 256, 256],'value':[512, 256, 256]})
+            
+            model_configuration['learning_rate'] = _lr_scheduler
+            model = SAC_MULTI.pretrainer_load(model=model, policy=MlpPolicy_sac, env=env, **model_configuration)
 
-            model = SAC_MULTI.pretrainer_load(model=model, policy=MlpPolicy_sac, env=env,
-                                                buffer_size=100000, learning_starts=learn_start, ent_coef='auto', verbose=1)#, tensorboard_log=tb_path)
             print("\033[91mTraining Starts\033[0m")
-            save_path = model_dir+"/fused_aux"
-            os.makedirs(save_path, exist_ok=True)
-            model.learn(total_time_step, save_interval=10, save_path=save_path)
+            if train_mode == 'human':
+                # n_episodes = 100
+                # _open_connection()
+                # traj_dict = generate_expert_traj(_expert_3d, model_dir+"/fused_100", env, n_episodes=n_episodes)
+                # _close_connection()
+                # quit()
+                traj_dict = np.load(model_dir+env_configuration['action']+"_100.npz", allow_pickle=True)
+                for name, elem in traj_dict.items():
+                    if np.any(np.isnan(elem)):
+                        print('NAN in ',name)
+                        quit()
+                dataset = ExpertDataset(traj_data=traj_dict, batch_size=1024)
+                model_configuration['learning_rate'] = _lr_scheduler
+                model.pretrain(dataset, **pretrain_configuration)
+                model.save(save_path+"/policy_0")
+                del dataset
+                _write_log(save_path, info, trial)
+                model.learn(total_time_step, save_interval=int(total_time_step*0.01), save_path=save_path)
+            else:
+                _write_log(save_path, info, trial)
+                model.learn(total_time_step, save_interval=int(total_time_step*0.01), save_path=save_path)
             print("\033[91mTrain Finished\033[0m")
-
-            print("\033[91mTest Starts\033[0m")
-            for i in range(0):
-                print("\033[91mTest iter: {0}\033[0m".format(i))
-                obs = env.reset()
-                n_iter = 0
-                while True:
-                    n_iter += 1
-                    action, state = model.predict(obs)
-                    #weight = model.get_weight(obs)
-                    weight=[[0,0,0]]
-                    if n_iter % 20:
-                        print("dist:\t{0: 2.3f}".format(obs[0]),"\tang:\t{0: 2.3f}".format(obs[1]),"\taction:\t[{0: 2.3f} {1: 2.3f}]".format(action[0],action[1]),"\tweight:\t",weight[0])
-                    obs, reward, done, _ = env.step(action, weight[0], test=True)
-                    if done:
-                        break
-                env.render()
-            print("\033[91mTest Finished\033[0m")
 
     else:
         if separate:
-            trial = 15
+            trial = 2 #75 #15
 
             prefix2 = env_configuration['action']+"_separate_trial"+str(trial)
             env_configuration['policy_name'] = prefix2
             env = Manipulator2D(**env_configuration)
 
-            policy_num = 100000
+            policy_num = 0
             model_dict = {'layers': model_configuration['layers'], 'box_dist': model_configuration['box_dist'], 'policy_kwargs': model_configuration['policy_kwargs']}
             model = SAC_MULTI.load(model_path+prefix+prefix2+"/policy_"+str(policy_num), **model_dict)
 
             print("\033[91mTest Starts\033[0m")
             for i in range(10):
                 print("  \033[91mTest iter: {0}\033[0m".format(i))
-                obs = env.reset(test=True)
+                obs = env.reset()
                 while True:
                     actions, state = model.predict(obs, deterministic=True)                    
                     obs, reward, done, _ = env.step(actions, test=True)
@@ -356,7 +402,7 @@ if __name__ == '__main__':
             print("\033[91mTest Finished\033[0m")
 
         else:
-            trial = 24
+            trial = 32
             prefix2 = env_configuration['action']+"_auxilary_trial"+str(trial)
 
             env = Manipulator2D(**env_configuration)
@@ -367,7 +413,7 @@ if __name__ == '__main__':
                 observation_index = list(range(6))
             elif env_configuration['observation_method'] == 'relative':
                 observation_index = list(range(3))
-            policy_num = 1900000
+            policy_num = 320000
             policy_zip_path = model_path+prefix+prefix2+"/policy_"+str(policy_num)+".zip"
             model.construct_primitive_info(name=None, freeze=True, level=1,
                                                 obs_range=None, obs_index=observation_index,
@@ -375,7 +421,7 @@ if __name__ == '__main__':
                                                 layer_structure=None,
                                                 loaded_policy=SAC_MULTI._load_from_file(policy_zip_path), 
                                                 load_value=True)
-            model = SAC_MULTI.pretrainer_load(model=model, policy=MlpPolicy_sac, env=env)
+            model = SAC_MULTI.pretrainer_load(model=model, policy=MlpPolicy_sac, env=env, **model_configuration)
 
             print("\033[91mTest Starts\033[0m")
             for i in range(10):
