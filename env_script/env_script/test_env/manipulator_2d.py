@@ -1,4 +1,5 @@
 import gym
+import time
 from gym import core, spaces
 from gym.utils import seeding
 import numpy as np
@@ -112,7 +113,8 @@ class Manipulator2D(gym.Env):
         self.her = her
         self.policy_name = policy_name
         self.visualize = visualize
-        self.vis_freq = 1
+        self.vis_trigger = False
+        self.vis_freq = 10
         
         if self.action_type == 'linear':
             if observation_method == 'absolute':
@@ -124,6 +126,15 @@ class Manipulator2D(gym.Env):
             self.action_high = np.array([1])
             self.action_low = np.array([-1])
         elif self.action_type == 'angular':
+            if observation_method == 'absolute':
+                self.obs_high = np.array([self.env_boundary, self.env_boundary, np.pi, self.env_boundary, self.env_boundary, np.pi])
+                self.obs_low = -self.obs_high
+            elif observation_method == 'relative':
+                self.obs_high = np.array([float('inf'), np.pi])
+                self.obs_low = -self.obs_high
+            self.action_high = np.array([np.pi])
+            self.action_low = np.array([-np.pi])
+        elif self.action_type == 'angular_adj':
             if observation_method == 'absolute':
                 self.obs_high = np.array([self.env_boundary, self.env_boundary, np.pi, self.env_boundary, self.env_boundary, np.pi])
                 self.obs_low = -self.obs_high
@@ -240,12 +251,12 @@ class Manipulator2D(gym.Env):
         self.n_timesteps = 0
         self.n_episodes = 0
         self.episode_reward = 0
-        self.accum_reward = 0
+        self.accum_succ = 0
         if self.visualize:
             self.render_init()
 
         
-    def step(self, action, weight=[0,0,0], test=False):
+    def step(self, action, weight=[0,0,0,0], test=False):
         self.n_timesteps += 1
 
         if True in np.isnan(action):
@@ -264,6 +275,13 @@ class Manipulator2D(gym.Env):
         elif self.action_type == 'angular':
             self.robot_tf.transform(
                 translation=(0.1*self.dt, 0),
+                rotation=action[0]*self.dt
+            )
+            self.link1_tf_global = self.robot_tf * self.joint1_tf * self.link1_tf
+            self.link2_tf_global = self.link1_tf_global * self.joint2_tf * self.link2_tf
+            #self._move_object(self.target_tf[0], (random.random()-0.5)*0.1, (random.random()-0.5)*2)
+        elif self.action_type == 'angular_adj':
+            self.robot_tf.transform(
                 rotation=action[0]*self.dt
             )
             self.link1_tf_global = self.robot_tf * self.joint1_tf * self.link1_tf
@@ -304,7 +322,6 @@ class Manipulator2D(gym.Env):
 
         reward, done = self._get_reward()
         self.episode_reward += reward
-        self.accum_reward += reward
 
         info = {}
 
@@ -347,26 +364,24 @@ class Manipulator2D(gym.Env):
                     self.update_render()
                     self.buffer = []
                 except Exception:
+                    time.sleep(1)
+                    self.render_init()
                     done = True
             
         return obs, reward, done, info
 
-    def reset(self, test=False):
-        if test:
-            self.render_init()
+    def reset(self):
         print("  "+self.policy_name+" reset")
         self.n_timesteps = 0
         self.episode_reward = 0
         self.grasp = -1
 
         robot_rot = (random.random()-0.5)*2*3
+        robot_x = (random.random()-0.5)*2*(self.env_boundary-2)
+        robot_y = (random.random()-0.5)*2*(self.env_boundary-2)
         self.robot_tf = Transformation(
-            translation=(
-                (random.random()-0.5)*2*(self.env_boundary-2),
-                (random.random()-0.5)*2*(self.env_boundary-2)
-            ),
-            rotation=robot_rot
-            )
+            translation=(robot_x, robot_y),
+            rotation=robot_rot)
         self.joint1_tf = Transformation()
         self.link1_tf = Transformation(translation=(self.link1_len, 0))
         self.joint2_tf = Transformation()
@@ -389,6 +404,15 @@ class Manipulator2D(gym.Env):
                 y = 4.23
                 target_place_tf = Transformation(translation=(x, y), rotation=target_place_rot)
                 self.target_place_tf.append(target_place_tf)
+        elif self.action_type == 'angular_adj':
+            self.target_tf = [0]*self.n_target
+            for i in range(self.n_target):
+                target_rot = (random.random()-0.5)*2*3
+                target_tf = Transformation(translation=(
+                    robot_x+(random.random()-0.5)*0.05, 
+                    robot_y+(random.random()-0.5)*0.05),
+                    rotation=target_rot)
+                self.target_tf[i] = target_tf
         else:
             choice = random.randint(0,4)
             if choice >= 1:
@@ -441,6 +465,7 @@ class Manipulator2D(gym.Env):
                 if l < self.tol:
                     reward = 1
                     done = True 
+                    self.accum_succ += 1
                     print("\033[92m  SUCCEEDED\033[0m")
                 else:
                     reward = 0
@@ -449,6 +474,7 @@ class Manipulator2D(gym.Env):
                     if l < self.tol: 
                         reward = 100
                         done = True 
+                        self.accum_succ += 1
                         print("\033[92m  SUCCEEDED\033[0m")
                     else:
                         reward = -l * 0.5
@@ -456,6 +482,7 @@ class Manipulator2D(gym.Env):
                     if l < self.tol:
                         reward = 100
                         done = True 
+                        self.accum_succ += 1
                         print("\033[92m  SUCCEEDED\033[0m")
                     else:
                         reward = np.exp(-(l-self.tol)**0.25)*0.1
@@ -466,6 +493,7 @@ class Manipulator2D(gym.Env):
                 if abs(ang) < self.tol:
                     reward = 1
                     done = True
+                    self.accum_succ += 1
                     print("\033[92m  SUCCEEDED\033[0m")
                 else:
                     reward = 0
@@ -473,9 +501,29 @@ class Manipulator2D(gym.Env):
                 if abs(ang) < self.tol:
                     reward = 100
                     done = True
+                    self.accum_succ += 1
                     print("\033[92m  SUCCEEDED\033[0m")
                 else:
                     reward = -abs(ang/np.pi)
+        elif self.action_type == 'angular_adj':
+            a_robot = self.robot_tf.euler_angle()
+            a_target = self.target_tf[0].euler_angle()
+            if a_robot * a_target > 0:
+                angle_diff = abs(a_robot - a_target)
+            else:
+                angle_diff = abs(a_robot) + abs(a_target)
+                if angle_diff > np.pi:
+                    angle_diff = 2*np.pi - angle_diff
+            if self.reward_method == 'sparse':
+                if abs(angle_diff) < self.tol:
+                    reward = 1
+                    done = True
+                    self.accum_succ += 1
+                    print("\033[92m  SUCCEEDED\033[0m")
+                else:
+                    reward = 0
+            else:
+                pass
         elif self.action_type == 'fused':
             mat_target_robot = self.robot_tf.inv()*self.target_tf[0]
             l = np.linalg.norm(mat_target_robot.get_translation())
@@ -491,6 +539,7 @@ class Manipulator2D(gym.Env):
                 if l < self.tol and angle_diff < self.tol:
                     reward = 1
                     done = True
+                    self.accum_succ += 1
                     print("\033[92m  SUCCEEDED\033[0m")
                 else:
                     reward = 0
@@ -499,6 +548,7 @@ class Manipulator2D(gym.Env):
                     if l < self.tol and angle_diff < self.tol:
                         reward = 100
                         done = True
+                        self.accum_succ += 1
                         print("\033[92m  SUCCEEDED\033[0m")
                     elif l >= 1:
                         reward = (-l - 2) * 0.125
@@ -508,10 +558,11 @@ class Manipulator2D(gym.Env):
                     if l < self.tol and angle_diff < self.tol:
                         reward = 100
                         done = True
+                        self.accum_succ += 1
                         print("\033[92m  SUCCEEDED\033[0m")      
                     else:
-                        #reward = np.exp(-(l-self.tol)**2*0.25)*0.05 + np.exp(-(angle_diff/np.pi/max(l,1))**2*0.25)*0.05
-                        reward = 2/(l+2) * 0.01 + (np.pi+2)/(angle_diff+2) * 0.005
+                        #reward = np.exp(-(l-self.tol)**2*0.25)*0.01 + np.exp(-(angle_diff/np.pi/max(l,1))**2*0.25)*0.01
+                        reward = 1/(l+0.5) * 0.002 + (np.pi+2)/(angle_diff+1) * 0.001
         elif self.action_type == 'pickAndplace':
             if self.crash_check():
                 reward = -100
@@ -671,7 +722,7 @@ class Manipulator2D(gym.Env):
                         ('achieved_goal', [0]),
                         ('desired_goal', [1])])
         else:
-            if self.action_type in ['linear', 'angular', 'fused']:
+            if self.action_type in ['linear', 'angular', 'angular_adj', 'fused']:
                 if self.observation_method == 'absolute':
                     state = self.robot_tf.get_translation()
                     state = np.append(state, self.robot_tf.euler_angle())
@@ -719,6 +770,24 @@ class Manipulator2D(gym.Env):
         elif self.action_type == 'angular':
             ang = -np.arctan2(mat_target_robot.y(), mat_target_robot.x())
             if ang > 0:
+                return [np.clip(-2 + np.random.normal()*0.05, -np.pi, np.pi)]
+            else:
+                return [np.clip(2 + np.random.normal()*0.05, -np.pi, np.pi)]
+        elif self.action_type == 'angular_adj':
+            a_robot = self.robot_tf.euler_angle()
+            a_target = self.target_tf[0].euler_angle()
+            if a_robot * a_target > 0:
+                angle_diff = a_robot - a_target
+            else:
+                if a_robot > a_target:
+                    angle_diff = abs(a_robot) + abs(a_target)
+                else:
+                    angle_diff = -abs(a_robot) - abs(a_target)
+                if angle_diff > np.pi:
+                    angle_diff = 2*np.pi - angle_diff
+                elif angle_diff < -np.pi:
+                    angle_diff = 2*np.pi + angle_diff
+            if angle_diff > 0:
                 return [np.clip(-2 + np.random.normal()*0.05, -np.pi, np.pi)]
             else:
                 return [np.clip(2 + np.random.normal()*0.05, -np.pi, np.pi)]
@@ -808,7 +877,7 @@ class Manipulator2D(gym.Env):
         self.graphic_time_text.set_text('time = %.1f' % buffer[0]['time'])
         self.graphic_reward_text.set_text('reward = {0: 1.3f}, {1: 1.3f}'.format(buffer[0]['reward'], buffer[0].get('total_reward',0)))
         weight = buffer[0]['weight']
-        self.graphic_weight_text.set_text('weight: [{0: 2.2f}, {1: 2.2f}, {2: 2.2f}]'.format(weight[0], weight[1], weight[2]))
+        self.graphic_weight_text.set_text('weight: [{0: 2.2f}, {1: 2.2f}, {2: 2.2f}, {3: 2.2f}]'.format(weight[0], weight[1], weight[2], weight[3]))
         action = buffer[0]['actions']
         action_string = 'act: ['
         for index in range(len(action)-1):

@@ -1,0 +1,26 @@
+Trial: 32Layers:
+	policy:	[512, 256, 256]
+	value:	[512, 256, 256]
+
+non_lin:		swish
+Additional Info:		Weight normalized
+    		Target does not move
+    		Sparse Positive reward
+    		No aux
+    		Baseline alpha, beta = 0.5
+action:		angular_adj
+total_time_steps:		1000000
+batch_size:		1024
+buffer_size:		1000000
+gamma:		0.995
+learning_rate:		3e-06
+ent_coef:		auto
+train_freq:		5
+verbose:		1
+box_dist:		beta
+n_robots:		1
+n_target:		1
+tolerance:		0.1
+episode_length:		2000
+reward_method:		sparse
+observation_method:		absolute
