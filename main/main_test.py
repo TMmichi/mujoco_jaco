@@ -65,7 +65,7 @@ def _expert_3d(_obs):
             action = np.array([event.z/350*0.99, event.ry/350*3.14])
         else:
             action = [0,0]
-        #spacenav.remove_events(1)
+        spacenav.remove_events(1)
         return action
     else:
         action = [0,0,0,0,0,0,0,0]

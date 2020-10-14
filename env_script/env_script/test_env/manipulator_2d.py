@@ -630,7 +630,7 @@ class Manipulator2D(gym.Env):
 
         if done:
             self.n_episodes += 1
-            print("Num epidoes: ",self.n_episodes,"\tSuccess rate: {0:3.2f}%".format(self.accum_succ/self.n_episodes*100))
+            print("Num episodes: ",self.n_episodes,"\tSuccess rate: {0:3.2f}%".format(self.accum_reward/self.n_episodes*100))
 
         return reward, done
     
