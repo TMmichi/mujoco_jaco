@@ -82,11 +82,11 @@ if __name__ == '__main__':
     model_dir = model_path + prefix
     os.makedirs(model_dir, exist_ok=True)
 
-    train = False
-    separate = True
+    train = True
+    separate = False
     train_mode_list = ['human', 'auto', 'scratch', 'load']
-    train_mode = train_mode_list[1]
-    auxilary = False and not separate
+    train_mode = train_mode_list[0]
+    auxilary = True and not separate
     test = False and not separate
 
     if train:
@@ -149,7 +149,7 @@ if __name__ == '__main__':
             print("\033[91mTraining finished\033[0m")
 
         elif auxilary:
-            trial = 35
+            trial = 43
 
             prefix2 = env_configuration['action']+"_auxilary_trial"+str(trial)
             save_path = model_dir+prefix2
@@ -249,9 +249,22 @@ if __name__ == '__main__':
                 del dataset
                 _write_log(save_path, info, trial)
                 model.learn(total_time_step, save_interval=int(total_time_step*0.01), save_path=save_path)
-            else:
+            elif train_mode == 'scratch':
                 _write_log(save_path, info, trial)
                 model.learn(total_time_step, save_interval=int(total_time_step*0.01), save_path=save_path)
+            elif train_mode == 'load':
+                load_policy_num = 0
+                path = save_path+'/policy_'+str(load_policy_num)
+                model_configuration['learning_rate'] = _lr_scheduler
+                policy_zip_path = model_path+prefix+prefix2+"/policy_"+str(load_policy_num)+".zip"
+                model.construct_primitive_info(name=None, freeze=True, level=1,
+                                                    obs_range=None, obs_index=list(range(total_obs_dim)),
+                                                    act_range=None, act_index=[0, 1],
+                                                    layer_structure=None,
+                                                    loaded_policy=SAC_MULTI._load_from_file(policy_zip_path), 
+                                                    load_value=True)
+                model = SAC_MULTI.pretrainer_load(model=model, policy=MlpPolicy_sac, env=env, **model_configuration)
+                model.learn(total_time_step, loaded_step_num=load_policy_num, save_interval=int(total_time_step*0.05), save_path=save_path)
             print("\033[91mTrain Finished\033[0m")
 
         elif test:

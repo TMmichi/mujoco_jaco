@@ -10,7 +10,7 @@ action_option = ['linear', 'angular', 'angular_adj', 'fused', 'pickAndplace']
 observation_option = ['absolute', 'relative']
 reward_option = ['target', 'time', 'sparse', None]
 
-env_configuration['action'] = action_option[2]
+env_configuration['action'] = action_option[3]
 env_configuration['n_robots'] = 1
 env_configuration['n_target'] = 1
 env_configuration['arm1'] = 1
@@ -19,9 +19,9 @@ env_configuration['dt'] = 0.01
 env_configuration['tol'] = 0.2
 env_configuration['episode_length'] = 1500
 env_configuration['observation_method'] = observation_option[0]
-env_configuration['reward_method'] = reward_option[2]
+env_configuration['reward_method'] = reward_option[3]
 env_configuration['her'] = False
-env_configuration['visualize'] = True
+env_configuration['visualize'] = False
 #####################################################################################################
 #####################################################################################################
 total_time_step = 1000000
@@ -44,7 +44,7 @@ model_configuration['train_freq'] = 5
 model_configuration['verbose'] = 1
 model_configuration['box_dist'] = 'beta'
 model_configuration['policy_kwargs'] = {'act_fun':tf.nn.swish}
-pretrain_configuration['n_epochs'] = 200
+pretrain_configuration['n_epochs'] = 1000
 pretrain_configuration['learning_rate'] = 5e-7
 pretrain_configuration['val_interval'] = 1
 #####################################################################################################
