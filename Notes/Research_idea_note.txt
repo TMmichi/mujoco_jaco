@@ -344,6 +344,7 @@ Note
                     - Filter Visualization
                     - Layer-wise Relevane Propagation (LRP)
             }
+            7. State-Action Coupling to focus on states that really matters - specify elements of latent variables to focus
 
 
     Research_Details:
