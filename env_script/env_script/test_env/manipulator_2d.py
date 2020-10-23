@@ -103,7 +103,6 @@ class Transformation:
         )
 
 
-
 class Manipulator2D(gym.Env):
     def __init__(self, action=None, n_robots=1, n_target=1, arm1=1, arm2=1, dt=0.01, tol=0.1, 
                     episode_length=1500, reward_method=None, observation_method='relative', her=False, policy_name='', visualize=False):
@@ -266,8 +265,8 @@ class Manipulator2D(gym.Env):
         
         if self.action_type == 'linear':
             self.robot_tf.transform(
-                translation=(action[0]*self.dt, 0),
-                rotation=(random.random()-0.5)*0.5*self.dt
+                translation=(action[0]*self.dt, 0)
+                #rotation=(random.random()-0.5)*0.5*self.dt
             )
             self.link1_tf_global = self.robot_tf * self.joint1_tf * self.link1_tf
             self.link2_tf_global = self.link1_tf_global * self.joint2_tf * self.link2_tf
@@ -463,7 +462,7 @@ class Manipulator2D(gym.Env):
             l = np.linalg.norm(target_vector)
             if self.reward_method == 'sparse':
                 if l < self.tol:
-                    reward = 1
+                    reward = 100
                     done = True 
                     self.accum_succ += 1
                     print("\033[92m  SUCCEEDED\033[0m")

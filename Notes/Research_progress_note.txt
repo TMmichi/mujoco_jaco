@@ -615,40 +615,41 @@
     - Linear primitive, baseline acc: 50%
     - Tried State-Action coupling by estimating the next state from the last layers of policy given state and action.
     - 1. Predict: x, y, phi with action: lin from policy + ang from noise
-        ------------------------------------------
-        | current_lr              | 7.49e-09     |
-        | ent_coef                | 0.76749134   |
-        | ent_coef_loss           | -0.012358234 |
-        | entropy                 | -0.94481575  |
-        | episodes                | 1664         |
-        | fps                     | 132          |
-        | mean 100 episode reward | 0.1          |
-        | n_updates               | 199297       |
-        | policy_loss             | 164.76471    |
-        | qf1_loss                | 0.06117493   |
-        | qf2_loss                | 0.058522306  |
-        | time_elapsed            | 7551         |
-        | total timesteps         | 997507       |
-        | value_loss              | 0.12089803   |
-        ------------------------------------------
-        Num episodes:  1666 	Success rate: 50.84%
-        sa coupler loss:  0.007889251
-        obs:		 [ 1.41860894 -4.11809422  2.62856023 -0.13740125  0.07864352  1.41075706]
-        GT next obs:	 [ 1.42523083 -4.12182463  2.62958227]
-        Pred next obs:	 [ 1.3439953 -3.9926527  2.4744987]
-        sa coupler loss:  0.0041199396
-        obs:		 [ 1.92841527 -4.4100945   2.61833652 -0.13740125  0.07864352  1.41075706]
-        GT next obs:	 [ 1.93334118 -4.41293623  2.61680923]
-        Pred next obs:	 [ 1.8876604 -4.309787   2.507296 ]
-        action: -0.278 , mode: 0.178 , mu: 0.218 , std: 0.10000 , alpha: 3.511 , beta: 12.561
-        sa coupler loss:  0.0016889866
-        obs:		 [ 2.397715   -4.67849928  2.62366218 -0.13740125  0.07864352  1.41075706]
-        GT next obs:	 [ 2.40013436 -4.67987788  2.62440659]
-        Pred next obs:	 [ 2.384603  -4.606096   2.5577064]
-        sa coupler loss:  0.0004198793
-        obs:		 [ 2.86901036 -4.9481978   2.61879649 -0.13740125  0.07864352  1.41075706]
-        GT next obs:	 [ 2.8745766  -4.95140551  2.61860181]
-        Pred next obs:	 [ 2.8772616 -4.906147   2.5970674]
+        - test result
+            ------------------------------------------
+            | current_lr              | 7.49e-09     |
+            | ent_coef                | 0.76749134   |
+            | ent_coef_loss           | -0.012358234 |
+            | entropy                 | -0.94481575  |
+            | episodes                | 1664         |
+            | fps                     | 132          |
+            | mean 100 episode reward | 0.1          |
+            | n_updates               | 199297       |
+            | policy_loss             | 164.76471    |
+            | qf1_loss                | 0.06117493   |
+            | qf2_loss                | 0.058522306  |
+            | time_elapsed            | 7551         |
+            | total timesteps         | 997507       |
+            | value_loss              | 0.12089803   |
+            ------------------------------------------
+            Num episodes:  1666 	Success rate: 50.84%
+            sa coupler loss:  0.007889251
+            obs:		 [ 1.41860894 -4.11809422  2.62856023 -0.13740125  0.07864352  1.41075706]
+            GT next obs:	 [ 1.42523083 -4.12182463  2.62958227]
+            Pred next obs:	 [ 1.3439953 -3.9926527  2.4744987]
+            sa coupler loss:  0.0041199396
+            obs:		 [ 1.92841527 -4.4100945   2.61833652 -0.13740125  0.07864352  1.41075706]
+            GT next obs:	 [ 1.93334118 -4.41293623  2.61680923]
+            Pred next obs:	 [ 1.8876604 -4.309787   2.507296 ]
+            action: -0.278 , mode: 0.178 , mu: 0.218 , std: 0.10000 , alpha: 3.511 , beta: 12.561
+            sa coupler loss:  0.0016889866
+            obs:		 [ 2.397715   -4.67849928  2.62366218 -0.13740125  0.07864352  1.41075706]
+            GT next obs:	 [ 2.40013436 -4.67987788  2.62440659]
+            Pred next obs:	 [ 2.384603  -4.606096   2.5577064]
+            sa coupler loss:  0.0004198793
+            obs:		 [ 2.86901036 -4.9481978   2.61879649 -0.13740125  0.07864352  1.41075706]
+            GT next obs:	 [ 2.8745766  -4.95140551  2.61860181]
+            Pred next obs:	 [ 2.8772616 -4.906147   2.5970674]
         -> low sa coupler loss at last (sudden?) but, 10e-5 ~ 10e-6 till near 1500 episodes
         -> Tested, always heading backward. alpha ~ 2.**, beta ~ 12.**
     - 2-1. Predict: x, y with action: lin from policy (lr: lr)
@@ -660,12 +661,12 @@
     - 4. Predict: x, y with action: lin from policy (lr: lr * 5), update SAC grad with half the frequency of sa step
          (changed from 1 -> int(freq/2))
     
-    Always heading backward. alpha ~ 2.**, beta ~ 12.**
-    All of the above achieved success rate of near 50% -> action always head backward. Need to fix it
+    1~4: Always heading backward. alpha ~ 2.**, beta ~ 12.**
+    All of the above achieved success rate of near 50% -> actions always head backward. Need to fix it
 
     - 5. Maybe lack of exploration? try with more samplings + random exploration
     - N. How about training with Alpha/Beta directly? ... really??
-    - 7. How about mu with tanh, sigma with sigmoid? -> NEVER
+    - 7. How about mu with tanh, sigma with sigmoid? -> NEVER!!!
     - 8. Adjust mu value (median mapped to 0.004 - Problem!) -> will it attenuate the problem?
     - 9. How about adding BC?
     - 10. Is it underfitted? Do we need more parameters for the policy?
@@ -675,8 +676,8 @@
     - 11. SA coupling results in biased action?
         -> Nope, with/without SA coupling resulted in biased action in absolute obs
     - 12. MU BIASING FIGURED OUT: sieving nan value of logp_pi to 1 results in bias.
-        -> Thought I figured out, but actually not. Cartpole with/without sieving performed nicely.
-        -> Relative obs does not show the biased actions...
+        -> But actually not... Cartpole with/without sieving performed nicely without any bias.
+        -> Relative obs does not show the biased actions... why...?
     - 13. training with high lr 5e-4 (without SA coup, absolute obs)
     - 14. training with high lr 5e-4 (with SA coup, absolute obs) - exploded
     - 15. learning with 5e-4, but SA coupling with 1e-6
@@ -689,7 +690,7 @@
     - 22. With even deeper network + SA coup update(with sumed) before SAC update, 
             + additional layer added to SAcoupler, and the last layer has same # of neurons with coupled state to compensate the roll of action better
             + dense reward
-        - fused_separate_trial79
+        - linear_separate_trial79
             -----------------------------------------
             | current_lr              | 4.49e-05    |
             | ent_coef                | 0.63408554  |
@@ -730,7 +731,7 @@
                 -> as time goes, it reduces its speed
         }
     - 23. " + sparse reward + SA coup update with mean
-        - fused_separate_trial80
+        - linear_separate_trial80
             ------------------------------------------
             | current_lr              | 4.49e-05     |
             | ent_coef                | 0.6358355    |
@@ -771,7 +772,7 @@
             Policy loss decreasing - Maybe a bit more training?
         }
     - 24. " + SA coup updates more frequently than SAC. 
-        - fused_separate_trial81
+        - linear_separate_trial81
             ------------------------------------------
             | current_lr              | 4.48e-05     |
             | ent_coef                | 0.63078946   |
@@ -811,7 +812,7 @@
             Looks like a bit biased forwardly, but not exactly.
         }
     -25. logp_pi multiple samples from state
-        - fused_separate_trial82
+        - linear_separate_trial82
             ------------------------------------------
             | current_lr              | 4.5e-05      |
             | ent_coef                | 0.6379396    |
@@ -857,13 +858,290 @@
     -26. Is the depth/width of the policy network short to represent state-action mapping?
         Q. Can policy network properly represent the received state signal?
             Test1. Deepen the SA Coupler to give sufficient rooms for latent features of the last policy layer to be fitted to the state estimation.
-                - fused_separate_trial83
-
+                - linear_separate_trial83 -> 80 (typo)
+                    -------------------------------------------
+                    | current_lr              | 1.2e-08       |
+                    | ent_coef                | 0.0005405881  |
+                    | ent_coef_loss           | -0.029572416  |
+                    | entropy                 | -0.992943     |
+                    | episodes                | 6288          |
+                    | fps                     | 125           |
+                    | mean 100 episode reward | 0.46          |
+                    | n_updates               | 499778        |
+                    | policy_loss             | 0.1920619     |
+                    | qf1_loss                | 5.3218123e-06 |
+                    | qf2_loss                | 7.050609e-06  |
+                    | time_elapsed            | 39908         |
+                    | total timesteps         | 4998805       |
+                    | value_loss              | 2.6477792e-06 |
+                    -------------------------------------------
+                    Num episodes:  6287 	Success rate: 49.77%
+                    sa coupler loss:  0.2385518
+                {
+                    SA coupler doesn't seem to converge.
+                }
             Test2. See if SA Coupler can estimate next state given current state and action.
                 1. RL fashion - Estimate the effect of action given state from latent vector (No need to estimate the state, but only the residual value)
-                -> fused_separate_trial84
+                -> linear_separate_trial84
+                    -------------------------------------------
+                    | current_lr              | 3.31e-08      |
+                    | ent_coef                | 0.0003846674  |
+                    | ent_coef_loss           | -0.115235984  |
+                    | entropy                 | -0.9885119    |
+                    | episodes                | 5716          |
+                    | fps                     | 125           |
+                    | mean 100 episode reward | 0.25          |
+                    | n_updates               | 499567        |
+                    | policy_loss             | 0.19074601    |
+                    | qf1_loss                | 0.00028179405 |
+                    | qf2_loss                | 0.0002797141  |
+                    | time_elapsed            | 39884         |
+                    | total timesteps         | 4996695       |
+                    | value_loss              | 2.7005296e-06 |
+                    -------------------------------------------
+                    Num episodes:  5717 	Success rate: 41.33%
+                    FIRST TIMESTEP
+                        sa coupler loss:  3.1030752e-06
+                        obs:		     [-2.52226206  2.96752719]
+                        GT next obs:	 [-2.52085524  2.969679  ]
+                        Pred next obs:	 [-2.52269266  2.96667325]
+                    FIRST TIMESTEP
+                        sa coupler loss:  2.6768277e-05
+                        obs:		     [-1.63020711 -1.70137338]
+                        GT next obs:	 [-1.63185512 -1.71035756]
+                        Pred next obs:	 [-1.62948842 -1.70028429]
+                     FIRST TIMESTEP
+                        sa coupler loss:  1.6480793e-05
+                        obs:		     [-2.31425233 -1.34178904]
+                        GT next obs:	 [-2.31640369 -1.35059552]
+                        Pred next obs:	 [-2.31465105 -1.34266762]
+                    FIRST TIMESTEP
+                        sa coupler loss:  2.0656358e-05
+                        obs:		     [-0.99604904  2.44866421]
+                        GT next obs:	 [-0.99421233  2.43890213]
+                        Pred next obs:	 [-0.99648107  2.44770427]
+                {
+                    Residual scheme doesn't seem to work well at all -> hidden pi may not feature out the state very well
+                }
 
                 2. No policy fashion - Get rid of the policy network (Receive info from state directly)
-                -> fused_separate_trial85
+                -> linear_separate_trial85
+                    -------------------------------------------
+                    | current_lr              | 2.68e-08      |
+                    | ent_coef                | 0.00019060548 |
+                    | ent_coef_loss           | -0.19666965   |
+                    | entropy                 | -0.98011875   |
+                    | episodes                | 8208          |
+                    | fps                     | 139           |
+                    | mean 100 episode reward | 0.14          |
+                    | n_updates               | 499630        |
+                    | policy_loss             | 0.23279147    |
+                    | qf1_loss                | 3.9357375e-05 |
+                    | qf2_loss                | 3.686829e-05  |
+                    | time_elapsed            | 35723         |
+                    | total timesteps         | 4997322       |
+                    | value_loss              | 3.6967806e-06 |
+                    -------------------------------------------
+                    Num episodes:  8210 	Success rate: 49.37%
+                    FIRST TIMESTEP
+                        sa coupler loss:  0.00021752415
+                        obs:		     [-1.94468483  0.94174427]
+                        GT next obs:	 [-1.93676107  0.93746489]
+                        Pred next obs:	 [-1.922635   0.9115699]
+                    FIRST TIMESTEP
+                        sa coupler loss:  0.00083253434
+                        obs:		     [-2.82702304  1.28220331]
+                        GT next obs:	 [-2.82937201  1.28662125]
+                        Pred next obs:	 [-2.781733   1.2540532]
+                    FIRST TIMESTEP
+                        sa coupler loss:  0.0011367932
+                        obs:     		 [ 0.21149025 -1.04442638]
+                        GT next obs:	 [ 0.21056559 -1.04236096]
+                        Pred next obs:	 [ 0.19428182 -0.97692394]
+                    FIRST TIMESTEP
+                        sa coupler loss:  0.0016270675
+                        obs:    		 [-0.45371863  2.69732278]
+                        GT next obs:	 [-0.45400202  2.69745396]
+                        Pred next obs:	 [-0.4324392  2.6197152]
+                    FIRST TIMESTEP
+                        sa coupler loss:  1.9849816e-05
+                        obs:    		 [0.34079533 1.06428713]
+                        GT next obs:	 [0.34904111 1.06167522]
+                        Pred next obs:	 [0.34566417 1.0699211 ]
+                    FIRST TIMESTEP
+                        sa coupler loss:  0.0005642412
+                        obs:    		 [ 1.07459795 -1.30249878]
+                        GT next obs:	 [ 1.07104801 -1.30837407]
+                        Pred next obs:	 [ 1.0863827 -1.2634095]
+                {
+                    First timestep SA coupler error seems to be reduced fairly well compared to the previous pi_hidden layers, but still not enough to represent state well.
+                }
+    
+    -27. Entropy coeff too large compared to the sparse reward setting. 
+        -> Compare Q value with different reward setting.
+            1. dense reward low value
+                - 
+            2. dense reward high value
+                - 
+            3. sparse reward low value
+                - Have done a lot
+            4. sparse reward high value
+                - linear_separate_trial88
+                    -----------------------------------------
+                    | current_lr              | 1.66e-05    |
+                    | ent_coef                | 0.037199    |
+                    | ent_coef_loss           | 0.019487422 |
+                    | entropy                 | -1.0017076  |
+                    | episodes                | 4404        |
+                    | fps                     | 100         |
+                    | mean 100 episode reward | 47.9        |
+                    | n_updates               | 333801      |
+                    | policy_loss             | 9.971277    |
+                    | qf1_loss                | 2.3674643   |
+                    | qf2_loss                | 2.4746666   |
+                    | time_elapsed            | 33374       |
+                    | total timesteps         | 3339032     |
+                    | value_loss              | 0.060025256 |
+                    -----------------------------------------
+                    Num episodes:  4403 	Success rate: 48.81%
+                    ------------------------------------------
+                    | current_lr              | 2.3e-08      |
+                    | ent_coef                | 0.040467385  |
+                    | ent_coef_loss           | 0.0053986846 |
+                    | entropy                 | -1.0090866   |
+                    | episodes                | 6532         |
+                    | fps                     | 114          |
+                    | mean 100 episode reward | 52.9         |
+                    | n_updates               | 499668       |
+                    | policy_loss             | 14.83703     |
+                    | qf1_loss                | 0.43515944   |
+                    | qf2_loss                | 0.21010816   |
+                    | time_elapsed            | 43485        |
+                    | total timesteps         | 4997708      |
+                    | value_loss              | 0.3179015    |
+                    ------------------------------------------
+                    Num episodes:  6533 	Success rate: 50.38%
+                {
+                    Sucess mostly from front action, but no sign of bias
+                    SA coupler loss doesn't seem to decrease
+                }
 
-                
+2020 10 17 (Sat)
+    -28. Target network copy from source (by SAC paper)
+        1. with SA Coupler
+            - linear_separate_trial86
+                ------------------------------------------
+                | current_lr              | 1.7e-05      |
+                | ent_coef                | 0.0004905583 |
+                | ent_coef_loss           | -0.11591902  |
+                | entropy                 | -0.9953968   |
+                | episodes                | 4080         |
+                | fps                     | 101          |
+                | mean 100 episode reward | 0.51         |
+                | n_updates               | 329589       |
+                | policy_loss             | 0.16421838   |
+                | qf1_loss                | 0.0008705767 |
+                | qf2_loss                | 0.0008689374 |
+                | time_elapsed            | 32510        |
+                | total timesteps         | 3296910      |
+                | value_loss              | 4.848305e-06 |
+                ------------------------------------------
+                Num episodes:  4079 	Success rate: 43.79%
+                -------------------------------------------
+                | current_lr              | 5.11e-09      |
+                | ent_coef                | 0.000531978   |
+                | ent_coef_loss           | -0.028741807  |
+                | entropy                 | -0.99673676   |
+                | episodes                | 6064          |
+                | fps                     | 105           |
+                | mean 100 episode reward | 0.53          |
+                | n_updates               | 499847        |
+                | policy_loss             | 0.20795879    |
+                | qf1_loss                | 8.7328386e-05 |
+                | qf2_loss                | 8.787915e-05  |
+                | time_elapsed            | 47542         |
+                | total timesteps         | 4999499       |
+                | value_loss              | 3.3874783e-06 |
+                -------------------------------------------
+                Num episodes:  6064 	Success rate: 46.16%
+                //////////////DIFFERENT LR///////////////////
+                -------------------------------------------
+                | current_lr              | 1.69e-05      |
+                | ent_coef                | 0.0004593251  |
+                | ent_coef_loss           | -0.041431274  |
+                | entropy                 | -0.99726385   |
+                | episodes                | 4436          |
+                | fps                     | 99            |
+                | mean 100 episode reward | 0.46          |
+                | n_updates               | 330978        |
+                | policy_loss             | 0.11592258    |
+                | qf1_loss                | 4.4819084e-05 |
+                | qf2_loss                | 4.5848505e-05 |
+                | time_elapsed            | 33207         |
+                | total timesteps         | 3310807       |
+                | value_loss              | 7.059043e-06  |
+                -------------------------------------------
+                Num episodes:  4435 	Success rate: 50.48%
+                -------------------------------------------
+                | current_lr              | 3.7e-08       |
+                | ent_coef                | 0.00044710157 |
+                | ent_coef_loss           | -0.098227374  |
+                | entropy                 | -0.99105674   |
+                | episodes                | 6460          |
+                | fps                     | 104           |
+                | mean 100 episode reward | 0.45          |
+                | n_updates               | 499528        |
+                | policy_loss             | 0.19365123    |
+                | qf1_loss                | 7.619441e-06  |
+                | qf2_loss                | 6.548571e-06  |
+                | time_elapsed            | 47655         |
+                | total timesteps         | 4996304       |
+                | value_loss              | 2.8445897e-06 |
+                -------------------------------------------
+                Num episodes:  6461 	Success rate: 50.83%
+            {
+                SA Coupler loss not decreasing.
+                Action not biased. No OB, but time up.
+                Doesn't seem to get better at achieving goal - Success rate slowly, slowly increases.
+            }
+
+
+        2. without SA Coupler
+            - linear_separate_trial87
+                -------------------------------------------
+                | current_lr              | 1.7e-05       |
+                | ent_coef                | 0.00040760695 |
+                | ent_coef_loss           | -0.022687973  |
+                | entropy                 | -1.0013275    |
+                | episodes                | 4504          |
+                | fps                     | 183           |
+                | mean 100 episode reward | 0.58          |
+                | n_updates               | 329725        |
+                | policy_loss             | 0.14374875    |
+                | qf1_loss                | 0.0007662733  |
+                | qf2_loss                | 0.00077279273 |
+                | time_elapsed            | 17928         |
+                | total timesteps         | 3298274       |
+                | value_loss              | 7.0510678e-06 |
+                -------------------------------------------
+                Num episodes:  4503 	Success rate: 50.81%
+                -------------------------------------------
+                | current_lr              | 3.46e-08      |
+                | ent_coef                | 0.0005752122  |
+                | ent_coef_loss           | 0.047651496   |
+                | entropy                 | -1.0043137    |
+                | episodes                | 6500          |
+                | fps                     | 176           |
+                | mean 100 episode reward | 0.54          |
+                | n_updates               | 499552        |
+                | policy_loss             | 0.21169686    |
+                | qf1_loss                | 1.3582756e-05 |
+                | qf2_loss                | 1.4727514e-05 |
+                | time_elapsed            | 28376         |
+                | total timesteps         | 4996546       |
+                | value_loss              | 4.1647754e-06 |
+                -------------------------------------------
+                Num episodes:  6499 	Success rate: 51.13%
+            {
+                Everything same with SA Coupler
+            }
