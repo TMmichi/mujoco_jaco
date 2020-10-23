@@ -835,4 +835,4 @@ def test(env):
 
 if __name__=='__main__':
 
-    test(Manipulator2D(tol=0.01, action='linear'))
+    test(Manipulator2D(tol=0.01, action='pickAndplace', reward_method='target', n_target=3))
