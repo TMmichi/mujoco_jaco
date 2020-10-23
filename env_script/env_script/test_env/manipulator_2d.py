@@ -114,6 +114,15 @@ class Manipulator2D(gym.Env):
         self.visualize = visualize
         self.vis_trigger = False
         self.vis_freq = 10
+        self.weight_reg = True
+        self.weight_reg_matrix = np.array(
+            [
+                [2,0,0,0],
+                [0,1,0,0],
+                [0,0,1,0],
+                [0,0,0,1]
+            ]
+        )
         
         if self.action_type == 'linear':
             if observation_method == 'absolute':
@@ -321,6 +330,10 @@ class Manipulator2D(gym.Env):
 
         reward, done = self._get_reward()
         self.episode_reward += reward
+        if self.weight_reg:
+            reward -= np.matmul(
+                np.matmul(np.array(weight).T,self.weight_reg_matrix),np.array(weight))
+            print(weight, reward)
 
         info = {}
 
@@ -928,4 +941,4 @@ def test(env):
 
 if __name__=='__main__':
 
-    test(Manipulator2D(tol=0.01, action='linear'))
+    test(Manipulator2D(tol=0.01, action='pickAndplace', reward_method='target', n_target=3))
