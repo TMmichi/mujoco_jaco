@@ -5,8 +5,6 @@ import sys
 import time
 import path_config
 from pathlib import Path
-from tkinter import *
-from tkinter import simpledialog
 from collections import OrderedDict
 try:
     import spacenav, atexit
