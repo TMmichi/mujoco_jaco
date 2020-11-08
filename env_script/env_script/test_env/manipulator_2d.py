@@ -117,10 +117,10 @@ class Manipulator2D(gym.Env):
         self.weight_reg = True
         self.weight_reg_matrix = np.array(
             [
-                [2,0,0,0],
-                [0,1,0,0],
-                [0,0,1,0],
-                [0,0,0,1]
+                [0.1,0,0,0],
+                [0,.001,0,0],
+                [0,0,.001,0],
+                [0,0,0,.001]
             ]
         )
         
@@ -331,9 +331,8 @@ class Manipulator2D(gym.Env):
         reward, done = self._get_reward()
         self.episode_reward += reward
         if self.weight_reg:
-            reward -= np.matmul(
+            reward -= 0.1*np.matmul(
                 np.matmul(np.array(weight).T,self.weight_reg_matrix),np.array(weight))
-            print(weight, reward)
 
         info = {}
 

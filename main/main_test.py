@@ -85,13 +85,13 @@ if __name__ == '__main__':
     train = True
     separate = True
     train_mode_list = ['human', 'auto', 'scratch', 'load']
-    train_mode = train_mode_list[2]
+    train_mode = train_mode_list[1]
     auxilary = True and not separate
     test = False and not separate
 
     if train:
         if separate:
-            trial = 88
+            trial = 89
 
             prefix2 = env_configuration['action']+"_separate_trial"+str(trial)
             save_path = model_dir+prefix2
@@ -149,7 +149,7 @@ if __name__ == '__main__':
             print("\033[91mTraining finished\033[0m")
 
         elif auxilary:
-            trial = 43
+            trial = 52
 
             prefix2 = env_configuration['action']+"_auxilary_trial"+str(trial)
             save_path = model_dir+prefix2
@@ -415,7 +415,7 @@ if __name__ == '__main__':
             print("\033[91mTest Finished\033[0m")
 
         else:
-            trial = 32
+            trial = 44
             prefix2 = env_configuration['action']+"_auxilary_trial"+str(trial)
 
             env = Manipulator2D(**env_configuration)
@@ -426,7 +426,7 @@ if __name__ == '__main__':
                 observation_index = list(range(6))
             elif env_configuration['observation_method'] == 'relative':
                 observation_index = list(range(3))
-            policy_num = 320000
+            policy_num = 1000000
             policy_zip_path = model_path+prefix+prefix2+"/policy_"+str(policy_num)+".zip"
             model.construct_primitive_info(name=None, freeze=True, level=1,
                                                 obs_range=None, obs_index=observation_index,
