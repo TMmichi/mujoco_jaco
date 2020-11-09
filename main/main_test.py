@@ -82,16 +82,16 @@ if __name__ == '__main__':
     model_dir = model_path + prefix
     os.makedirs(model_dir, exist_ok=True)
 
-    train = False
+    train = True
     separate = True
     train_mode_list = ['human', 'auto', 'scratch', 'load']
     train_mode = train_mode_list[1]
-    auxilary = False and not separate
+    auxilary = True and not separate
     test = False and not separate
 
     if train:
         if separate:
-            trial = 2
+            trial = 89
 
             prefix2 = env_configuration['action']+"_separate_trial"+str(trial)
             save_path = model_dir+prefix2
@@ -120,7 +120,7 @@ if __name__ == '__main__':
                 model.learn(total_time_step, save_interval=int(total_time_step*0.05), save_path=save_path)
             if train_mode == 'auto':
                 n_episodes = 10000
-                traj_dict = generate_expert_traj(env.calculate_desired_action, model_dir+env_configuration['action']+"_10000", env, n_episodes=n_episodes)
+                # traj_dict = generate_expert_traj(env.calculate_desired_action, model_dir+env_configuration['action']+"_10000", env, n_episodes=n_episodes)
                 # quit()
                 traj_dict = np.load(model_dir+env_configuration['action']+"_10000.npz", allow_pickle=True)
                 for name, elem in traj_dict.items():
@@ -141,7 +141,7 @@ if __name__ == '__main__':
                 model = SAC_MULTI(MlpPolicy_sac, env, **model_configuration)
                 model.learn(total_time_step, save_interval=int(total_time_step*0.05), save_path=save_path)
             elif train_mode == 'load':
-                load_policy_num = 0
+                load_policy_num = 1000000
                 path = save_path+'/policy_'+str(load_policy_num)
                 model_configuration['learning_rate'] = _lr_scheduler
                 model = SAC_MULTI.load(path, env=env, **model_configuration)
@@ -149,7 +149,7 @@ if __name__ == '__main__':
             print("\033[91mTraining finished\033[0m")
 
         elif auxilary:
-            trial = 35
+            trial = 52
 
             prefix2 = env_configuration['action']+"_auxilary_trial"+str(trial)
             save_path = model_dir+prefix2
@@ -249,9 +249,22 @@ if __name__ == '__main__':
                 del dataset
                 _write_log(save_path, info, trial)
                 model.learn(total_time_step, save_interval=int(total_time_step*0.01), save_path=save_path)
-            else:
+            elif train_mode == 'scratch':
                 _write_log(save_path, info, trial)
                 model.learn(total_time_step, save_interval=int(total_time_step*0.01), save_path=save_path)
+            elif train_mode == 'load':
+                load_policy_num = 0
+                path = save_path+'/policy_'+str(load_policy_num)
+                model_configuration['learning_rate'] = _lr_scheduler
+                policy_zip_path = model_path+prefix+prefix2+"/policy_"+str(load_policy_num)+".zip"
+                model.construct_primitive_info(name=None, freeze=True, level=1,
+                                                    obs_range=None, obs_index=list(range(total_obs_dim)),
+                                                    act_range=None, act_index=[0, 1],
+                                                    layer_structure=None,
+                                                    loaded_policy=SAC_MULTI._load_from_file(policy_zip_path), 
+                                                    load_value=True)
+                model = SAC_MULTI.pretrainer_load(model=model, policy=MlpPolicy_sac, env=env, **model_configuration)
+                model.learn(total_time_step, loaded_step_num=load_policy_num, save_interval=int(total_time_step*0.05), save_path=save_path)
             print("\033[91mTrain Finished\033[0m")
 
         elif test:
@@ -379,13 +392,13 @@ if __name__ == '__main__':
 
     else:
         if separate:
-            trial = 2 #75 #15
+            trial = 83
 
             prefix2 = env_configuration['action']+"_separate_trial"+str(trial)
             env_configuration['policy_name'] = prefix2
             env = Manipulator2D(**env_configuration)
 
-            policy_num = 0
+            policy_num = 1000000
             model_dict = {'layers': model_configuration['layers'], 'box_dist': model_configuration['box_dist'], 'policy_kwargs': model_configuration['policy_kwargs']}
             model = SAC_MULTI.load(model_path+prefix+prefix2+"/policy_"+str(policy_num), **model_dict)
 
@@ -394,7 +407,7 @@ if __name__ == '__main__':
                 print("  \033[91mTest iter: {0}\033[0m".format(i))
                 obs = env.reset()
                 while True:
-                    actions, state = model.predict(obs, deterministic=True)                    
+                    actions, state = model.predict(obs, deterministic=False)                    
                     obs, reward, done, _ = env.step(actions, test=True)
                     if done:
                         print(reward)
@@ -402,7 +415,7 @@ if __name__ == '__main__':
             print("\033[91mTest Finished\033[0m")
 
         else:
-            trial = 32
+            trial = 44
             prefix2 = env_configuration['action']+"_auxilary_trial"+str(trial)
 
             env = Manipulator2D(**env_configuration)
@@ -413,7 +426,7 @@ if __name__ == '__main__':
                 observation_index = list(range(6))
             elif env_configuration['observation_method'] == 'relative':
                 observation_index = list(range(3))
-            policy_num = 320000
+            policy_num = 1000000
             policy_zip_path = model_path+prefix+prefix2+"/policy_"+str(policy_num)+".zip"
             model.construct_primitive_info(name=None, freeze=True, level=1,
                                                 obs_range=None, obs_index=observation_index,

@@ -103,7 +103,6 @@ class Transformation:
         )
 
 
-
 class Manipulator2D(gym.Env):
     def __init__(self, action=None, n_robots=1, n_target=1, arm1=1, arm2=1, dt=0.01, tol=0.1, 
                     episode_length=1500, reward_method=None, observation_method='relative', her=False, policy_name='', visualize=False):
@@ -115,6 +114,15 @@ class Manipulator2D(gym.Env):
         self.visualize = visualize
         self.vis_trigger = False
         self.vis_freq = 10
+        self.weight_reg = True
+        self.weight_reg_matrix = np.array(
+            [
+                [0.1,0,0,0],
+                [0,.001,0,0],
+                [0,0,.001,0],
+                [0,0,0,.001]
+            ]
+        )
         
         if self.action_type == 'linear':
             if observation_method == 'absolute':
@@ -266,8 +274,8 @@ class Manipulator2D(gym.Env):
         
         if self.action_type == 'linear':
             self.robot_tf.transform(
-                translation=(action[0]*self.dt, 0),
-                rotation=(random.random()-0.5)*0.5*self.dt
+                translation=(action[0]*self.dt, 0)
+                #rotation=(random.random()-0.5)*0.5*self.dt
             )
             self.link1_tf_global = self.robot_tf * self.joint1_tf * self.link1_tf
             self.link2_tf_global = self.link1_tf_global * self.joint2_tf * self.link2_tf
@@ -322,6 +330,9 @@ class Manipulator2D(gym.Env):
 
         reward, done = self._get_reward()
         self.episode_reward += reward
+        if self.weight_reg:
+            reward -= 0.1*np.matmul(
+                np.matmul(np.array(weight).T,self.weight_reg_matrix),np.array(weight))
 
         info = {}
 
@@ -463,7 +474,7 @@ class Manipulator2D(gym.Env):
             l = np.linalg.norm(target_vector)
             if self.reward_method == 'sparse':
                 if l < self.tol:
-                    reward = 1
+                    reward = 100
                     done = True 
                     self.accum_succ += 1
                     print("\033[92m  SUCCEEDED\033[0m")
@@ -630,7 +641,7 @@ class Manipulator2D(gym.Env):
 
         if done:
             self.n_episodes += 1
-            print("Num episodes: ",self.n_episodes,"\tSuccess rate: {0:3.2f}%".format(self.accum_reward/self.n_episodes*100))
+            print("Num episodes: ",self.n_episodes,"\tSuccess rate: {0:3.2f}%".format(self.accum_succ/self.n_episodes*100))
 
         return reward, done
     
@@ -929,4 +940,4 @@ def test(env):
 
 if __name__=='__main__':
 
-    test(Manipulator2D(tol=0.01, action='linear'))
+    test(Manipulator2D(tol=0.01, action='pickAndplace', reward_method='target', n_target=3))
