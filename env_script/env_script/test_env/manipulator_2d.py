@@ -537,9 +537,9 @@ class Manipulator2D(gym.Env):
                     angle_diff = 2*np.pi - angle_diff
             if self.reward_method == 'sparse':
                 if l < self.tol and angle_diff < self.tol:
-                    reward = 1
+                    reward = 100
                     done = True
-                    self.accum_succ += 1
+                    self.accum_succ += 100
                     print("\033[92m  SUCCEEDED\033[0m")
                 else:
                     reward = 0
@@ -620,7 +620,7 @@ class Manipulator2D(gym.Env):
             print("\033[91m  ROBOT Out of Boundary\033[0m")
             done = True
             if self.reward_method == 'sparse':
-                reward = -1
+                reward = -100
             else:
                 reward = -100
 
