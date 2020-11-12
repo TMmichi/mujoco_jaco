@@ -5,7 +5,7 @@ import sys
 import time
 import path_config
 from pathlib import Path
-from collections import OrderedDict
+from configuration import env_configuration, model_configuration, pretrain_configuration, info, total_time_step
 try:
     import spacenav, atexit
 except Exception:
@@ -18,7 +18,7 @@ from stable_baselines.trpo_mpi import TRPO
 from stable_baselines.common.policies import MlpPolicy
 from stable_baselines.sac import SAC
 from stable_baselines.sac_multi import SAC_MULTI
-from stable_baselines.sac_multi.policies import MlpPolicy as MlpPolicy_sac, LnMlpPolicy as LnMlpPolicy_sac
+from stable_baselines.sac_multi.policies import MlpPolicy as MlpPolicy_sac
 from stable_baselines.gail import generate_expert_traj
 from env_script.env_mujoco import JacoMujocoEnv
 from state_gen.state_generator import State_generator
@@ -67,7 +67,7 @@ class RL_controller:
         self.batches_per_episodes = 5
         args.steps_per_batch = self.steps_per_batch
         args.batches_per_episodes = self.batches_per_episodes
-        self.num_episodes = 2
+        self.num_episodes = 100
         self.args = args
 
 
@@ -81,8 +81,9 @@ class RL_controller:
         os.makedirs(model_dir, exist_ok=True)
         tb_path = self.tb_dir + prefix
         self.num_timesteps = self.steps_per_batch * self.batches_per_episodes * self.num_episodes
-        self.args.robot_file = "jaco2_curtain_torque"
-        self.args.n_robots = 1
+        #self.args.robot_file = "jaco2_curtain_torque"
+        self.args.robot_file = "jaco2_dual_torque"
+        self.args.n_robots = 2
         env = JacoMujocoEnv(**vars(self.args))
 
         layers = {"policy": [64, 64], "value": [256, 256, 128]}
@@ -210,20 +211,6 @@ class RL_controller:
             action = [0,0,0,0,0,0,0,0]
             return action
     
-    def _expert_keyboard(self, _obs):
-        self.action = [0,0,0,0,0,0]
-        return self.action
-    
-    def _build_popup(self):
-        self.root = Tk()
-        self.root.title("Keyboard input")
-        self.root.geometry("400x400")
-        button_a = Button(self.root, text="a")
-        button_a.bind("<a>", self._clicker)
-
-    def _clicker(self, event):
-        self.action
-        pass
 
     def train_with_additional_layer(self):
         self.args.train_log = False
@@ -234,47 +221,42 @@ class RL_controller:
         os.makedirs(model_dir, exist_ok=True)
         tb_path = self.tb_dir + prefix
 
-        primitives = OrderedDict()
-        separate_value = True
+        composite_primitive_name=''
+        model = SAC_MULTI(policy=MlpPolicy_sac, env=None, _init_setup_model=False, composite_primitive_name=composite_primitive_name)
         
-        # Newly appointed primitives
-        # name = "{'train', 'freeze'}/{'loaded', ''}/'primitive_name'"
-        SAC_MULTI.construct_primitive_info(name='aux1', primitive_dict=primitives, freeze=False, level=0,
-                                            obs_dimension=6, obs_range=[-2, 2], obs_index=[0, 1, 2, 3, 4, 5], 
-                                            act_dimension=4, act_range=[-1.4, 1.4], act_index=[0, 1, 2, 3], 
-                                            policy_layer_structure=[256, 256])
-        SAC_MULTI.construct_primitive_info('aux2', primitives, False, 0,
-                                            6, [-2, 2], [0, 1, 2, 3, 4, 5], 
-                                            2, [-1.4, 1.4], [4, 5], 
-                                            [256, 128])
-        SAC_MULTI.construct_primitive_info('train/aux3', primitives, False, 0,
-                                            6, [-2, 2], [0, 1, 2, 3, 4, 5], 
-                                            5, [-1.4, 1.4], [0, 1, 4, 5, 6], 
-                                            [256, 128])
-        # Pretrained primitives
-        policy_zip_path = self.model_path+"test"+"/policy.zip"
-        SAC_MULTI.construct_primitive_info('reaching', primitives, freeze=True, level=0,
-                                            obs_dimension=None, obs_range=None, obs_index=[0, 1, 2, 3, 4, 5], 
-                                            act_dimension=None, act_range=None, act_index=[0, 1, 2, 3, 4, 5], 
-                                            policy_layer_structure=None,
-                                            loaded_policy=SAC_MULTI._load_from_file(policy_zip_path), separate_value=separate_value)
+        SAC_MULTI.construct_primitive_info(name='aux1', freeze=False, level=0,
+                                            obs_range=[-2, 2], obs_index=[0, 1, 2, 3, 4, 5], 
+                                            act_range=[-1.4, 1.4], act_index=[0, 1, 2, 3], 
+                                            layer_structure={'policy':[64, 64]})
 
+        # Pretrained primitives
+        prim_name = 'reaching'
+        policy_zip_path = self.model_path+"test"+"/policy.zip"
+        model.construct_primitive_info(name=prim_name, freeze=True, level=1,
+                                            obs_range=None, obs_index=[0, 1, 2, 3, 4, 5],
+                                            act_range=None, act_index=[0, 1, 2, 3, 4, 5],
+                                            layer_structure=None,
+                                            loaded_policy=SAC_MULTI._load_from_file(policy_zip_path),
+                                            load_value=True)
+
+        prim_name = 'grasping'
         policy_zip_path = self.model_path+"test2"+"/policy.zip"
-        SAC_MULTI.construct_primitive_info('grasping', primitives, False, 0,
-                                            None, None, [0, 1, 2, 3, 4, 5], 
-                                            None, None, [0, 1, 2, 3, 4, 5], 
+        SAC_MULTI.construct_primitive_info(prim_name, False, 1,
+                                            None, [0, 1, 2, 3, 4, 5], 
+                                            None, [0, 1, 2, 3, 4, 5], 
                                             None,
-                                            loaded_policy=SAC_MULTI._load_from_file(policy_zip_path), separate_value=separate_value)
+                                            loaded_policy=SAC_MULTI._load_from_file(policy_zip_path), 
+                                            load_value=True)
         # Weight definition  
         number_of_primitives = 5
         total_obs_dim = env.get_num_observation()
-        SAC_MULTI.construct_primitive_info('weight', primitives, False, 0,
-                                            total_obs_dim, 0, list(range(total_obs_dim)), 
-                                            number_of_primitives, [0,1], number_of_primitives, 
-                                            [512, 512, 512])
+        SAC_MULTI.construct_primitive_info('weight', False, 1,
+                                            0, list(range(total_obs_dim)), 
+                                            0, [0,1],
+                                            layer_structure={'policy':[512, 256, 256],'value':[512, 256, 256]})
 
         self.num_timesteps = self.steps_per_batch * self.batches_per_episodes * self.num_episodes 
-        self.trainer = SAC_MULTI.pretrainer_load(policy=MlpPolicy_sac, primitives=primitives, env=env, separate_value=separate_value, tensorboard_log=tb_path)
+        model = SAC_MULTI.pretrainer_load(model=model, policy=MlpPolicy_sac, env=env, **model_configuration)
         print("\033[91mTraining Starts\033[0m")
         self.trainer.learn(total_timesteps=self.num_timesteps)
         print("\033[91mTrain Finished\033[0m")

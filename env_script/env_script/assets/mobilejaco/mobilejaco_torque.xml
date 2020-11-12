@@ -56,7 +56,7 @@
             <!--<geom type="mesh" contype="0" conaffinity="0" group="1" mesh="base_link" />-->
             <geom size="0.4937 0.2 0.061875" type="box" material="carbon"/>
 
-            <!--
+            
             <joint armature="0.0001" axis="1 0 0" damping="1e+11" name="mobile:slide0" pos="0 0 0" type="slide"></joint>
             <joint armature="0.0001" axis="0 1 0" damping="1e+11" name="mobile:slide1" pos="0 0 0" type="slide"></joint>
             <joint armature="0.0001" axis="0 0 1" damping="1e+4" name="mobile:slide2" pos="0 0 0" type="slide"></joint>
@@ -64,7 +64,7 @@
 
             <joint name="base_x_slide_joint" type="slide" pos="0 0 0" axis="1 0 0" limited="true" range="0 0.2" damping="3000" />
             <joint name="base_z_hinge_joint" type="hinge" pos="0 0 0" axis="0 0 1" limited="true" range="-0.57 0.57" damping="3000" />
-            -->
+           
 
             <!-- Mobile Robot Body -->
             <geom size="0.2 0.2 0.061875" pos="0 0 0.185625" type="box" material="carbon" />

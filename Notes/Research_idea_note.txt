@@ -7,7 +7,7 @@ Note
             3. Human data learning
             4. Multi-modal sensory data
             5. Safe to interact (torque control)
-            6. Robot independent (worspace independent)
+            6. Robot independent (workspace independent)
             7. Dual (multi) arm
             8. Reaching
             9. Grasping
@@ -23,7 +23,7 @@ Note
             1. Title: Guess What I'm doing: Manipulation of a robot arm with known primitives (XAI related)
             {
                 Keywords:
-                Goal: Make policies explainable (and mimick human-like behavior - if incorporating human data while TRAINING PRIMITIVES)
+                Goal: Make policies explainable (and mimic human-like behavior - if incorporating human data while TRAINING PRIMITIVES)
                 Motivation:
                     - Shall let the users know what it's doing with human-interpretable information
                     - Behave in a way human brain does -> composing complicated behavior with basic structures of primitives in a hierarchical manner
@@ -31,7 +31,7 @@ Note
                 Contributions:
                     - making policy explainable
                     - Increase sample efficiency (incorporate human data while TRAINING WHOLE TASK)
-                    - learn auxilary primitives that have not been told/trained (if possible)
+                    - learn auxiliary primitives that have not been told/trained (if possible)
                     - fuse policies with different action space into a whole
                     - reduce learning time compared to primitives that has same, whole action space
                     - weights coordinate each primitives: not concurrent -> execute multiple primitives at once // no latent embedding -> interpretable
@@ -45,12 +45,12 @@ Note
                         {
                             1. 
                             {
-                                Task: Grap a glass of water and pour to a specific destination
+                                Task: Grasp a glass of water and pour to a specific destination
                                 Required features (primitive):
                                     - Reaching to a glass (Reaching)
                                     - Make a good grip when holding a glass (Reaching + Grasping)
-                                    - Take it to a goal position when holding a glass (Reaching + Grasping + Auxilary - stabilizing glass?)
-                                    - Pouring it to a goal position (Reching + Grasping + Auxilary - Pouring)
+                                    - Take it to a goal position when holding a glass (Reaching + Grasping + Auxiliary - stabilizing glass?)
+                                    - Pouring it to a goal position (Reaching + Grasping + Auxiliary - Pouring)
                                 Thoughts:
                                     - Pouring: 
                                     - Moveit! -> variance = 0인 distribution
@@ -65,8 +65,8 @@ Note
                     - State representation learning of required & orthogonal sensor data: image, pressure, joint angles
                         -> want to show that those data has some information that does not overlap with each other
                         -> check orthogonality of each sensors using [PCA? suggestions????]
-                    - Provide auxilary dummy primitive networks when training in an End-to-End fashion -> do a PCA analysis for actions under states to validate the need for an extra primitive.
-                        -> How to check / avoid a single auxilary network from taking over all the auxiliary primitives?
+                    - Provide auxiliary dummy primitive networks when training in an End-to-End fashion -> do a PCA analysis for actions under states to validate the need for an extra primitive.
+                        -> How to check / avoid a single auxiliary network from taking over all the auxiliary primitives?
                              - by training policy with enough of aux policies and then optimize the numbers?
                         -> time: 언제 primitive가 activate 될 지??
                         -> Non-Markovian 
@@ -86,7 +86,7 @@ Note
                             - Hierarchical Reinforcement Learning with Advantage-Based Auxiliary Rewards (Li, 2019)
                             BT-RL
                                 - Integrating Reinforcement Learning into Behavior Trees by Hierarchical Composition (Kartasev, 2019)
-                                - QL-BT: Enhancing behaviour tree design and implementation with Q-learning (Dey, 2013)
+                                - QL-BT: Enhancing behavior tree design and implementation with Q-learning (Dey, 2013)
                         Meta_Learning
                             - Learning to Coordinate Manipulation Skills Via Skill Behavior Diversification (Lee, 2020)
                             - Modular Multitask Reinforcement Learning with Policy Sketches (Andreas, 2017)
@@ -116,7 +116,7 @@ Note
                     - hierarchical policy
 
                     - Increase sample efficiency (incorporate human data while TRAINING WHOLE TASK)
-                    - learn auxilary primitives that have not been told/trained (if possible) -> auxilary primitive can also achieve auxilary loss/goals to improve performance
+                    - learn auxiliary primitives that have not been told/trained (if possible) -> auxiliary primitive can also achieve auxiliary loss/goals to improve performance
                     - reduce learning time compared to primitives that has same, whole action space
                     - weights coordinate each primitives: not concurrent -> execute multiple primitives at once // no latent embedding -> interpretable
                         -> explicit embedding: leads to explainable AI
@@ -164,7 +164,7 @@ Note
                                         - to remedy the challenge from off-policy learning of HRL (only sequential) by off-policy correction by re-labeling
                                     Cons:
                                         - 
-                                        - same state space for high/low policy + low policy taking additionl goal as a state from high
+                                        - same state space for high/low policy + low policy taking additional goal as a state from high
                                 }
                             - Hierarchical Reinforcement Learning with Advantage-Based Auxiliary Rewards (Li, 2019)
                                 {
@@ -183,10 +183,10 @@ Note
                                         -
                                     Cons:
                                         -
-                                        - same state space for high/low policy + low policy taking additionl goal as a state from high
+                                        - same state space for high/low policy + low policy taking additional goal as a state from high
                                 }
                             BT-RL
-                                - QL-BT: Enhancing behaviour tree design and implementation with Q-learning (Dey, 2013)
+                                - QL-BT: Enhancing behavior tree design and implementation with Q-learning (Dey, 2013)
                                 - Integrating Reinforcement Learning into Behavior Trees by Hierarchical Composition (Kartasev, 2019)
                         Meta_Learning
                             - Options (Sutten, 1999)
@@ -218,7 +218,7 @@ Note
                                     Cons: 
                                         - learned features from feature controlling encoder cannot be explicitly interpreted -> options from meta-controller is hard to be 
                                         - end-to-end training: can be handy but do not know its options/sub-goals explicitly.
-                                        - same state space for high/low policy + low policy taking additionl goal as a state from high
+                                        - same state space for high/low policy + low policy taking additional goal as a state from high
                                 }
                             - FeUdal Networks for Hierarchical Reinforcement Learning (Vezhnevets, 2017)
                                 {
@@ -230,7 +230,7 @@ Note
                                     Cons:
                                         - if action space is large, fitting U_t from RNN of the Worker side can be hard
                                         - Still do not have a clear understanding of what the goal intends to do in a human language
-                                        - same state space for high/low policy + low policy taking additionl goal as a state from high
+                                        - same state space for high/low policy + low policy taking additional goal as a state from high
                                 }
                             - MLSH (Frans, 2017)
                             - Chealsea Finn paper of meta-learning
@@ -283,7 +283,7 @@ Note
             {
                 Keywords: 
                 
-                Goal: Make policies that can be transfered to different robot models without fine-tuning
+                Goal: Make policies that can be transferred to different robot models without fine-tuning
                 Motivation:
                     - Most of the techniques uses joint angles -> restricted to the specific configuration of a robot
                 Contributions:
@@ -342,7 +342,7 @@ Note
                     - Local Interpretable Model-agnostic Explanations (LIME)
                     - Shapley Additive exPlanations (SHAP)
                     - Filter Visualization
-                    - Layer-wise Relevane Propagation (LRP)
+                    - Layer-wise Relevant Propagation (LRP)
             }
             7. State-Action Coupling to focus on states that really matters - specify elements of latent variables to focus
 
@@ -388,7 +388,7 @@ Note
                 {    
                     Questions:
                         1. How to fuse primitives with different action space?
-                            - maybe weight is all reponsible of fusing action spaces.
+                            - maybe weight is all responsible of fusing action spaces.
                             - if actions from both arm and wheels are important, then the weight will equally be distributed
                             - if actions from arm is more important than that of the wheels, then the weight will focus more on arms
                             - since weight incorporates total states, it can fully observe the space and provide decisions
@@ -421,7 +421,7 @@ Note
                         - The Architecture of Complexity (Simon, 1962)
                         {
                             - Nearly-decomposable systems
-                            - most interactions with subsets close to them, and less with elemtns outside this subset
+                            - most interactions with subsets close to them, and less with elements outside this subset
                             -> then, behavior part should located at the center - require fastest response with all the other processes
                         }
                         - Functional Network Organization of the Human Brain (Power, 2011)

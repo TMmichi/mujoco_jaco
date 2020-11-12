@@ -189,9 +189,9 @@ class JacoMujocoEnvUtil:
             self.target_pos = self.gripper_pose[0] + np.hstack([a[:3]/100, a[3:6]/20])
             self.gripper_angle_1 = a[6]
             self.gripper_angle_2 = a[7]
-            self.interface.set_mocap_xyz("hand", self.target_pos[:3])
-            self.interface.set_mocap_orientation("hand", transformations.quaternion_from_euler(
-                self.target_pos[3], self.target_pos[4], self.target_pos[5], axes="rxyz"))
+            # self.interface.set_mocap_xyz("hand", self.target_pos[:3])
+            # self.interface.set_mocap_orientation("hand", transformations.quaternion_from_euler(
+            #     self.target_pos[3], self.target_pos[4], self.target_pos[5], axes="rxyz"))
         else:
             # If Position: Joint Angle Increments (rad)
             # If Velocity: Joint Velocity (rad/s)
@@ -207,7 +207,6 @@ class JacoMujocoEnvUtil:
                 else:
                     prefix = "_"+str(i+1)
                     out.append(self.interface.get_xyz(subject+prefix))
-                return np.copy(out)
             elif prop == 'orientation':
                 if self.n_robots == 1:
                     orientation_quat = self.interface.get_orientation(subject)
@@ -217,7 +216,6 @@ class JacoMujocoEnvUtil:
                     prefix = "_"+str(i+1)
                     orientation_quat = self.interface.get_orientation(subject+prefix)
                     out.append(transformations.euler_from_quaternion(orientation_quat, 'rxyz'))
-                return np.copy(out)
             elif prop == 'pose':
                 if self.n_robots == 1:
                     pos = self.interface.get_xyz(subject)
@@ -232,7 +230,7 @@ class JacoMujocoEnvUtil:
                     ori = transformations.euler_from_quaternion(orientation_quat, 'rxyz')
                     pose = np.append(pos, ori)
                     out.append(pose)
-                return np.copy(out)
+        return np.copy(out)
 
     def _get_pressure(self):
         pass
@@ -242,11 +240,11 @@ class JacoMujocoEnvUtil:
         # for i in range(5):
         #     sensor.append(string+"_touch_" + "{}".format(i))
     
-    #sensor0 = str+"_touch_0"
-    #sensor1 = str+"_touch_1"
-    #sensor2 = str+"_touch_2"
-    #sensor3 = str+"_touch_3"
-    #sensor4 = str+"_touch_4"
+        #sensor0 = str+"_touch_0"
+        #sensor1 = str+"_touch_1"
+        #sensor2 = str+"_touch_2"
+        #sensor3 = str+"_touch_3"
+        #sensor4 = str+"_touch_4"
         # if string == "tp":
         #     a, b =0.0072, 0.0072
         # elif string == "tp2":
@@ -311,12 +309,12 @@ if __name__ == "__main__":
     from abr_control.controllers import OSC
     from abr_control.utils import transformations
 
-    mobile = Falses
+    mobile = True
     if not mobile:
         pos = False
         vel = False
         torque = True
-        dual = False and torque
+        dual = True and torque
         controller = True
         if pos:
             jaco = MujocoConfig('jaco2_position')
@@ -441,7 +439,7 @@ if __name__ == "__main__":
         vel_left = 10
         vel_right = 10
         for i in range(10):
-            vel_left *= -1
+            #vel_left *= -1
             while True:
                 fb = interface.get_feedback()
                 u = ctr.generate(
