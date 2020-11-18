@@ -1145,3 +1145,50 @@
             {
                 Everything same with SA Coupler
             }
+
+2020 10 23 (Fri)
+    -29. Weight regularization term added to the reward
+        1. 2,1,1,1
+            - fused_auxilary_trial44
+                -----------------------------------------
+                | current_lr              | 3.96e-05    |
+                | ent_coef                | 0.011189235 |
+                | ent_coef_loss           | -0.5705854  |
+                | entropy                 | -0.9167373  |
+                | episodes                | 696         |
+                | fps                     | 212         |
+                | mean 100 episode reward | -196        |
+                | n_updates               | 103437      |
+                | policy_loss             | 32.202618   |
+                | qf1_loss                | 0.2631174   |
+                | qf2_loss                | 0.26299334  |
+                | time_elapsed            | 4865        |
+                | total timesteps         | 1035392     |
+                | value_loss              | 0.013994224 |
+                -----------------------------------------
+                Num episodes:  695 	Success rate: 0.86%
+            {
+                Still aux network producing dominant action
+                weight: [[8.8941997e-01 1.1057547e-01 5.0556244e-13 4.5854958e-06]]
+            }
+        2. 3,0.1,0.1,0.1
+            - fused_auxilary_trial45
+        
+        3. 3,0.01,0.01,0.01
+            - fused_auxilary_trial46
+        
+        4. 1, 0.001, 0.001, 0.001
+            - fused_auxilary_trial47
+
+2020 10 27 (Tue)
+    - 29 (cont) 
+        5. 0.1, 0.001, 0.001, 0.001 -> too large reward results in NAN?
+            - fused_auxilary_trial48    
+
+2020 11 3 (Tue)
+    - 29 (cont)
+        5. Identify the reason for the occurance of NAN
+            - fused_auxilary_trial49
+            {
+                NAN from input batch?
+            }

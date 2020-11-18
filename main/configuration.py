@@ -29,20 +29,23 @@ layer_structure_list = [[256, 256, 128, 128, 128, 64, 64], \
                         [512, 256, 128, 256, 512], [128, 128, 64, 64, 32], [64, 128, 256, 128, 64], \
                         [512, 256, 256, 512], [256, 256, 128, 128], [128, 64, 64, 32], [64, 64, 32, 32], \
                         [512, 256, 256], [256, 256, 128], [128, 128, 128], \
-                        [256, 256], [128, 128]]
-layer_structure = layer_structure_list[1]
+                        [256, 256], [128, 128], [64, 64]]
+layer_structure = layer_structure_list[-2]
 layers = {"policy": layer_structure, "value": layer_structure}
 
-model_configuration['learning_starts'] = 1000
+model_configuration['learning_starts'] = 100
 model_configuration['layers'] = layers
-model_configuration['batch_size'] = 1024
-model_configuration['buffer_size'] = 1000000
-model_configuration['gamma'] = 0.995
-model_configuration['learning_rate'] = 5e-7
+model_configuration['batch_size'] = 64
+model_configuration['buffer_size'] = 50000
+model_configuration['gamma'] = 0.99
+model_configuration['learning_rate'] = 0.0003
+# model_configuration['learning_rate'] = 1e-5
 model_configuration['ent_coef'] = 'auto'
-model_configuration['train_freq'] = 10
-model_configuration['gradient_steps'] = 1 #max(int(model_configuration['train_freq']/2),3)
+# model_configuration['ent_coef'] = 0.0001
+model_configuration['train_freq'] = 1
+model_configuration['gradient_steps'] = 1
 model_configuration['verbose'] = 1
+# model_configuration['box_dist'] = 'gaussian'
 model_configuration['box_dist'] = 'beta'
 model_configuration['random_exploration'] = 0.05
 #model_configuration['sa_coupler_index'] = [0,1]
