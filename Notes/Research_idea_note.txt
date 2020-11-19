@@ -58,8 +58,8 @@ Note
                             }
                             2. 
                             {
-                                Task: TBD
-                                Goal: TBD
+                                Task: 
+                                Goal: 
                             }
                         }
                     - State representation learning of required & orthogonal sensor data: image, pressure, joint angles
@@ -106,27 +106,36 @@ Note
             }
             1-1. Sub_task: test with simpler environment
             {
-                Motivation:
-                    - Shall let the users know what it's doing with human-interpretable information
-                    - Behave in a way human brain does -> composing complicated behavior with basic structures of primitives in a hierarchical manner
-                    - MCPs uses primitives that are not identifiable
                 Contributions:
                     - can be applied to policies with different action space (properly)
                     - making policy explainable by incorporating known primitives
-                    - hierarchical policy
-
+                    - hierarchical policy- making policy explainable
+                    - Increase sample efficiency (incorporate human data while TRAINING WHOLE TASK)
+                    - learn auxiliary primitives that have not been told/trained (if possible)
+                    - fuse policies with different action space into a whole
+                    - reduce learning time compared to primitives that has same, whole action space
+                    - weights coordinate each primitives: not concurrent -> execute multiple primitives at once // no latent embedding -> interpretable
+                    - can be applied to policies with different action space
+                    - configure proper states from observation to each primitives
                     - Increase sample efficiency (incorporate human data while TRAINING WHOLE TASK)
                     - learn auxiliary primitives that have not been told/trained (if possible) -> auxiliary primitive can also achieve auxiliary loss/goals to improve performance
                     - reduce learning time compared to primitives that has same, whole action space
                     - weights coordinate each primitives: not concurrent -> execute multiple primitives at once // no latent embedding -> interpretable
                         -> explicit embedding: leads to explainable AI
-                    
                     - Presents correlation on std of SAC and MCP in vanilla and Hierarchical structure
-                
+
                 To Do:
                     - create tasks which needs manipulator to get involved -> different action space
-                    - create cooperative task
-                    - create competitive task
+                Ideation:
+                    - Do we really need a manipulator to be involved? -> yes! 원래 하려던게 이거였음.
+                    - + 원래 또 하려고 했던 것: 사람의 데이터를 수집하여 Behavior Cloning을 한 다음, 보상함수 검출
+                    - 보상함수 검출은 적당히 함수 형상 정해놓고, 파라미터 optimizing 하는 정도로만?
+                    - 일단 task 정해서, policy update하고, 그거 맞춰서 reward는 다시 정하는 정도로만 하자.
+                    - 그럼 대체 왜 manipulator의 task에 hierarchical policy가 필요한가?
+                    - 복잡하니까, 좀 더 간단하게 풀어보고 싶어서.
+                    - 복잡함의 대상: task / action space / action planning
+                    - Aux Net의 Action bound를 정해버린다. 진짜 조그마한 값만 내어놓아서 기존에 train 된 network를 사용할 때 보정만 하도록.
+                    - 
                 
                 Done (moved from ToDO):
                     - 
@@ -345,6 +354,19 @@ Note
                     - Layer-wise Relevant Propagation (LRP)
             }
             7. State-Action Coupling to focus on states that really matters - specify elements of latent variables to focus
+            {
+
+            }
+            8. ?????????
+            {
+                Sampling algorithm -> uses utility
+                1. does utility has some sort of coefficient to be determined?
+
+                Dexterous manipulation -> 
+            }
+            
+
+
 
 
     Research_Details:
