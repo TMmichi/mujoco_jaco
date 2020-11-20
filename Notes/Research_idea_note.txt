@@ -261,6 +261,13 @@ Note
                                     Cons:
                                         -
                                 }
+                            - Hierarchical Deep Reinforcement Learning: Integrating Temporal Abstraction and Intrinsic Motivation (Kulkarni, 2016)
+                            {
+                                key:
+                                    - Uses h-DQN, meta learning (sub-goal based)
+                                Pros:
+                                Cons:
+                            }
                     Explainable_RL:
                         - Hierarchical and interpretable skill acquisition in multi-task reinforcement learning (Shu, 2017)
                         -
