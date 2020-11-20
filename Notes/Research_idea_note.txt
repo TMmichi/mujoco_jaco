@@ -107,22 +107,18 @@ Note
             1-1. Sub_task: test with simpler environment
             {
                 Contributions:
-                    - can be applied to policies with different action space (properly)
                     - making policy explainable by incorporating known primitives
-                    - hierarchical policy- making policy explainable
-                    - Increase sample efficiency (incorporate human data while TRAINING WHOLE TASK)
-                    - learn auxiliary primitives that have not been told/trained (if possible)
-                    - fuse policies with different action space into a whole
-                    - reduce learning time compared to primitives that has same, whole action space
-                    - weights coordinate each primitives: not concurrent -> execute multiple primitives at once // no latent embedding -> interpretable
-                    - can be applied to policies with different action space
+                    - can be applied to policies with different state/action space
                     - configure proper states from observation to each primitives
                     - Increase sample efficiency (incorporate human data while TRAINING WHOLE TASK)
                     - learn auxiliary primitives that have not been told/trained (if possible) -> auxiliary primitive can also achieve auxiliary loss/goals to improve performance
                     - reduce learning time compared to primitives that has same, whole action space
                     - weights coordinate each primitives: not concurrent -> execute multiple primitives at once // no latent embedding -> interpretable
                         -> explicit embedding: leads to explainable AI
-                    - Presents correlation on std of SAC and MCP in vanilla and Hierarchical structure
+                    # - Presents correlation on std of SAC and MCP in vanilla and Hierarchical structure
+                    - Fuse sub-goal, selector-based HRL method, but does not leverage on option framework where a single policy network learns and operates over different levels of temporal abstaction given options from the meta-controller. Although options may abstract the action space, it is not interpretable by human in a physical terms. Instead, we produce subgoals from the meta-controller by which has been manually designated to certain primitive as a semantic state.
+                    - Effectiveness of imploiting entropies within the policy has been proved to be useful by many works regarding the policy optimization algorithm. Soft Q-Learning ~~~ . Precedent of soft Q-Learning is SAC, where it ~~~. Not only restricted to the policy optimization scheme, but reward setting of the learning algorithm has also proposed notion of uncertainties to be implemented. Frank et al. (curiosity driven RL for motion planning on humanoids) leverages on information maximization as a curiosity, and [other uncertainties]. However, performance of simplified primitives is not highly dependent on the uncertainties of the environment, and shows slower convergence than that of the ~~, and thus we do not use uncertainties scheme on learning simple primitives. (Nevertheless, we propose the usefulness of uncertainties within the meta-controller where exploration should be taken upon)
+                    - Proposes gradients of meta-controller wrt. subgoals/weight selection.
 
                 To Do:
                     - create tasks which needs manipulator to get involved -> different action space
@@ -135,17 +131,18 @@ Note
                     - 복잡하니까, 좀 더 간단하게 풀어보고 싶어서.
                     - 복잡함의 대상: task / action space / action planning
                     - Aux Net의 Action bound를 정해버린다. 진짜 조그마한 값만 내어놓아서 기존에 train 된 network를 사용할 때 보정만 하도록.
-                    - 
+                    - meta-controlle의 action: weights/subgoals
+                        - 
                 
                 Done (moved from ToDO):
                     - 
 
                 References:
-                    Compositive_policy:
-                        Additive:
-                            - Mixture Density Networks (Bishop, 1994)
-                        Multiplicative:
-                            - MCP: Learning composable hierarchical control with multiplicative compositional policies (Peng, 2019)
+                    1. Compositive_policy:
+                        1.1. Additive:
+                            1.1.1. Mixture Density Networks (Bishop, 1994)
+                        1.2. Multiplicative:
+                            1.2.1. MCP: Learning composable hierarchical control with multiplicative compositional policies (Peng, 2019)
                                 {
                                     Key:
                                         - 
@@ -154,9 +151,9 @@ Note
                                     Cons:
                                         -
                                 }
-                    Hierarchical_policy:
-                        Pure_Hierarchy
-                            - Hierarchical and interpretable skill acquisition in multi-task reinforcement learning (Shu, 2017)
+                    2. Hierarchical_policy:
+                        2.1 Pure_Hierarchy
+                            2.1.1. Hierarchical and interpretable skill acquisition in multi-task reinforcement learning (Shu, 2017)
                                 {
                                     Key:
                                         - 
@@ -165,7 +162,7 @@ Note
                                     Cons:
                                         -
                                 }
-                            - Data-Efficient Hierarchical Reinforcement Learning (Nachum, 2018)
+                            2.1.2. Data-Efficient Hierarchical Reinforcement Learning (Nachum, 2018)
                                 {
                                     Key:
                                         - 
@@ -175,7 +172,7 @@ Note
                                         - 
                                         - same state space for high/low policy + low policy taking additional goal as a state from high
                                 }
-                            - Hierarchical Reinforcement Learning with Advantage-Based Auxiliary Rewards (Li, 2019)
+                            2.1.3. Hierarchical Reinforcement Learning with Advantage-Based Auxiliary Rewards (Li, 2019)
                                 {
                                     Key:
                                         - 
@@ -184,7 +181,7 @@ Note
                                     Cons:
                                         -
                                 }
-                            - Hierarchical Visuomotor Control of Humanoids (Merel, 2019)
+                            2.1.4. Hierarchical Visuomotor Control of Humanoids (Merel, 2019)
                                 {
                                     Key:
                                         - 
@@ -194,12 +191,22 @@ Note
                                         -
                                         - same state space for high/low policy + low policy taking additional goal as a state from high
                                 }
-                            BT-RL
-                                - QL-BT: Enhancing behavior tree design and implementation with Q-learning (Dey, 2013)
-                                - Integrating Reinforcement Learning into Behavior Trees by Hierarchical Composition (Kartasev, 2019)
-                        Meta_Learning
-                            - Options (Sutten, 1999)
-                            - Bacon et al 2017
+                        2.2 BT-RL
+                            2.2.1. QL-BT: Enhancing behavior tree design and implementation with Q-learning (Dey, 2013)
+                            2.2.2. Integrating Reinforcement Learning into Behavior Trees by Hierarchical Composition (Kartasev, 2019)
+                        2.3 Meta_Learning
+                            2.3.1. Options (Sutten, 1999)
+                                {
+                                    Key:
+                                        - abstractions over the space of actions
+                                        - agent chooses one step primitive action vs multi-step action policy
+                                        - terminates upon stochastic function beta (MDP -> SMDP)
+                                    Pros:
+                                        -
+                                    Cons:
+                                        -
+                                }
+                            2.3.2. Bacon et al 2017
                                 {
                                     Key:
                                         - 
@@ -208,7 +215,7 @@ Note
                                     Cons:
                                         -
                                 }
-                            - Modular Multitask Reinforcement Learning with Policy Sketches (Andreas, 2017)
+                            2.3.3. Modular Multitask Reinforcement Learning with Policy Sketches (Andreas, 2017)
                                 {
                                     Key:
                                         - 
@@ -217,7 +224,7 @@ Note
                                     Cons:
                                         -
                                 }
-                            - Feature Control as Intrinsic Motivation for Hierarchical Reinforcement Learning (Dilokthanakul, 2017) 
+                            2.3.4. Feature Control as Intrinsic Motivation for Hierarchical Reinforcement Learning (Dilokthanakul, 2017) 
                                 {
                                     Key:
                                         - Meta-controller provides sub-goal as a latent and an intrinsic reward at learning
@@ -229,7 +236,7 @@ Note
                                         - end-to-end training: can be handy but do not know its options/sub-goals explicitly.
                                         - same state space for high/low policy + low policy taking additional goal as a state from high
                                 }
-                            - FeUdal Networks for Hierarchical Reinforcement Learning (Vezhnevets, 2017)
+                            2.3.5. FeUdal Networks for Hierarchical Reinforcement Learning (Vezhnevets, 2017)
                                 {
                                     Key:
                                         - Manager and Worker setting where the goal from the manager is a estimated direction for the encoded state @ Manager's side
@@ -241,9 +248,9 @@ Note
                                         - Still do not have a clear understanding of what the goal intends to do in a human language
                                         - same state space for high/low policy + low policy taking additional goal as a state from high
                                 }
-                            - MLSH (Frans, 2017)
-                            - Chealsea Finn paper of meta-learning
-                            - Learning Actionable Representation with Goal-Conditioned Policies (Ghosh, 2019)
+                            2.3.6. MLSH (Frans, 2017)
+                            2.3.7. Chealsea Finn paper of meta-learning
+                            2.3.8. Learning Actionable Representation with Goal-Conditioned Policies (Ghosh, 2019)
                                 {
                                     Key:
                                         - 
@@ -252,7 +259,7 @@ Note
                                     Cons:
                                         -
                                 }
-                            - Learning to Coordinate Manipulation Skills Via Skill Behavior Diversification (Lee, 2020)
+                            2.3.9. Learning to Coordinate Manipulation Skills Via Skill Behavior Diversification (Lee, 2020)
                                 {
                                     Key:
                                         - 
@@ -261,27 +268,62 @@ Note
                                     Cons:
                                         -
                                 }
-                            - Hierarchical Deep Reinforcement Learning: Integrating Temporal Abstraction and Intrinsic Motivation (Kulkarni, 2016)
+                            2.3.10. Hierarchical Deep Reinforcement Learning: Integrating Temporal Abstraction and Intrinsic Motivation (Kulkarni, 2016)
                             {
                                 key:
                                     - Uses h-DQN, meta learning (sub-goal based)
+                                    - Difference from the dense reward environment: 
+                                        Dense reward: 1. Subgoals should be engineered manually
+                                                      2. There is no sequential order of the subtask. 
+                                        HRL subgoal:  1. Subgoals can be learned
+                                                      2. Reasonings on the actions can be identified based on the subgoals
                                 Pros:
+                                    - shared learning between different options
+                                    - model is scalable to a large number of options
                                 Cons:
+                                    - Automatically forming options from data is challenging
                             }
-                    Explainable_RL:
-                        - Hierarchical and interpretable skill acquisition in multi-task reinforcement learning (Shu, 2017)
+                            2.3.11. The Option-Critic Architecture
+                            {
+                                Key:
+                                    - policy gradient theorem
+                                    - option-critic architecture
+                                Pros:
+                                    - No need to provide any additional rewards or subgoals
+                                    - intra-option policy: no lines separating 'discovering' options from 'learning' options -> 이게 automatic option finding 아님..?
+                                    - by providing number of desired options, it automatically learns options...?
+                                    - no discount factors -> unbiased policy gradient estimator?
+                                    - learn: option policies, termination function
+                                        - option policies: how to choose good option
+                                            -> e-greedy over options!
+                                            -> numbers of options given... can argmax over options
+                                        - intra-option policy: given option, learns to produce good actions
+                                        - terminatation: goodness of termination upon entering the next state
+                                    - gradient over both meta-controller, controller
+                                    - state-option transition probability also exists
+
+                                    -> Algorithm Intuition:
+                                        when the option choice is suboptimal wrt. the expected value over all options, A is negative, so increases the odds of terminating given option.
+                                        After termination, the agent has the opportunity to pick a better option using option policy
+                                        (Interrupting Bellman Operator)
+                                    
+                                Cons:
+                                    - 
+                            }
+                    3. Explainable_RL:
+                        3.1.1. Hierarchical and interpretable skill acquisition in multi-task reinforcement learning (Shu, 2017)
                         -
-                    Brain_Functionality:
-                        Pure_Brain:
-                            - The Architecture of Complexity (Simon, 1962)
-                            - Hierarchical modularity in human brain functional networks (Meunier, 2009)
-                            - Functional Network Organization of the Human Brain (Power, 2011)
-                        Deep_Learning_Related:
-                            - Overcoming catastrophic forgetting in neural networks (Kirkpatrick, 2017)
-                            - Progressive neural networks (Rusu, 2016)
-                            - Sim-to-real robot learning from pixels with progressive nets (Rusu, 2017)
-                    Optimization_Algorithm:
-                        - SAC
+                    4. Brain_Functionality:
+                        4.1. Pure_Brain:
+                            4.1.1. The Architecture of Complexity (Simon, 1962)
+                            4.1.2. Hierarchical modularity in human brain functional networks (Meunier, 2009)
+                            4.1.3. Functional Network Organization of the Human Brain (Power, 2011)
+                        4.2. Deep_Learning_Related:
+                            4.2.1. Overcoming catastrophic forgetting in neural networks (Kirkpatrick, 2017)
+                            4.2.2. Progressive neural networks (Rusu, 2016)
+                            4.2.3. Sim-to-real robot learning from pixels with progressive nets (Rusu, 2017)
+                    5. Optimization_Algorithm:
+                        5.1. SAC
                             {
                                 Key:
                                     - 
@@ -292,7 +334,7 @@ Note
                                 Questions:
                                     - Why use log_std clipping?
                             }
-                        - Learning Multi-Level Hierarchies with Hindsight (Levy, 2019)
+                        5.2. Learning Multi-Level Hierarchies with Hindsight (Levy, 2019)
                             -> Useful for hierarchical policies in a sequential manner, but not in the case of ours
             }
             2. Title: Who cares who I am: Policy transfer between robots without fine-tuning
@@ -362,7 +404,6 @@ Note
             }
             7. State-Action Coupling to focus on states that really matters - specify elements of latent variables to focus
             {
-
             }
             8. ?????????
             {
@@ -372,8 +413,6 @@ Note
                 Dexterous manipulation -> 
             }
             
-
-
 
 
     Research_Details:
@@ -502,6 +541,8 @@ Note
                         1. What is the meaning of standard deviation of a primitive distribution while learning?
                             - In SAC: d
                             - In MCP: To formulate the gaussian primitive, independently influcence on the composite distribution. No info on how to optimize std, used PPO to optimize both mean and std.
+                    Do:
+                        1. restrict the minimum value of std
                 }
             }
             2. Title: Who cares who I am: Policy transfer between robots without fine-tuning

@@ -1,9 +1,8 @@
 import os, sys
 import time
 import path_config
-from configuration import env_configuration, model_configuration, pretrain_configuration, info, total_time_step
 from pathlib import Path
-from collections import OrderedDict
+from configuration import env_configuration, model_configuration, pretrain_configuration, info, total_time_step
 #os.environ['CUDA_VISIBLE_DEVICES']='3'
 
 try:
@@ -12,7 +11,6 @@ except Exception:
     pass
 
 import numpy as np
-import tensorflow as tf
 
 from env_script.test_env.manipulator_2d import Manipulator2D
 from stable_baselines.gail import generate_expert_traj, ExpertDataset

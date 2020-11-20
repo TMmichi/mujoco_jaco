@@ -1,11 +1,10 @@
 #!/usr/bin/env python
 
-import os
-import sys
+import os, sys
 import time
 import path_config
 from pathlib import Path
-from configuration import env_configuration, model_configuration, pretrain_configuration, info, total_time_step
+from configuration import model_configuration, pretrain_configuration, info, total_time_step
 try:
     import spacenav, atexit
 except Exception:
@@ -15,14 +14,19 @@ import numpy as np
 
 import stable_baselines.common.tf_util as tf_util
 from stable_baselines.trpo_mpi import TRPO
+from stable_baselines.ppo2 import PPO2
+from stable_baselines.ppo1 import PPO1
 from stable_baselines.common.policies import MlpPolicy
-from stable_baselines.sac import SAC
 from stable_baselines.sac_multi import SAC_MULTI
 from stable_baselines.sac_multi.policies import MlpPolicy as MlpPolicy_sac
-from stable_baselines.gail import generate_expert_traj
+from stable_baselines.gail import generate_expert_traj, ExpertDataset
+from stable_baselines.common.vec_env import SubprocVecEnv
+from stable_baselines.common.vec_env.dummy_vec_env import DummyVecEnv
+from stable_baselines.common.vec_env.vec_normalize import VecNormalize
+from stable_baselines.common import set_global_seeds
+
 from env_script.env_mujoco import JacoMujocoEnv
 from state_gen.state_generator import State_generator
-#from reward_module.reward_module import *
 
 from argparser import ArgParser
 
@@ -37,14 +41,12 @@ class RL_controller:
         args.debug = True
         print("DEBUG = ", args.debug)
 
-        # TensorFlow Setting for State Representation Module
-        # NOTE: RL trainer will use its own tf.Session
         self.sess_SRL = tf_util.single_threaded_session()
         args.sess = self.sess_SRL
 
         # State Generation Module defined here
-        #self.stateGen = State_generator(**vars(args))
-        #args.stateGen = self.stateGen
+        # self.stateGen = State_generator(**vars(args))
+        # args.stateGen = self.stateGen
 
         # Reward Generation
         self.reward_method = "l2"   
@@ -60,9 +62,8 @@ class RL_controller:
         # If resume training on pre-trained models with episodes, else None
         package_path = str(Path(__file__).resolve().parent.parent)
         self.model_path = package_path+"/models_baseline/"
-        self.tb_dir = package_path+"/tensorboard_log/"
         os.makedirs(self.model_path, exist_ok=True)
-        os.makedirs(self.tb_dir, exist_ok=True)
+        
         self.steps_per_batch = 100
         self.batches_per_episodes = 5
         args.steps_per_batch = self.steps_per_batch
@@ -79,52 +80,31 @@ class RL_controller:
         model_dir = self.model_path + prefix
         self.args.log_dir = model_dir
         os.makedirs(model_dir, exist_ok=True)
-        tb_path = self.tb_dir + prefix
-        self.num_timesteps = self.steps_per_batch * self.batches_per_episodes * self.num_episodes
-        #self.args.robot_file = "jaco2_curtain_torque"
-        self.args.robot_file = "jaco2_dual_torque"
-        self.args.n_robots = 2
+        
+        #self.num_timesteps = self.steps_per_batch * self.batches_per_episodes * self.num_episodes
+        self.num_timesteps = 100
+
+        self.args.robot_file = "jaco2_curtain_torque"
+        # self.args.robot_file = "jaco2_dual_torque"
+        self.args.n_robots = 1
+
         env = JacoMujocoEnv(**vars(self.args))
 
-        layers = {"policy": [64, 64], "value": [256, 256, 128]}
-        #layers = None
-        #self.trainer = TRPO(MlpPolicy, self.env, cg_damping=0.1, vf_iters=5, vf_stepsize=1e-3, timesteps_per_batch=self.steps_per_batch,
-        #                   tensorboard_log=tb_path, full_tensorboard_log=True)
-        #self.trainer = SAC(LnMlpPolicy_sac, env, layers=layers,
-        #                   tensorboard_log=tb_path, full_tensorboard_log=True)
-        self.trainer = SAC_MULTI(MlpPolicy_sac, env, layers=layers, 
-                            tensorboard_log=tb_path, full_tensorboard_log=True)
-        model_log = open(model_dir+"/model_log.txt", 'w')
-        self._write_log(model_log, layers)
-        model_log.close()
+        net_arch = {'pi': model_configuration['layers']['policy'], 'vf': model_configuration['layers']['value']}
+        policy_kwargs = {'net_arch': [net_arch], 'squash':False, 'box_dist': 'gaussian'}
+        policy_kwargs.update(model_configuration['policy_kwargs'])
+        model_dict = {'gamma': 0.99, 'clip_param': 0.02,
+                      'tensorboard_log': model_dir, 'policy_kwargs': policy_kwargs, 'verbose':0}
+        self.trainer = PPO1(MlpPolicy, env, **model_dict)
+        #self.trainer = SAC_MULTI(MlpPolicy_sac, env, **model_configuration)
+        
+        #self._write_log(model_dir, info)
         print("\033[91mTraining Starts\033[0m")
         self.trainer.learn(total_timesteps=self.num_timesteps)
         print("\033[91mTrain Finished\033[0m")
         self.trainer.save(model_dir+"/policy")
-    
-    def _write_log(self, model_log, layers):
-        if layers != None:
-            model_log.writelines("Layers:\n")
-            model_log.write("\tpolicy:\t[")
-            for i in range(len(layers['policy'])):
-                model_log.write(str(layers['policy'][i]))
-                if i != len(layers['policy'])-1:
-                    model_log.write(", ")
-                else:
-                    model_log.writelines("]\n")
-            model_log.write("\tvalue:\t[")
-            for i in range(len(layers['value'])):
-                model_log.write(str(layers['value'][i]))
-                if i != len(layers['value'])-1:
-                    model_log.write(", ")
-                else:
-                    model_log.writelines("]\n")
-        model_log.writelines("Reward Method:\t\t\t\t{0}\n".format(self.reward_method))
-        model_log.writelines("Steps per batch:\t\t\t{0}\n".format(self.steps_per_batch))
-        model_log.writelines("Batches per episodes:\t\t{0}\n".format(self.batches_per_episodes))
-        model_log.writelines("Numbers of episodes:\t\t{0}\n".format(self.num_episodes))
-        model_log.writelines("Total number of episodes:\t{0}\n".format(self.steps_per_batch * self.batches_per_episodes * self.num_episodes))
-    
+
+
     def train_continue(self, model_dir):
         self.args.train_log = False
         env = JacoMujocoEnv(**vars(self.args))
@@ -145,31 +125,39 @@ class RL_controller:
         except Exception as e:
             print(e)
 
+
     def train_from_expert(self, n_episodes=10, con_method=2):
         print("Training from expert called")
-        self.args.train_log = False
-        if con_method == 2:
-            if sys.platform in ['linux', 'linux2']:
-                try:            
-                    print("Opening connection to SpaceNav driver ...")
-                    spacenav.open()
-                    print("... connection established.")
-                    atexit.register(spacenav.close)
-                    self.args.robot_file = "jaco2_curtain_torque"
-                    env = JacoMujocoEnv(**vars(self.args))
-                    generate_expert_traj(self._expert_3d, 'expert_traj',
-                                        env, n_episodes=n_episodes)
-                except spacenav.ConnectionError:
-                    print("No connection to the SpaceNav driver. Is spacenavd running?")
-            else:
-                pass
-        elif con_method == 1:
-            self.args.robot_file = "jaco2_curtain_torque"
-            env = JacoMujocoEnv(**vars(self.args))
-            generate_expert_traj(self._expert_keyboard, 'expert_traj',
-                                env, n_episodes=n_episodes)
-        else:
-            pass
+        prefix = "trained_at_" + str(time.localtime().tm_year) + "_" + str(time.localtime().tm_mon) + "_" + str(
+                time.localtime().tm_mday) + "_" + str(time.localtime().tm_hour) + ":" + str(time.localtime().tm_min)
+        model_dir = self.model_path + prefix
+        self.args.log_dir = model_dir
+        os.makedirs(model_dir, exist_ok=True)
+
+        self._open_connection()
+        self.args.robot_file = "jaco2_curtain_torque"
+        env = JacoMujocoEnv(**vars(self.args))
+        traj_dict = generate_expert_traj(self._expert_3d, 'trajectory_expert', env, n_episodes=n_episodes)
+        self._close_connection()
+        traj_dict = np.load(model_dir+"/trajectory_expert.npz", allow_pickle=True)
+        dataset = ExpertDataset(traj_data=traj_dict, batch_size=1024)
+
+        model = SAC_MULTI(MlpPolicy_sac, env, **model_configuration)
+        model.pretrain(dataset, **pretrain_configuration)
+        del dataset
+        self._write_log(model_dir, info)
+        model.learn(total_time_step, save_interval=int(total_time_step*0.05), save_path=save_path)
+
+    def _open_connection(self):
+        try:            
+            print("Opening connection to SpaceNav driver ...")
+            spacenav.open()
+            print("... connection established.")
+        except spacenav.ConnectionError:
+            print("No connection to the SpaceNav driver. Is spacenavd running?")
+    
+    def _close_connection(self):
+        atexit.register(spacenav.close)
 
     def _expert_3d(self, _obs):
         if sys.platform in ['linux', 'linux2']:
@@ -183,7 +171,6 @@ class RL_controller:
                     self.g_changed = not self.g_changed
                 else:
                     self.g_changed = True
-
                 try:
                     action = np.array([event.x, event.z, event.y, event.rx, -event.ry, event.rz, 0, 0])/350*1.5
                 except Exception:
@@ -215,11 +202,13 @@ class RL_controller:
     def train_with_additional_layer(self):
         self.args.train_log = False
         env = JacoMujocoEnv(**vars(self.args))
+
         prefix = "trained_at_" + str(time.localtime().tm_year) + "_" + str(time.localtime().tm_mon) + "_" + str(
                 time.localtime().tm_mday) + "_" + str(time.localtime().tm_hour) + ":" + str(time.localtime().tm_min)
+
         model_dir = self.model_path + prefix
+        self.args.log_dir = model_dir
         os.makedirs(model_dir, exist_ok=True)
-        tb_path = self.tb_dir + prefix
 
         composite_primitive_name=''
         model = SAC_MULTI(policy=MlpPolicy_sac, env=None, _init_setup_model=False, composite_primitive_name=composite_primitive_name)
@@ -262,6 +251,31 @@ class RL_controller:
         print("\033[91mTrain Finished\033[0m")
         self.trainer.save(model_dir+"/policy")
 
+
+    def _write_log(self, model_dir, info):
+        model_log = open(model_dir+"/model_log.txt", 'w')
+        if info['layers'] != None:
+            model_log.writelines("Layers:\n")
+            model_log.write("\tpolicy:\t[")
+            for i in range(len(info['layers']['policy'])):
+                model_log.write(str(info['layers']['policy'][i]))
+                if i != len(info['layers']['policy'])-1:
+                    model_log.write(", ")
+                else:
+                    model_log.writelines("]\n")
+            model_log.write("\tvalue:\t[")
+            for i in range(len(info['layers']['value'])):
+                model_log.write(str(info['layers']['value'][i]))
+                if i != len(info['layers']['value'])-1:
+                    model_log.write(", ")
+                else:
+                    model_log.writelines("]\n\n")
+            info.pop('layers')
+        
+        for name, item in info.items():
+            model_log.writelines(name+":\t\t{0}\n".format(item))
+        model_log.close()
+
     def test(self, policy):
         print("Testing called")
         self.args.train_log = False
@@ -283,50 +297,51 @@ class RL_controller:
 
 if __name__ == "__main__":
     controller = RL_controller()
-    iter = 0
-    while True:
-        opt = input("Train / Test / Generate (1/2/3): ")
-        if opt == "1":
-            iter_train = 0
-            while True:
-                iter_train += 1
-                opt2 = input("Train_from_scratch / Train_from_pre_model / Train_from_expert / Train with additional layer (1/2/3/4): ")
-                if opt2 == "1":
-                    controller.train_from_scratch()
-                    break
-                elif opt2 == "2":
-                    model_dir = input("Enter model name: ")
-                    controller.train_continue(model_dir)
-                    break
-                elif opt2 == "3":
-                    #n_episodes = int(input("How many trials do you want to record?"))
-                    con_method = int(input("control method - (keyboard:1, 3d mouse: 2) "))
-                    #controller.train_from_expert(n_episodes)
-                    controller.train_from_expert(con_method=con_method)
-                    break
-                elif opt2 == "4":
-                    controller.train_with_additional_layer()
-                    break
-                else:
-                    if iter_train <= 5:
-                        print(
-                            "Wront input, press 1 or 2 (Wrong trials: {0})".format(iter_train))
-                    else:
-                        print("Wront input, Abort")
-                        break
-            break
-        elif opt == "2":
-            policy = input("Enter trained policy: ")
-            controller.test(policy)
-            break
-        elif opt == "3":
-            controller.generate()
-            break
-        else:
-            iter += 1
-            if iter <= 5:
-                print(
-                    "Wront input, press 1 or 2 (Wrong trials: {0})".format(iter))
-            else:
-                print("Wront input, Abort")
-                break
+    controller.train_from_scratch()
+    # iter = 0
+    # while True:
+    #     opt = input("Train / Test / Generate (1/2/3): ")
+    #     if opt == "1":
+    #         iter_train = 0
+    #         while True:
+    #             iter_train += 1
+    #             opt2 = input("Train_from_scratch / Train_from_pre_model / Train_from_expert / Train with additional layer (1/2/3/4): ")
+    #             if opt2 == "1":
+    #                 controller.train_from_scratch()
+    #                 break
+    #             elif opt2 == "2":
+    #                 model_dir = input("Enter model name: ")
+    #                 controller.train_continue(model_dir)
+    #                 break
+    #             elif opt2 == "3":
+    #                 #n_episodes = int(input("How many trials do you want to record?"))
+    #                 con_method = int(input("control method - (keyboard:1, 3d mouse: 2) "))
+    #                 #controller.train_from_expert(n_episodes)
+    #                 controller.train_from_expert(con_method=con_method)
+    #                 break
+    #             elif opt2 == "4":
+    #                 controller.train_with_additional_layer()
+    #                 break
+    #             else:
+    #                 if iter_train <= 5:
+    #                     print(
+    #                         "Wront input, press 1 or 2 (Wrong trials: {0})".format(iter_train))
+    #                 else:
+    #                     print("Wront input, Abort")
+    #                     break
+    #         break
+    #     elif opt == "2":
+    #         policy = input("Enter trained policy: ")
+    #         controller.test(policy)
+    #         break
+    #     elif opt == "3":
+    #         controller.generate()
+    #         break
+    #     else:
+    #         iter += 1
+    #         if iter <= 5:
+    #             print(
+    #                 "Wront input, press 1 or 2 (Wrong trials: {0})".format(iter))
+    #         else:
+    #             print("Wront input, Abort")
+    #             break

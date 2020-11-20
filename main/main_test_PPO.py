@@ -84,7 +84,7 @@ if __name__ == '__main__':
         info_dict = {'action': action, 'n_robots': n_robots, 'n_target':n_target, 'tol':tol, 
                     'episode_length':episode_length, 'reward_method':reward_method, 'observation_method':observation_method, 
                     'policy_name':prefix2}
-        num_cpu = 16
+        num_cpu = 2
         env = SubprocVecEnv([make_env(i, **info_dict) for i in range(num_cpu)])
         #env = Manipulator2D(visualize=False, **info_dict)
         
@@ -101,14 +101,14 @@ if __name__ == '__main__':
         model_dict = {'learning_rate': _lr_scheduler, 'gamma': 0.99, 'n_steps': 4096, 'nminibatches': 1024, 'cliprange': 0.02,
                         'tensorboard_log': save_path, 'policy_kwargs': policy_kwargs, 'verbose':1}
         if scratch:
-            print("traj loading")
-            traj_dict = np.load(model_dir+action+"_10000.npz", allow_pickle=True)
-            print("traj loaded")
-            dataset = ExpertDataset(traj_data=traj_dict, batch_size=1024)
-            print("dataset formed")
+            # print("traj loading")
+            # traj_dict = np.load(model_dir+action+"_10000.npz", allow_pickle=True)
+            # print("traj loaded")
+            # dataset = ExpertDataset(traj_data=traj_dict, batch_size=1024)
+            # print("dataset formed")
             model = PPO2(MlpPolicy, env, **model_dict)
             print("model created")
-            model.pretrain(dataset, **pretrain_configuration)
+            #model.pretrain(dataset, **pretrain_configuration)
         else:
             load_policy_num = 49741825
             path = save_path+'/policy_'+str(load_policy_num)
@@ -117,24 +117,6 @@ if __name__ == '__main__':
 
         print("\033[91mTraining Starts, action: {0}\033[0m".format(action))
         if scratch:
-            # info = {'trial': trial, 'action': action, 'layers': net_arch, 'tolerance': tol, 'total time steps': total_time_step,\
-            #     'n_robots': n_robots, 'n_targets': n_target, 'episode_length': episode_length, 'reward_method': reward_method, 'observation_method': observation_method,\
-            #     'Additional Info': \
-            #         'Reset from random initial pos\n\
-            #         \t\tAgent rotates a bit less\n\
-            #         \t\tTarget stay in position\n\
-            #         \t\tshallower network\n\
-            #         \t\tPositive sparse reward\n\
-            #         \t\tInitial pose a bit inward\n\
-            #         \t\tPPO MPI\n\
-            #         \t\tusing tanh to squash action\n\
-            #         \t\tlearning_rate: 1e-4, gamma:0.99, n_steps:4096, nminibatches:1024, cliprange:0.02\n\
-            #         \t\tBeta policy with alpha, beta > 1 + mean -> mode\n\
-            #         \t\tinit_scale to 2\n\
-            #         \t\talpha and beta from mu and sigma'}
-            # model_log = open(save_path+"/model_log.txt", 'w')
-            # _write_log(model_log, info)
-            # model_log.close()
             model.learn(total_time_step, save_interval=int(total_time_step*0.05), save_path=save_path)
         else:
             model.learn(total_time_step, loaded_step_num=load_policy_num, save_interval=int(total_time_step*0.05), save_path=save_path)

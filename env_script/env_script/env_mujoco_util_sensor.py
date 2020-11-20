@@ -69,6 +69,13 @@ class JacoMujocoEnvUtil:
         fb = self.interface.get_feedback()
         if self.controller:
             u = self.__controller_generate(fb)
+            # 0: closed ~ 10: open
+            '''
+            forces = []
+            for i in range(self.n_robots):
+                gripper_angle = []
+                np.hstack([forces, u[6*i:6*(i+1)], gripper_angle])
+            '''
             self.interface.send_forces(
                 np.hstack([u, [self.gripper_angle_1, self.gripper_angle_1, self.gripper_angle_2]])
             )
@@ -227,6 +234,71 @@ class JacoMujocoEnvUtil:
 
     def _get_pressure(self):
         pass
+
+    def interpolation(self, string):
+        # sensor = []
+        # for i in range(5):
+        #     sensor.append(string+"_touch_" + "{}".format(i))
+    
+        #sensor0 = str+"_touch_0"
+        #sensor1 = str+"_touch_1"
+        #sensor2 = str+"_touch_2"
+        #sensor3 = str+"_touch_3"
+        #sensor4 = str+"_touch_4"
+        # if string == "tp":
+        #     a, b =0.0072, 0.0072
+        # elif string == "tp2":
+        #     a, b= 0.0072, 0.006
+        # elif string == "td":
+        #     a, b= 0.0048, 0.0048
+        # elif string == "td2":
+        #     a, b= 0.006, 0.006
+        # elif string == "ip":
+        #     a, b= 0.0072, 0.0072
+        # elif string == "ip2":
+        #     a, b= 0.0072, 0.006
+        # elif string == "id":
+        #     a, b= 0.0048, 0.0048
+        # elif string == "id2":
+        #     a, b= 0.006, 0.006
+        # elif string == "pp":
+        #     a, b= 0.0072, 0.0072
+        # elif string == "pp2":
+        #     a, b= 0.0072, 0.006
+        # elif string == "pd":
+        #     a, b= 0.0048, 0.0048
+        # elif string == "pd2":
+        #     a, b= 0.006, 0.006
+        # else:
+        #     print("not a right string")
+
+        s=[]
+        
+        # for i in range(5):
+        #     s[i]= self.interface.sim.data.get_sensor(sensor[i])
+        for i in range(5):
+            s.append(self.interface.sim.data.get_sensor(string+"_touch_" + "{}".format(i)))
+        
+        x=np.array([0,0,9,9, 1,1,1,1, 2,2,2,2, 4,4,5,5, 7,7,7,7, 8,8,8,8])
+        y=np.array([0,9,0,9, 1,2,7,8, 1,2,7,8, 4,5,4,5, 1,2,7,8, 1,2,7,8])
+        cartcoord = list(zip(x, y))
+
+        z = np.array([0,0,0,0, 
+                s[1],s[1],s[2],s[2], 
+                s[1],s[1],s[2],s[2],
+                s[0],s[0],s[0],s[0], 
+                s[3],s[3],s[4],s[4],
+                s[3],s[3],s[4],s[4]])
+
+        interp = scipy.interpolate.LinearNDInterpolator(cartcoord, z)
+
+        X = np.linspace(min(x), max(x), num=10)
+        Y = np.linspace(min(y), max(y), num=10)
+        XX, YY = np.meshgrid(X, Y)
+
+        Z = interp(XX, YY)
+        # print(Z)
+
 
 
 
