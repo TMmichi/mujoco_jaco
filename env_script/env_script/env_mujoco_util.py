@@ -114,7 +114,11 @@ class JacoMujocoEnvUtil:
             self.__get_gripper_pose()
             observation = []
             for i in range(self.n_robots):
-                observation.append(self.gripper_pose[i] - np.hstack([self.goal[i], [0, 0, 0]]))
+                # observation = [relative gripper_pose] 
+                #observation.append(self.gripper_pose[i] - np.hstack([self.goal[i], [0, 0, 0]]))
+                # observation = [absolute gripper_pose, goal_position] 
+                observation.append(self.gripper_pose[i])
+                observation.append(self.goal[i])
         else:
             data = [image, depth]
             observation = self.state_gen.generate(data)
