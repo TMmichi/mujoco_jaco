@@ -26,26 +26,40 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
             self.max_steps = 500
 
         ## Observations
+        end_effector_pose_max = [2]*6   #[0:6]
+        gripper_angle_max = [10]*2      #[6:8]
+        obj_max = [2]*3                 #[8:11]
+        dest_max = [2]*3                #[11:14]
+        reach_max = [2]*3               #[14:17]
+        obs_max = np.hstack([end_effector_pose_max, gripper_angle_max, obj_max, dest_max, reach_max])
+        obs_min = -obs_max
+        obs_min[6:8] = 0
+        self.observation_space = spaces.Box(obs_min, obs_max, dtype=np.float32)
         try:
             self.state_shape = kwargs['stateGen'].get_state_shape()
         except Exception:
-            self.state_shape = [6]
-        self.obs_max = 2
-        obs = np.array([self.obs_max]*self.state_shape[0])
-        self.observation_space = spaces.Box(-obs, obs, dtype=np.float32)
-        self.prev_obs = [0,0,0,0,0,0]
+            self.state_shape = self.observation_space.shape[0]
+        self.prev_obs = [0]*self.state_shape
 
         ## Actions
         # unit action from the policy = 1 (cm) in real world
-        # max distance diff/s = 1.5 / 0.1 = 15 (cm)
+        # max distance diff/s = 1.5cm / 0.15s = 10 (cm/s)
         self.pose_action_space_max = 1.5
-        self.gripper_action_space_max = 10  # Open
-        self.gripper_action_space_min = 0   # Closed
-        pose_act = np.array([self.pose_action_space_max]*6)             # x,y,z,r,p,y
-        gripper_act_max = np.array([self.gripper_action_space_max]*2)   # g1, g2
-        gripper_act_min = np.array([self.gripper_action_space_min]*2)
-        self.act_max = np.hstack([pose_act, gripper_act_max])
-        self.act_min = np.hstack([-pose_act, gripper_act_min])
+        # 10: max open, 0: max closed
+        # incremental angle
+        # takes 2 seconds to fully stretch/grasp the gripper
+        self.gripper_action_space_max = 0.5
+        self.gripper_action_space_min = -0.5
+        if kwargs.get('task', None) == 'reaching':
+            pose_act = np.array([self.pose_action_space_max]*6)             # x,y,z,r,p,y
+            self.act_max = pose_act
+            self.act_min = -pose_act
+        elif kwargs.get('task', None) == 'grasping':
+            pose_act = np.array([self.pose_action_space_max]*6)             # x,y,z,r,p,y
+            gripper_act_max = np.array([self.gripper_action_space_max]*2)   # g1, g2
+            gripper_act_min = np.array([self.gripper_action_space_min]*2)
+            self.act_max = np.hstack([pose_act, gripper_act_max])
+            self.act_min = np.hstack([-pose_act, gripper_act_min])
         self.action_space = spaces.Box(self.act_min, self.act_max, dtype=np.float32)
         self.seed()
 
@@ -74,7 +88,7 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
         return self.pose_action_space_max
 
     def step(self, action, log=True):
-        num_step_pass = 100  #was 20                                      # 0.2s per step
+        num_step_pass = 30  #0.015s per step
         action = np.clip(action, self.act_min, self.act_max)
         self.take_action(action)
         for _ in range(num_step_pass):
@@ -96,14 +110,14 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
             write_str += "\t{0:2.3f}".format(action[i])
         write_str += "\t| Obs:" 
         write_log = write_str
-        for i in range(len(obs)):
+        for i in range(6):
             write_str += self._colored_string(obs[i],prev_obs[i],action[i])
             write_log += "\t{0:2.3f}".format(obs[i])
         write_str += "\t| wb = {0:2.3f} | \033[92mReward:\t{1:1.5f}\033[0m".format(wb,reward)
         write_log += "\t| wb = {0:2.3f} | Reward:\t{1:1.5f}".format(wb,reward)
         print(write_str, end='\r')
-        # if self.log_save:
-        #     self.joint_angle_log.writelines(write_log+"\n")
+        if self.log_save:
+            self.joint_angle_log.writelines(write_log+"\n")
 
     def _colored_string(self, obs_val, prev_obs_val, action):
         if int(np.sign(obs_val-prev_obs_val)) == int(np.sign(action)):
@@ -121,9 +135,9 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
 
     def make_observation(self):
         self.obs = self._get_observation()[0]   # Gripper pose of the first jaco2
-        assert self.state_shape[0] == self.obs.shape[0], \
+        assert self.state_shape == self.obs.shape[0], \
             "State shape from state generator ({0}) and observations ({1}) differs. Possible test code error. You should fix it.".format(
-                self.state_shape[0], self.obs.shape[0])
+                self.state_shape, self.obs.shape[0])
 
     def take_action(self, a):
         self._take_action(a)

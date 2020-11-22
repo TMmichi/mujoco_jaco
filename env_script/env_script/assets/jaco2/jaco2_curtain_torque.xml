@@ -59,8 +59,8 @@
         <!--#########################################-->
 
         <!--############ VISOION BLOCKER ############-->
-        <body name="blocker" pos="0 0.35 0">
-            <!-- Holder -->
+        <!-- <body name="blocker" pos="0 0.35 0">
+            HOLDER
             <body name="Holder_left" pos="-0.5 0 0.4">
                 <site type="sphere" size="0.015" pos="0 0 0.4"/>
                 <geom type="cylinder" size=".01 0.4" density="100"/>
@@ -71,18 +71,16 @@
             </body>
             <body name="Holder_up" pos="0 0 0.8">
                 <geom type="cylinder" size=".01 0.5" zaxis="1 0 0" density="100"/>
-                <!-- Cloth -->
-                <!-- 
-                <body name="B10_0" pos="0 0 0" zaxis="0 1 0">
+                CLOTH 
+                    <body name="B10_0" pos="0 0 0" zaxis="0 1 0">
                     <composite type="cloth" count="21 11 1" spacing="0.049" flatinertia="0.001">
                         <joint kind="main" damping="0.001"/>
                         <skin material="matcarpet" texcoord="true" inflate="0.005" subgrid="2"/>
                         <geom type="capsule" size="0.005 0.005" rgba=".8 .2 .1 1"/>
                     </composite>
                 </body>
-                -->
             </body>
-        </body>
+        </body> -->
         <!--#########################################-->
         
         <!--################# JACO #################-->
@@ -181,7 +179,7 @@
             <geom type="cylinder" size=".1 .01" density="100" pos="0 0 .4"></geom>
         </body>
 
-        <body name="object_body" pos="0 0.65 1">
+        <body name="object_body" pos="0 0.65 0.5">
             <freejoint></freejoint>
             <geom name="object_geom" type="box" size="0.03 0.03 0.03" material="matdice"/>
             <site name='boxx' pos='0 0 0' size='0.03 0.03 0.03' />
