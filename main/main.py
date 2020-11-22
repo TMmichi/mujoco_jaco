@@ -86,13 +86,17 @@ class RL_controller:
         self.args.robot_file = "jaco2_curtain_torque"
         self.args.n_robots = 1
 
-        self.args.task = 'reaching'
-        #self.args.task = 'grasping'
+        # self.args.task = 'reaching'
+        self.args.task = 'grasping'
         env = JacoMujocoEnv(**vars(self.args))
 
         net_arch = {'pi': model_configuration['layers']['policy'], 'vf': model_configuration['layers']['value']}
-        obs_relativity = {'subtract':{'ref':[14,15,16],'tar':[0,1,2]}}
-        obs_index = [0,1,2,3,4,5,14,15,16]
+        if self.args.task is 'reaching':
+            obs_relativity = {'subtract':{'ref':[14,15,16],'tar':[0,1,2]}}
+            obs_index = [0,1,2,3,4,5,14,15,16]
+        elif self.args.task is 'grasping':
+            obs_relativity = {'subtract':{'ref':[8,9,10],'tar':[0,1,2]}}
+            obs_index = [0,1,2,3,4,5,6,7,8,9,10]
         policy_kwargs = {'net_arch': [net_arch], 'obs_relativity':obs_relativity, 'obs_index':obs_index}
         policy_kwargs.update(model_configuration['policy_kwargs'])
         model_dict = {'gamma': 0.99, 'clip_param': 0.02,

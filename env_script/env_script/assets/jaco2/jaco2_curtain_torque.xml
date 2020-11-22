@@ -179,7 +179,7 @@
             <geom type="cylinder" size=".1 .01" density="100" pos="0 0 .4"></geom>
         </body>
 
-        <body name="object_body" pos="0 0.65 0.5">
+        <body name="object_body" pos="0 0.65 0.44">
             <freejoint></freejoint>
             <geom name="object_geom" type="box" size="0.03 0.03 0.03" material="matdice"/>
             <site name='boxx' pos='0 0 0' size='0.03 0.03 0.03' />
