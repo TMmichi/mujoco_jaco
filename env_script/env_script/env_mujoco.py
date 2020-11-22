@@ -98,8 +98,8 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
         reward_val = self._get_reward()
         done, additional_reward, wb = self.terminal_inspection()
         total_reward = reward_val + additional_reward
-
-        self.logging(self.obs, self.prev_obs, action, wb, total_reward) if log else None
+        if self.current_steps % 10 == 0:
+            self.logging(self.obs, self.prev_obs, action, wb, total_reward) if log else None
         self.prev_obs = self.obs
 
         return self.obs, total_reward, done, {0: 0}
