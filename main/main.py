@@ -292,7 +292,8 @@ class RL_controller:
         self.env = JacoMujocoEnv(**vars(self.args))
         model_dir = self.model_path+policy+"/policy.zip"
         test_iter = 100
-        self.model = SAC_MULTI.load(model_dir)
+        # self.model = SAC_MULTI.pretrainer_load(model_dir)
+        self.model = PPO1.load(model_dir)
         for _ in range(test_iter):
             obs = self.env.reset()
             done = False
