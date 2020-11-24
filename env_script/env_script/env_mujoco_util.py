@@ -35,8 +35,9 @@ class JacoMujocoEnvUtil:
             xml_name = kwargs['robot_file']
         
         self.jaco = MujocoConfig(xml_name, n_robots=self.n_robots)
-        self.interface = Mujoco(self.jaco, dt=0.005, visualize=False, create_offscreen_rendercontext=False)
+        self.interface = Mujoco(self.jaco, dt=0.005, visualize=True, create_offscreen_rendercontext=False)
         self.interface.connect()
+        self.base_position = self.__get_property('link1', 'position')
         self.gripper_angle_1 = 0
         self.gripper_angle_2 = 0
         self.ctrl_type = self.jaco.ctrl_type
@@ -63,7 +64,6 @@ class JacoMujocoEnvUtil:
             _ = self._reset()
 
         ### ------------  REWARD  ------------ ###
-        self.base_position = self.__get_property('link1', 'position')
         self.reward_method = kwargs.get('reward_method', None)
         self.reward_module = kwargs.get('reward_module', None)
 
@@ -93,13 +93,13 @@ class JacoMujocoEnvUtil:
     def _reset(self, target_angle=None):
         self.num_episodes = 0
         if target_angle == None:
-            if self.task in ['carrying', 'placing', 'releasing']:
+            if self.task in ['carrying', 'placing', 'releasing']: # to hold obj in the gripper
                 random_init_angle = []
-            elif self.task in ['grasping', 'pushing']:
+            elif self.task in ['grasping', 'pushing']: # to start nearby the destination position
                 random_init_angle = [uniform_np(pi/4, 3*pi/4), 3.75, uniform_np(
                         2, 2.5), uniform_np(0, 0.1), uniform_np(0.8, 2.3), uniform_np(0.8, 2.3)]
                 random_init_angle *= self.n_robots
-            else:
+            else: #reaching, picking
                 random_init_angle = [uniform_np(-pi/2, pi/2), 3.75, uniform_np(
                         1.5, 2.5), uniform_np(0.8, 2.3), uniform_np(0.8, 2.3), uniform_np(0.8, 2.3)]
                 random_init_angle *= self.n_robots
@@ -121,13 +121,6 @@ class JacoMujocoEnvUtil:
                 self.__get_gripper_pose()
                 if np.linalg.norm(self.gripper_pose[0][:3] - self.obj_goal[0]) < 0.2:
                     break
-        if self.task is 'reaching':
-            self.target_pos = np.hstack([self.dest_goal,np.repeat([[0,0,0]],self.n_robots,axis=0)])
-            while True:
-                self._step_simulation()
-                self.__get_gripper_pose()
-                if np.norm(self.gripper_pose[0] - self.obj_goal[0]) < 0.2:
-                    break
         obs = self._get_observation()
         return obs[0]
 
@@ -136,7 +129,7 @@ class JacoMujocoEnvUtil:
             self.__get_gripper_pose()
             observation = []
             for i in range(self.n_robots):
-                # Observation dimensions: 6, 2, 3, 3, 3
+                # Observation dimensions: 6, 2, 3, 3, 6
                 # [absolute gripper_pose, gripper angle, obj position, dest position, reaching target]
                 observation.append(np.hstack([self.gripper_pose[i], [self.gripper_angle_1, self.gripper_angle_2], self.obj_goal[i], self.dest_goal[i], self.reaching_goal[i]]))
         else:
@@ -193,9 +186,14 @@ class JacoMujocoEnvUtil:
         obj_goal = []
         dest_goal = []
         for _ in range(self.n_robots):
+            # TODO: Reaching goal also includes orientation pointing outward from the base
             reach_goal_pos = [uniform(0.25, 0.35) * sample([-1, 1], 1)[0]
                           for i in range(2)] + [uniform(0.1, 0.4)]
-            reach_goal.append(reach_goal_pos)
+            x,y,z = reach_goal_pos - self.base_position[i]
+            alpha = -np.arcsin(y / np.sqrt(y**2+z**2)) * np.sign(x)
+            beta = np.arccos(x / np.linalg.norm([x,y,z])) * np.sign(x)
+            reach_goal_ori = np.array([alpha, beta, uniform(-0.1, 0.1)], dtype=np.float16)
+            reach_goal.append(np.hstack([reach_goal_pos, reach_goal_ori]))
             obj_goal_pos = [0,0.65,0.5]
             obj_goal.append(obj_goal_pos)
             dest_goal_pos = [0.5,0.65,1]
@@ -219,7 +217,7 @@ class JacoMujocoEnvUtil:
                 return True, -5, wb
             else:
                 if self.task == 'reaching':
-                    if dist_diff < 0.15:  # TODO: Shape terminal inspection
+                    if dist_diff < 0.02:  # TODO: Shape terminal inspection
                         print("\033[92m Target Reached \033[0m")
                         return True, 200 - (self.num_episodes*0.1), wb
                     else:
@@ -315,12 +313,12 @@ if __name__ == "__main__":
     from abr_control.controllers import OSC
     from abr_control.utils import transformations
 
-    mobile = True
+    mobile = False
     if not mobile:
         pos = False
         vel = False
         torque = True
-        dual = True and torque
+        dual = False and torque
         controller = True
         if pos:
             jaco = MujocoConfig('jaco2_position')
@@ -362,8 +360,18 @@ if __name__ == "__main__":
                 target_pos1 = interface.get_xyz('EE_1')
                 target_pos2 = interface.get_xyz('EE_2')
             else:
-                target_pos = interface.get_xyz('EE')
-            target_or = np.array([0, 0, 0], dtype=np.float16)
+                #target_pos = interface.get_xyz('EE') + np.array([0.1, 0.1, 0.1])
+                target_pos = np.array([0.4, 0.4, 0.4])
+            rand_pos = np.array([uniform(0.3, 0.4) * sample([-1.2, 1.2], 1)[0] for i in range(2)] + [uniform(0.3, 0.5)])
+            x,y,z = rand_pos - interface.get_xyz('link1')
+            alpha = -np.arcsin(y / np.sqrt(y**2+z**2)) * np.sign(x)
+            beta = np.arccos(x / np.linalg.norm([x,y,z])) * np.sign(x)
+            target_or = np.array([alpha, beta, uniform(-0.1, 0.1)], dtype=np.float16)
+            print(target_or)
+            quat = transformations.quaternion_from_euler(target_or[0], target_or[1], target_or[2], axes='rxyz')
+            interface.set_mocap_xyz("hand", np.array(rand_pos))
+            interface.set_mocap_orientation("hand", quat)
+            target_pos = rand_pos
             for _ in range(10):
                 while True:
                     fb = interface.get_feedback()
@@ -387,14 +395,18 @@ if __name__ == "__main__":
                         a = interface.get_xyz('EE')
                         interface.send_forces(np.hstack([u[:6], [0, 0, 0]]))
                         if np.linalg.norm(a[:] - target_pos[:]) < 0.01:
-                            print("Reached")
-                            break
+                            #print("Reached")
+                            quat = interface.get_orientation('EE')
+                            print(transformations.euler_from_quaternion(quat, 'rxyz'))
+                            interface.set_mocap_orientation("hand", quat)
+                            #break
                 if dual:
                     target_pos1 += np.array([0.01, 0.01, 0.01])
                     target_pos2 += np.array([0.01, 0.01, 0.01])
                 else:
-                    target_pos += np.array([0.03, 0.03, 0.03])
-                target_or += np.array([0.1, 0.1, 0.1])
+                    #target_pos += np.array([0.03, 0.03, 0.03])
+                    pass
+                #target_or += np.array([0.1, 0.1, 0.1])
         else:
             interface.set_joint_state([1, 2, 1.5, 1.5, 1.5, 1.5], [0, 0, 0, 0, 0, 0])
             fb = interface.get_feedback()

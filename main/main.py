@@ -75,25 +75,22 @@ class RL_controller:
     def train_from_scratch(self):
         print("Training from scratch called")
         self.args.train_log = False
-        prefix = "trained_at_" + str(time.localtime().tm_year) + "_" + str(time.localtime().tm_mon) + "_" + str(
-                time.localtime().tm_mday) + "_" + str(time.localtime().tm_hour) + ":" + str(time.localtime().tm_min)
+        task_list = ['reaching', 'grasping', 'picking', 'carrying', 'releasing', 'placing', 'pushing']
+        self.args.task = task_list[1]
+        prefix = self.args.task+"_trained_at_" + str(time.localtime().tm_mon) + "_" + str(time.localtime().tm_mday)\
+            + "_" + str(time.localtime().tm_hour) + ":" + str(time.localtime().tm_min) + ":" + str(time.localtime().tm_sec)
         model_dir = self.model_path + prefix
-        self.args.log_dir = model_dir
         os.makedirs(model_dir, exist_ok=True)
-        
-        self.num_timesteps = self.steps_per_batch * self.batches_per_episodes * self.num_episodes
 
+        self.args.log_dir = model_dir
         self.args.robot_file = "jaco2_curtain_torque"
         self.args.n_robots = 1
-
-        # self.args.task = 'reaching'
-        self.args.task = 'grasping'
         env = JacoMujocoEnv(**vars(self.args))
 
         net_arch = {'pi': model_configuration['layers']['policy'], 'vf': model_configuration['layers']['value']}
         if self.args.task is 'reaching':
-            obs_relativity = {'subtract':{'ref':[14,15,16],'tar':[0,1,2]}}
-            obs_index = [0,1,2,3,4,5,14,15,16]
+            obs_relativity = {'subtract':{'ref':[14,15,16,17,18,19],'tar':[0,1,2,3,4,5]}}
+            obs_index = [0,1,2,3,4,5,14,15,16,17,18,19]
         elif self.args.task is 'grasping':
             obs_relativity = {'subtract':{'ref':[8,9,10],'tar':[0,1,2]}}
             obs_index = [0,1,2,3,4,5,6,7,8,9,10]
@@ -104,8 +101,9 @@ class RL_controller:
         self.trainer = PPO1(MlpPolicy, env, **model_dict)
         #self.trainer = SAC_MULTI(MlpPolicy_sac, env, **model_configuration)
         
-        #self._write_log(model_dir, info)
+        self._write_log(model_dir, info)
         print("\033[91mTraining Starts\033[0m")
+        self.num_timesteps = self.steps_per_batch * self.batches_per_episodes * self.num_episodes
         self.trainer.learn(total_timesteps=self.num_timesteps, save_interval=10, save_path=model_dir)
         print("\033[91mTrain Finished\033[0m")
         self.trainer.save(model_dir+"/policy")
@@ -305,8 +303,8 @@ class RL_controller:
             done = False
             while not done:
                 action, _ = self.model.predict(obs)
-                obs, rewards, done, _ = env.step(action, log=False)
-                print("{0:2.3f}".format(rewards), end='\r')
+                obs, _, done, _ = env.step(action, log=False)
+                print(action, end='\r')
     
     def generate(self):
         pass
@@ -314,8 +312,8 @@ class RL_controller:
 
 if __name__ == "__main__":
     controller = RL_controller()
-    #controller.train_from_scratch()
-    controller.test()
+    controller.train_from_scratch()
+    # controller.test()
     # iter = 0
     # while True:
     #     opt = input("Train / Test / Generate (1/2/3): ")
