@@ -286,20 +286,26 @@ class RL_controller:
             model_log.writelines(name+":\t\t{0}\n".format(item))
         model_log.close()
 
-    def test(self, policy):
+    def test(self):
         print("Testing called")
         self.args.train_log = False
-        self.env = JacoMujocoEnv(**vars(self.args))
-        model_dir = self.model_path+policy+"/policy.zip"
+        self.args.robot_file = "jaco2_curtain_torque"
+        self.args.n_robots = 1
+
+        self.args.task = 'reaching'
+        #self.args.task = 'grasping'
+        env = JacoMujocoEnv(**vars(self.args))
+        prefix = "trained_at_2020_11_23_2:10/policy_2313985.zip"
+        model_dir = self.model_path + prefix
         test_iter = 100
         # self.model = SAC_MULTI.pretrainer_load(model_dir)
         self.model = PPO1.load(model_dir)
         for _ in range(test_iter):
-            obs = self.env.reset()
+            obs = env.reset()
             done = False
             while not done:
                 action, _ = self.model.predict(obs)
-                obs, rewards, done, _ = self.env.step(action, log=False)
+                obs, rewards, done, _ = env.step(action, log=False)
                 print("{0:2.3f}".format(rewards), end='\r')
     
     def generate(self):
@@ -308,7 +314,8 @@ class RL_controller:
 
 if __name__ == "__main__":
     controller = RL_controller()
-    controller.train_from_scratch()
+    #controller.train_from_scratch()
+    controller.test()
     # iter = 0
     # while True:
     #     opt = input("Train / Test / Generate (1/2/3): ")
