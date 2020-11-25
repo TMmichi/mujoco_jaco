@@ -97,7 +97,7 @@ class RL_controller:
         policy_kwargs = {'net_arch': [net_arch], 'obs_relativity':obs_relativity, 'obs_index':obs_index}
         policy_kwargs.update(model_configuration['policy_kwargs'])
         model_dict = {'gamma': 0.99, 'clip_param': 0.02,
-                      'tensorboard_log': model_dir, 'policy_kwargs': policy_kwargs, 'verbose':0}
+                      'tensorboard_log': model_dir, 'policy_kwargs': policy_kwargs}
         self.trainer = PPO1(MlpPolicy, env, **model_dict)
         #self.trainer = SAC_MULTI(MlpPolicy_sac, env, **model_configuration)
         
