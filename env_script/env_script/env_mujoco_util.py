@@ -159,7 +159,10 @@ class JacoMujocoEnvUtil:
                 dist_coef = 2
                 ang_coef = 5
                 scale_coef = 0.05
-                reward = np.exp(-dist_coef * dist_diff)/2 + np.exp(-ang_coef * ang_diff)/2
+                if dist_diff < 0.3:
+                    reward = np.exp(-dist_coef * dist_diff)/2 + np.exp(-ang_coef * ang_diff)/2
+                else:
+                    reward = np.exp(-dist_coef * dist_diff)/2
                 return scale_coef * reward
             elif self.task == 'grasping':
                 obj_diff = np.linalg.norm(self.gripper_pose[0][:3] - self.obj_goal[0])
