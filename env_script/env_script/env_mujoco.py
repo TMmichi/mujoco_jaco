@@ -88,7 +88,7 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
         return self.pose_action_space_max
 
     def step(self, action, log=True):
-        num_step_pass = 30  #0.015s per step
+        num_step_pass = 30  #0.15s per step
         action = np.clip(action, self.act_min, self.act_max)
         self.take_action(action)
         for _ in range(num_step_pass):

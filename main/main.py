@@ -90,10 +90,10 @@ class RL_controller:
         net_arch = {'pi': model_configuration['layers']['policy'], 'vf': model_configuration['layers']['value']}
         if self.args.task is 'reaching':
             obs_relativity = {'subtract':{'ref':[14,15,16,17,18,19],'tar':[0,1,2,3,4,5]}}
-            obs_index = [0,1,2,3,4,5,14,15,16,17,18,19]
+            obs_index = [0,1,2,3,4,5, 14,15,16,17,18,19]
         elif self.args.task is 'grasping':
             obs_relativity = {'subtract':{'ref':[8,9,10],'tar':[0,1,2]}}
-            obs_index = [0,1,2,3,4,5,6,7,8,9,10]
+            obs_index = [0,1,2,3,4,5, 6,7, 8,9,10]
         policy_kwargs = {'net_arch': [net_arch], 'obs_relativity':obs_relativity, 'obs_index':obs_index}
         policy_kwargs.update(model_configuration['policy_kwargs'])
         model_dict = {'gamma': 0.99, 'clip_param': 0.02,
@@ -314,51 +314,3 @@ class RL_controller:
 if __name__ == "__main__":
     controller = RL_controller()
     controller.train_from_scratch()
-    #controller.test()
-    # iter = 0
-    # while True:
-    #     opt = input("Train / Test / Generate (1/2/3): ")
-    #     if opt == "1":
-    #         iter_train = 0
-    #         while True:
-    #             iter_train += 1
-    #             opt2 = input("Train_from_scratch / Train_from_pre_model / Train_from_expert / Train with additional layer (1/2/3/4): ")
-    #             if opt2 == "1":
-    #                 controller.train_from_scratch()
-    #                 break
-    #             elif opt2 == "2":
-    #                 model_dir = input("Enter model name: ")
-    #                 controller.train_continue(model_dir)
-    #                 break
-    #             elif opt2 == "3":
-    #                 #n_episodes = int(input("How many trials do you want to record?"))
-    #                 con_method = int(input("control method - (keyboard:1, 3d mouse: 2) "))
-    #                 #controller.train_from_expert(n_episodes)
-    #                 controller.train_from_expert(con_method=con_method)
-    #                 break
-    #             elif opt2 == "4":
-    #                 controller.train_with_additional_layer()
-    #                 break
-    #             else:
-    #                 if iter_train <= 5:
-    #                     print(
-    #                         "Wront input, press 1 or 2 (Wrong trials: {0})".format(iter_train))
-    #                 else:
-    #                     print("Wront input, Abort")
-    #                     break
-    #         break
-    #     elif opt == "2":
-    #         policy = input("Enter trained policy: ")
-    #         controller.test(policy)
-    #         break
-    #     elif opt == "3":
-    #         controller.generate()
-    #         break
-    #     else:
-    #         iter += 1
-    #         if iter <= 5:
-    #             print(
-    #                 "Wront input, press 1 or 2 (Wrong trials: {0})".format(iter))
-    #         else:
-    #             print("Wront input, Abort")
-    #             break
