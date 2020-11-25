@@ -76,7 +76,7 @@ class RL_controller:
         print("Training from scratch called")
         self.args.train_log = False
         task_list = ['reaching', 'grasping', 'picking', 'carrying', 'releasing', 'placing', 'pushing']
-        self.args.task = task_list[1]
+        self.args.task = task_list[0]
         prefix = self.args.task+"_trained_at_" + str(time.localtime().tm_mon) + "_" + str(time.localtime().tm_mday)\
             + "_" + str(time.localtime().tm_hour) + ":" + str(time.localtime().tm_min) + ":" + str(time.localtime().tm_sec)
         model_dir = self.model_path + prefix
@@ -293,7 +293,8 @@ class RL_controller:
         self.args.task = 'reaching'
         #self.args.task = 'grasping'
         env = JacoMujocoEnv(**vars(self.args))
-        prefix = "trained_at_2020_11_23_2:10/policy_2313985.zip"
+        #prefix = "trained_at_2020_11_23_2:10/policy_2313985.zip"
+        prefix = "reaching_trained_at_11_25_3:1:36/policy_4615425.zip"
         model_dir = self.model_path + prefix
         test_iter = 100
         # self.model = SAC_MULTI.pretrainer_load(model_dir)
@@ -313,7 +314,7 @@ class RL_controller:
 if __name__ == "__main__":
     controller = RL_controller()
     controller.train_from_scratch()
-    # controller.test()
+    #controller.test()
     # iter = 0
     # while True:
     #     opt = input("Train / Test / Generate (1/2/3): ")

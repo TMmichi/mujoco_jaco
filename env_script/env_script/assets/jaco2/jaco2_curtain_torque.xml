@@ -50,10 +50,10 @@
         <body name="hand" pos="0 0 -0.15" mocap="true">
             <geom type="box" size=".01 .02.035" rgba="0 .9 0 .5" contype="2" conaffinity="2"/>
         </body>
-        <body name="target" pos="0 0 -0.15" mocap="true">
+        <body name="target_dest" pos="0 0 -0.15" mocap="true">
             <geom name="target" type="sphere" size="0.025" rgba=".9 0 0 .5" contype="4" conaffinity="4"/>
         </body>
-        <body name="target_orientation" pos="0 0 -0.15" mocap="true">
+        <body name="target_reach" pos="0 0 -0.15" mocap="true">
             <geom type="box" size=".01 .02 .03" rgba=".9 0 0 .5" contype="8" conaffinity="8"/>
         </body>
         <!--#########################################-->

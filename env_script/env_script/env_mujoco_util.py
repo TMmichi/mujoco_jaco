@@ -35,7 +35,7 @@ class JacoMujocoEnvUtil:
             xml_name = kwargs['robot_file']
         
         self.jaco = MujocoConfig(xml_name, n_robots=self.n_robots)
-        self.interface = Mujoco(self.jaco, dt=0.005, visualize=True, create_offscreen_rendercontext=False)
+        self.interface = Mujoco(self.jaco, dt=0.005, visualize=False, create_offscreen_rendercontext=False)
         self.interface.connect()
         self.base_position = self.__get_property('link1', 'position')
         self.gripper_angle_1 = 0
@@ -154,12 +154,13 @@ class JacoMujocoEnvUtil:
         # TODO: Reward from IRL
         if self.reward_method is None:
             if self.task == 'reaching':
-                dist_diff = np.linalg.norm(self.gripper_pose[0][:3] - self.reaching_goal[0])
-                if dist_diff > 0.5:
-                    return 0
-                else:
-                    reward = ((3 - dist_diff * 1.3)) * 0.1
-                return reward
+                dist_diff = np.linalg.norm(self.gripper_pose[0][:3] - self.reaching_goal[0][:3])
+                ang_diff = np.linalg.norm(self.gripper_pose[0][3:] - self.reaching_goal[0][3:])
+                dist_coef = 2
+                ang_coef = 5
+                scale_coef = 0.05
+                reward = np.exp(-dist_coef * dist_diff)/2 + np.exp(-ang_coef * ang_diff)/2
+                return scale_coef * reward
             elif self.task == 'grasping':
                 obj_diff = np.linalg.norm(self.gripper_pose[0][:3] - self.obj_goal[0])
                 reward = ((3 - obj_diff * 1.3)) * 0.01
@@ -185,27 +186,29 @@ class JacoMujocoEnvUtil:
         reach_goal = []
         obj_goal = []
         dest_goal = []
-        for _ in range(self.n_robots):
+        for i in range(self.n_robots):
             # TODO: Reaching goal also includes orientation pointing outward from the base
             reach_goal_pos = [uniform(0.25, 0.35) * sample([-1, 1], 1)[0]
-                          for i in range(2)] + [uniform(0.1, 0.4)]
+                          for _ in range(2)] + [uniform(0.1, 0.4)]
             x,y,z = reach_goal_pos - self.base_position[i]
             alpha = -np.arcsin(y / np.sqrt(y**2+z**2)) * np.sign(x)
             beta = np.arccos(x / np.linalg.norm([x,y,z])) * np.sign(x)
-            reach_goal_ori = np.array([alpha, beta, uniform(-0.1, 0.1)], dtype=np.float16)
+            gamma = uniform(-0.1, 0.1)
+            reach_goal_ori = np.array([alpha, beta, gamma], dtype=np.float16)
             reach_goal.append(np.hstack([reach_goal_pos, reach_goal_ori]))
             obj_goal_pos = [0,0.65,0.5]
             obj_goal.append(obj_goal_pos)
             dest_goal_pos = [0.5,0.65,1]
             dest_goal.append(dest_goal_pos)
-            self.interface.set_mocap_xyz("target", reach_goal_pos[:3])
-            self.interface.set_mocap_xyz("object_body", obj_goal_pos[:3])
-            # TODO: set_xyz object_holder, object_body, dest_holder
+            self.interface.set_mocap_xyz("target_reach", reach_goal_pos[:3])
+            target_quat = transformations.quaternion_from_euler(alpha, beta, gamma, axes='rxyz')
+            self.interface.set_mocap_orientation("target_reach", target_quat)
         return np.array(reach_goal), np.array(obj_goal), np.array(dest_goal)
 
     def _get_terminal_inspection(self):
         self.num_episodes += 1
-        dist_diff = np.linalg.norm(self.gripper_pose[0][:3] - self.reaching_goal[0])
+        dist_diff = np.linalg.norm(self.gripper_pose[0][:3] - self.reaching_goal[0][:3])
+        ang_diff = np.linalg.norm(self.gripper_pose[0][3:] - self.reaching_goal[0][3:])
         obj_diff = np.linalg.norm(self.gripper_pose[0][:3] - self.obj_goal[0])
         wb = np.linalg.norm(self.__get_property('EE', 'position')[0] - self.base_position[0])
         if pi - 0.1 < self.interface.get_feedback()['q'][2] < pi + 0.1:
@@ -217,7 +220,7 @@ class JacoMujocoEnvUtil:
                 return True, -5, wb
             else:
                 if self.task == 'reaching':
-                    if dist_diff < 0.02:  # TODO: Shape terminal inspection
+                    if dist_diff < 0.05 and ang_diff < 0.05: 
                         print("\033[92m Target Reached \033[0m")
                         return True, 200 - (self.num_episodes*0.1), wb
                     else:

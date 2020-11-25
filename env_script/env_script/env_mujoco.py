@@ -30,7 +30,7 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
         gripper_angle_max = [10]*2      #[6:8]
         obj_max = [2]*3                 #[8:11]
         dest_max = [2]*3                #[11:14]
-        reach_max = [2]*3               #[14:17]
+        reach_max = [np.pi]*6           #[14:17]
         obs_max = np.hstack([end_effector_pose_max, gripper_angle_max, obj_max, dest_max, reach_max])
         obs_min = -obs_max
         obs_min[6:8] = 0
