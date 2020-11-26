@@ -293,8 +293,8 @@ class RL_controller:
         self.args.task = 'reaching'
         #self.args.task = 'grasping'
         env = JacoMujocoEnv(**vars(self.args))
-        #prefix = "trained_at_2020_11_23_2:10/policy_2313985.zip"
-        prefix = "reaching_trained_at_11_25_3:1:36/policy_4615425.zip"
+        #prefix = "reaching_trained_at_11_25_17:9:27/policy_4999425.zip"
+        prefix = "reaching_trained_at_11_25_17:9:35/policy_4999425.zip"
         model_dir = self.model_path + prefix
         test_iter = 100
         # self.model = SAC_MULTI.pretrainer_load(model_dir)

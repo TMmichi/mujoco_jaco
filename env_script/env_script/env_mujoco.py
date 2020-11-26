@@ -43,8 +43,9 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
 
         ## Actions
         # unit action from the policy = 1 (cm) in real world
-        # max distance diff/s = 1.5cm / 0.15s = 10 (cm/s)
-        self.pose_action_space_max = 1.5
+        # max distance diff/s = 1cm / 0.15s
+        # max angular diff/s = 0.05rad / 0.15s
+        self.pose_action_space_max = 1
         # 10: max open, 0: max closed
         # incremental angle
         # takes 2 seconds to fully stretch/grasp the gripper
@@ -88,7 +89,7 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
         return self.pose_action_space_max
 
     def step(self, action, log=True):
-        num_step_pass = 30  #0.015s per step
+        num_step_pass = 30  #0.15s per step
         action = np.clip(action, self.act_min, self.act_max)
         self.take_action(action)
         for _ in range(num_step_pass):
