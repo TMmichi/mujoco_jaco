@@ -64,9 +64,8 @@ class RL_controller:
         self.model_path = package_path+"/models_baseline/"
         os.makedirs(self.model_path, exist_ok=True)
         
-        #self.steps_per_batch = 100
-        self.steps_per_batch = 10000
-        self.batches_per_episodes = 5
+        self.steps_per_batch = 100
+        self.batches_per_episodes = 10
         args.steps_per_batch = self.steps_per_batch
         args.batches_per_episodes = self.batches_per_episodes
         self.num_episodes = 10000
