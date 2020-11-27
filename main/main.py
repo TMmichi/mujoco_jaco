@@ -174,7 +174,7 @@ class RL_controller:
             print("Opening connection to SpaceNav driver ...")
             spacenav.open()
             print("... connection established.")
-        except spacenav.ConnectionError:
+        except Exception:
             print("No connection to the SpaceNav driver. Is spacenavd running?")
     
     def _close_connection(self):
