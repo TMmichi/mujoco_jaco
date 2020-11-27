@@ -76,7 +76,7 @@ class RL_controller:
         print("Training from scratch called")
         self.args.train_log = False
         task_list = ['reaching', 'grasping', 'picking', 'carrying', 'releasing', 'placing', 'pushing']
-        self.args.task = task_list[0]
+        self.args.task = task_list[1]
         prefix = self.args.task+"_trained_at_" + str(time.localtime().tm_mon) + "_" + str(time.localtime().tm_mday)\
             + "_" + str(time.localtime().tm_hour) + ":" + str(time.localtime().tm_min) + ":" + str(time.localtime().tm_sec)
         model_dir = self.model_path + prefix
@@ -130,27 +130,44 @@ class RL_controller:
             print(e)
 
 
-    def train_from_expert(self, n_episodes=10, con_method=2):
+    def train_from_expert(self, n_episodes=100):
         print("Training from expert called")
-        prefix = "trained_at_" + str(time.localtime().tm_year) + "_" + str(time.localtime().tm_mon) + "_" + str(
-                time.localtime().tm_mday) + "_" + str(time.localtime().tm_hour) + ":" + str(time.localtime().tm_min)
+        self.args.train_log = False
+        task_list = ['reaching', 'grasping', 'picking', 'carrying', 'releasing', 'placing', 'pushing']
+        self.args.task = task_list[1]
+        prefix = self.args.task+"_trained_from_expert_at_" + str(time.localtime().tm_mon) + "_" + str(time.localtime().tm_mday)\
+            + "_" + str(time.localtime().tm_hour) + ":" + str(time.localtime().tm_min) + ":" + str(time.localtime().tm_sec)
         model_dir = self.model_path + prefix
-        self.args.log_dir = model_dir
         os.makedirs(model_dir, exist_ok=True)
 
         self._open_connection()
         self.args.robot_file = "jaco2_curtain_torque"
         env = JacoMujocoEnv(**vars(self.args))
-        traj_dict = generate_expert_traj(self._expert_3d, 'trajectory_expert', env, n_episodes=n_episodes)
+        traj_dict = generate_expert_traj(self._expert_3d, self.args.task+'_trajectory_expert', env, n_episodes=n_episodes)
         self._close_connection()
         traj_dict = np.load(model_dir+"/trajectory_expert.npz", allow_pickle=True)
         dataset = ExpertDataset(traj_data=traj_dict, batch_size=1024)
-
-        model = SAC_MULTI(MlpPolicy_sac, env, **model_configuration)
-        model.pretrain(dataset, **pretrain_configuration)
+        
+        net_arch = {'pi': model_configuration['layers']['policy'], 'vf': model_configuration['layers']['value']}
+        if self.args.task is 'reaching':
+            obs_relativity = {'subtract':{'ref':[14,15,16,17,18,19],'tar':[0,1,2,3,4,5]}}
+            obs_index = [0,1,2,3,4,5, 14,15,16,17,18,19]
+        elif self.args.task is 'grasping':
+            obs_relativity = {'subtract':{'ref':[8,9,10],'tar':[0,1,2]}}
+            obs_index = [0,1,2,3,4,5, 6,7, 8,9,10]
+        policy_kwargs = {'net_arch': [net_arch], 'obs_relativity':obs_relativity, 'obs_index':obs_index}
+        policy_kwargs.update(model_configuration['policy_kwargs'])
+        model_dict = {'gamma': 0.99, 'clip_param': 0.02,
+                      'tensorboard_log': model_dir, 'policy_kwargs': policy_kwargs}
+        self.trainer = PPO1(MlpPolicy, env, **model_dict)
+        self.trainer.pretrain(dataset, **pretrain_configuration)
         del dataset
         self._write_log(model_dir, info)
-        model.learn(total_time_step, save_interval=int(total_time_step*0.05), save_path=save_path)
+        print("\033[91mTraining Starts\033[0m")
+        self.num_timesteps = self.steps_per_batch * self.batches_per_episodes * self.num_episodes
+        self.trainer.learn(total_time_step, save_interval=int(total_time_step*0.05), save_path=model_dir)
+        print("\033[91mTrain Finished\033[0m")
+        self.trainer.save(model_dir+"/policy")
 
     def _open_connection(self):
         try:            
@@ -169,8 +186,8 @@ class RL_controller:
             if type(event) is spacenav.MotionEvent:
                 action = np.array([event.x, event.z, event.y, event.rx, -event.ry, event.rz, self.g_angle, self.g_angle])/350*1.5
             elif type(event) is spacenav.ButtonEvent:
-                print("button: ",event.button)
-                print("pressed: ",event.pressed)
+                # print("button: ",event.button)
+                # print("pressed: ",event.pressed)
                 if self.g_changed is not None:
                     self.g_changed = not self.g_changed
                 else:
@@ -182,17 +199,18 @@ class RL_controller:
                 self.pressed[event.button] = event.pressed
             else:
                 action = [0,0,0,0,0,0,0,0]
-
             if self.pressed[0]:
-                self.g_angle += 0.25
+                self.g_angle = 0.5
             elif self.pressed[1]:
-                self.g_angle -= 0.25
-            self.g_angle = np.clip(self.g_angle, 0, 10)
+                self.g_angle = -0.5
+            else:
+                self.g_angle = 0
+            #print("self.prssed: ",self.pressed, self.g_angle)
             
             action[6] = action[7] = self.g_angle
             spacenav.remove_events(1)
             if self.g_changed is not None and not self.g_changed:
-                print("Removed")
+                # print("Removed")
                 spacenav.remove_events(2)
                 self.g_changed = None
 
@@ -313,4 +331,6 @@ class RL_controller:
 
 if __name__ == "__main__":
     controller = RL_controller()
-    controller.train_from_scratch()
+    #controller.train_from_scratch()
+    #controller.test()
+    controller.train_from_expert()

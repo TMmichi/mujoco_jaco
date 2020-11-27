@@ -206,6 +206,22 @@ class Mujoco:
             raise Exception("get_xyz for %s object type not supported" % object_type)
 
         return np.copy(xyz)
+    
+    def set_obj_xyz(self, xyz):
+        old_state = self.sim.get_state()
+        new_qpos = old_state.qpos.copy()
+        new_qvel = old_state.qvel.copy()
+        if len(xyz) == 3:
+            new_qpos[12:18] = np.hstack([xyz, [0,0,0]])
+            new_qvel[12:18] = 0
+        elif len(xyz) == 6:
+            new_qpos[12:18] = xyz
+            new_qvel[12:18] = 0
+        else:
+            raise Exception("Wrong pose type")
+        new_state = mjp.MjSimState(old_state.time, new_qpos, new_qvel, old_state.act, old_state.udd_state)
+        self.sim.set_state(new_state)
+        self.sim.forward()
 
     def set_mocap_xyz(self, name, xyz):
         """ Set the position of a mocap object in the Mujoco environment.
