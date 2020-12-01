@@ -30,12 +30,12 @@ layer_structure_list = [[256, 256, 128, 128, 128, 64, 64], \
                         [512, 256, 256, 512], [256, 256, 128, 128], [128, 64, 64, 32], [64, 64, 32, 32], \
                         [512, 256, 256], [256, 256, 128], [128, 128, 128], \
                         [256, 256], [128, 128], [64, 64]]
-layer_structure = layer_structure_list[7]
+layer_structure = layer_structure_list[-1]
 layers = {"policy": layer_structure, "value": layer_structure}
 
 model_configuration['learning_starts'] = 100
 model_configuration['layers'] = layers
-model_configuration['batch_size'] = 64
+model_configuration['batch_size'] = 1000
 model_configuration['buffer_size'] = 50000
 model_configuration['gamma'] = 0.99
 model_configuration['learning_rate'] = 0.0003

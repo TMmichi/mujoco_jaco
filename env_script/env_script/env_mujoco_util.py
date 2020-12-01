@@ -35,7 +35,7 @@ class JacoMujocoEnvUtil:
             xml_name = kwargs['robot_file']
         
         self.jaco = MujocoConfig(xml_name, n_robots=self.n_robots)
-        self.interface = Mujoco(self.jaco, dt=0.005, visualize=True, create_offscreen_rendercontext=False)
+        self.interface = Mujoco(self.jaco, dt=0.005, visualize=False, create_offscreen_rendercontext=False)
         self.interface.connect()
         self.base_position = self.__get_property('link1', 'position')
         self.gripper_angle_1 = 1.3
@@ -92,7 +92,7 @@ class JacoMujocoEnvUtil:
 
     def _reset(self, target_angle=None):
         self.num_episodes = 0
-        self.interface.viewer._paused = True
+        # self.interface.viewer._paused = True
         init_angle = self._create_init_angle()
         self.interface.set_joint_state(init_angle, [0]*6*self.n_robots)
         self.reaching_goal, self.obj_goal, self.dest_goal = self.__sample_goal()
@@ -105,9 +105,6 @@ class JacoMujocoEnvUtil:
             #quat = transformations.quaternion_from_euler(0,np.pi/2,0, axes='rxyz')
             quat = [0,0,0,0]
             self.interface.set_obj_xyz(self.obj_goal[0],quat)
-            # self.interface.set_mocap_xyz("target_dummy", self.obj_goal[0][:3])
-            # self.interface.set_mocap_orientation("target", transformations.quaternion_from_euler(
-            #     self.obj_goal[0][3], self.obj_goal[0][4], self.obj_goal[0][5], axes="rxyz"))
         
         for _ in range(3):
             fb = self.interface.get_feedback()
@@ -117,7 +114,7 @@ class JacoMujocoEnvUtil:
 
         self.grasp_succeed_iter = 0
         # if self.task in ['grasping', 'pushing']:
-        if self.task == 'pushing':
+        if self.task == 'grasping':
             self.grasp_succeed_iter = 0
             self.__get_gripper_pose()
             x,y,z = self.obj_goal[0] - self.gripper_pose[0][:3]
@@ -127,9 +124,9 @@ class JacoMujocoEnvUtil:
             reach_goal_ori = np.array([alpha, beta, gamma], dtype=np.float16)
             self.target_pos = np.reshape(np.hstack([self.obj_goal,np.repeat([reach_goal_ori],self.n_robots,axis=0)]),(-1))
             while True:
+                self.interface.stop_obj()
                 self._step_simulation()
                 self.__get_gripper_pose()
-                self.interface.set_mocap_xyz("target_reach", self.gripper_pose[0][:3])
                 dist_diff = np.linalg.norm(self.gripper_pose[0][:3] - self.obj_goal[0])
                 angle_diff = []
                 for a_robot, a_target in zip(self.gripper_pose[0][3:], self.obj_goal[0][3:]):
@@ -165,7 +162,8 @@ class JacoMujocoEnvUtil:
                     1.5, 2.5), uniform_np(0.8, 2.3), uniform_np(0.8, 2.3), uniform_np(0.8, 2.3)]
             random_init_angle *= self.n_robots
         elif self.task in ['carrying', 'grasping']:
-            random_init_angle = [uniform_np(pi/4, 3*pi/4), 3.85, uniform_np(
+            angle0 = np.random.choice([uniform_np(pi/8,3*pi/8), uniform_np(5*pi/8,7*pi/8)])
+            random_init_angle = [angle0, 3.85, uniform_np(
                     1, 1.5), uniform_np(2, 2.1), uniform_np(0.8, 2.3), uniform_np(-1.2, -1.1)]
             random_init_angle *= self.n_robots
         elif self.task in ['releasing', 'placing', 'pushing']:
@@ -187,7 +185,7 @@ class JacoMujocoEnvUtil:
             gamma = uniform(-0.1, 0.1)
             reach_goal_ori = np.array([alpha, beta, gamma], dtype=np.float16)
             reach_goal.append(np.hstack([reach_goal_pos, reach_goal_ori]))
-            obj_goal_pos = [0,0.6,0.34]
+            obj_goal_pos = [0,0.6,0.371]
             obj_goal.append(obj_goal_pos)
             dest_goal_pos = [0.5,0.65,1]
             dest_goal.append(dest_goal_pos)
@@ -215,6 +213,9 @@ class JacoMujocoEnvUtil:
         #plt.imsave(self.package_path+"/test.jpg", image)
         #plt.imsave(self.package_path+"/test_depth.jpg", depth)
         return image, depth
+    
+    def _get_pressure(self):
+        pass
 
     def __get_gripper_pose(self):
         self.gripper_pose = self.__get_property('EE', 'pose')
@@ -251,11 +252,18 @@ class JacoMujocoEnvUtil:
                     reward -= (z_th - z)
                 return scale_coef * reward
             elif self.task == 'grasping':
-                obj_diff = np.linalg.norm(self.gripper_pose[0][:3] - self.obj_goal[0])
-                dist_coef = 2
+                dist_coef = 5
+                angle_coef = 1
+                height_coef = 100
                 scale_coef = 0.05
-                reward = np.exp(-dist_coef * obj_diff)/2
-                reward += np.linalg.norm(self.interface.get_xyz('object_body')[2] - 0.31) * 10
+                x,y,z = self.obj_goal[0] - self.gripper_pose[0][:3]
+                obj_diff = np.linalg.norm([x,y,z])
+                beta = np.arcsin(x / np.linalg.norm([x,y]))
+                roll, pitch, yaw = self.gripper_pose[0][3:]
+                angle_diff = np.linalg.norm([-np.pi/2-roll, beta-pitch, np.sign(yaw)*np.pi/2-yaw])
+                reward = np.exp(-dist_coef * obj_diff)/2        # distance reward
+                reward += np.exp(-angle_coef * angle_diff)/2    # angle reward
+                reward += np.linalg.norm(self.interface.get_xyz('object_body')[2] - 0.37) * height_coef     # pick reward
                 return reward * scale_coef
             elif self.task == 'picking':
                 return 0
@@ -276,17 +284,7 @@ class JacoMujocoEnvUtil:
     def _get_terminal_inspection(self):
         self.num_episodes += 1
         dist_diff = np.linalg.norm(self.gripper_pose[0][:3] - self.reaching_goal[0][:3])
-        angle_diff = []
-        for a_robot, a_target in zip(self.gripper_pose[0][3:], self.reaching_goal[0][3:]):
-            if a_robot * a_target > 0:
-                angle_diff.append(abs(a_robot - a_target))
-            else:
-                val = abs(a_robot) + abs(a_target)
-                if val > np.pi:
-                    angle_diff.append(2*np.pi - val)
-                else:
-                    angle_diff.append(val)
-        ang_diff = np.linalg.norm(angle_diff)
+        
         obj_diff = np.linalg.norm(self.gripper_pose[0][:3] - self.obj_goal[0])
         wb = np.linalg.norm(self.__get_property('EE', 'position')[0] - self.base_position[0])
         if pi - 0.1 < self.interface.get_feedback()['q'][2] < pi + 0.1:
@@ -298,6 +296,17 @@ class JacoMujocoEnvUtil:
                 return True, -5, wb
             else:
                 if self.task == 'reaching':
+                    angle_diff = []
+                    for a_robot, a_target in zip(self.gripper_pose[0][3:], self.reaching_goal[0][3:]):
+                        if a_robot * a_target > 0:
+                            angle_diff.append(abs(a_robot - a_target))
+                        else:
+                            val = abs(a_robot) + abs(a_target)
+                            if val > np.pi:
+                                angle_diff.append(2*np.pi - val)
+                            else:
+                                angle_diff.append(val)
+                    ang_diff = np.linalg.norm(angle_diff)
                     if dist_diff < 0.05 and ang_diff < np.pi/6: 
                         print("\033[92m Target Reached \033[0m")
                         return True, 200 - (self.num_episodes*0.1), wb
@@ -307,14 +316,14 @@ class JacoMujocoEnvUtil:
                     if obj_diff > 1:
                         print("\033[91m \nGripper too far away from the object \033[0m")
                         return True, -5, wb
-                    if self.interface.get_xyz('object_body')[2] > 0.35:
+                    if self.interface.get_xyz('object_body')[2] > 0.40:
                         self.grasp_succeed_iter += 1
-                    if self.grasp_succeed_iter > 20:
+                    if self.grasp_succeed_iter > 200:
                         print("\033[92m Grasping Succeeded \033[0m")
                         return True, 200 - (self.num_episodes*0.1), wb
                     elif self.interface.get_xyz('object_body')[2] < 0.1:
                         print("\033[91m Dropped \033[0m")
-                        return True, -200, wb
+                        return True, -10, wb
                     else:
                         return False, 0, wb
                 elif self.task == 'picking':
@@ -329,7 +338,7 @@ class JacoMujocoEnvUtil:
                     return True, 0, wb
 
     def _take_action(self, a):
-        _ = self.__get_gripper_pose()
+        self.__get_gripper_pose()
         if self.controller:
             # Action: Gripper Pose Increments (m,rad)
             # Action scaled to 0.01m, 0.05 rad
@@ -349,6 +358,8 @@ class JacoMujocoEnvUtil:
                     pass
             self.interface.set_mocap_xyz("hand", self.target_pos[:3])
             self.interface.set_mocap_orientation("hand", transformations.quaternion_from_euler(
+                self.target_pos[3], self.target_pos[4], self.target_pos[5], axes="rxyz"))
+            self.interface.set_mocap_orientation("target_reach", transformations.quaternion_from_euler(
                 self.target_pos[3], self.target_pos[4], self.target_pos[5], axes="rxyz"))
         else:
             # If Position: Joint Angle Increments (rad)
@@ -390,8 +401,7 @@ class JacoMujocoEnvUtil:
                     out.append(pose)
         return np.copy(out)
 
-    def _get_pressure(self):
-        pass
+
 
 
 

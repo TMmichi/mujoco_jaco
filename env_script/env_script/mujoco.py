@@ -217,6 +217,14 @@ class Mujoco:
         new_state = mjp.MjSimState(old_state.time, new_qpos, new_qvel, old_state.act, old_state.udd_state)
         self.sim.set_state(new_state)
         self.sim.forward()
+    
+    def stop_obj(self):
+        old_state = self.sim.get_state()
+        new_qvel = old_state.qvel.copy()
+        new_qvel[12:] = 0
+        new_state = mjp.MjSimState(old_state.time, old_state.qpos, new_qvel, old_state.act, old_state.udd_state)
+        self.sim.set_state(new_state)
+        self.sim.forward()
 
     def set_mocap_xyz(self, name, xyz):
         """ Set the position of a mocap object in the Mujoco environment.

@@ -65,7 +65,7 @@ class RL_controller:
         os.makedirs(self.model_path, exist_ok=True)
         
         self.steps_per_batch = 100
-        self.batches_per_episodes = 10
+        self.batches_per_episodes = 20
         args.steps_per_batch = self.steps_per_batch
         args.batches_per_episodes = self.batches_per_episodes
         self.num_episodes = 10000
@@ -91,7 +91,7 @@ class RL_controller:
         if self.args.task is 'reaching':
             obs_relativity = {'subtract':{'ref':[14,15,16,17,18,19],'tar':[0,1,2,3,4,5]}}
             obs_index = [0,1,2,3,4,5, 14,15,16,17,18,19]
-        elif self.args.task is 'grasping':
+        elif self.args.task in ['grasping','carrying']:
             obs_relativity = {'subtract':{'ref':[8,9,10],'tar':[0,1,2]}}
             obs_index = [0,1,2,3,4,5, 6,7, 8,9,10]
         policy_kwargs = {'net_arch': [net_arch], 'obs_relativity':obs_relativity, 'obs_index':obs_index}
@@ -134,7 +134,7 @@ class RL_controller:
         print("Training from expert called")
         self.args.train_log = False
         task_list = ['reaching', 'grasping', 'picking', 'carrying', 'releasing', 'placing', 'pushing']
-        self.args.task = task_list[3]
+        self.args.task = task_list[1]
         prefix = self.args.task+"_trained_from_expert_at_" + str(time.localtime().tm_mon) + "_" + str(time.localtime().tm_mday)\
             + "_" + str(time.localtime().tm_hour) + ":" + str(time.localtime().tm_min) + ":" + str(time.localtime().tm_sec)
         model_dir = self.model_path + prefix
@@ -308,11 +308,12 @@ class RL_controller:
         self.args.robot_file = "jaco2_curtain_torque"
         self.args.n_robots = 1
 
-        self.args.task = 'reaching'
-        #self.args.task = 'grasping'
+        task_list = ['reaching', 'grasping', 'picking', 'carrying', 'releasing', 'placing', 'pushing']
+        self.args.task = task_list[1]
         env = JacoMujocoEnv(**vars(self.args))
         #prefix = "reaching_trained_at_11_25_17:9:27/policy_4999425.zip"
-        prefix = "reaching_trained_at_11_25_17:9:35/policy_4999425.zip"
+        #prefix = "reaching_trained_at_11_25_17:9:35/policy_4999425.zip"
+        prefix = "grasping_trained_at_12_1_23:13:52/policy_145665.zip"
         model_dir = self.model_path + prefix
         test_iter = 100
         # self.model = SAC_MULTI.pretrainer_load(model_dir)
@@ -322,8 +323,8 @@ class RL_controller:
             done = False
             while not done:
                 action, _ = self.model.predict(obs)
-                obs, _, done, _ = env.step(action, log=False)
-                print(action, end='\r')
+                obs, reward, done, _ = env.step(action, log=False)
+                print(reward, end='\r')
     
     def generate(self):
         pass
@@ -332,5 +333,5 @@ class RL_controller:
 if __name__ == "__main__":
     controller = RL_controller()
     controller.train_from_scratch()
-    #controller.test()
-    #controller.train_from_expert()
+    # controller.test()
+    # controller.train_from_expert()
