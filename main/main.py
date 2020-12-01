@@ -331,6 +331,6 @@ class RL_controller:
 
 if __name__ == "__main__":
     controller = RL_controller()
-    #controller.train_from_scratch()
+    controller.train_from_scratch()
     #controller.test()
-    controller.train_from_expert()
+    #controller.train_from_expert()
