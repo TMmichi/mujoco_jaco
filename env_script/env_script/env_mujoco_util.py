@@ -38,8 +38,8 @@ class JacoMujocoEnvUtil:
         self.interface = Mujoco(self.jaco, dt=0.005, visualize=True, create_offscreen_rendercontext=False)
         self.interface.connect()
         self.base_position = self.__get_property('link1', 'position')
-        self.gripper_angle_1 = 2
-        self.gripper_angle_2 = 2
+        self.gripper_angle_1 = 1.3
+        self.gripper_angle_2 = 1.3
         self.ctrl_type = self.jaco.ctrl_type
         self.task = kwargs.get('task', None)
         self.num_episodes = 0
@@ -92,23 +92,32 @@ class JacoMujocoEnvUtil:
 
     def _reset(self, target_angle=None):
         self.num_episodes = 0
-        if self.task in ['reaching', 'picking']:
-            random_init_angle = [uniform_np(-pi/2, pi/2), 3.75, uniform_np(
-                    1.5, 2.5), uniform_np(0.8, 2.3), uniform_np(0.8, 2.3), uniform_np(0.8, 2.3)]
-            random_init_angle *= self.n_robots
+        self.interface.viewer._paused = True
+        init_angle = self._create_init_angle()
+        self.interface.set_joint_state(init_angle, [0]*6*self.n_robots)
+        self.reaching_goal, self.obj_goal, self.dest_goal = self.__sample_goal()
+        
+        if self.task in ['carrying', 'releasing', 'placing']:
+            pos = self.__get_property('EE_obj', 'pose')[0]
+            quat = transformations.quaternion_from_euler(pos[3], pos[4], pos[5], axes='rxyz')
+            self.interface.set_obj_xyz(pos[:3], quat)
         else:
-            random_init_angle = [uniform_np(pi/4, 3*pi/4), 3.75, uniform_np(
-                    2, 2.5), uniform_np(0, 0.1), uniform_np(0.8, 2.3), uniform_np(0.8, 2.3)]
-            random_init_angle *= self.n_robots
-        self.interface.set_joint_state(random_init_angle, [0]*6*self.n_robots)
+            #quat = transformations.quaternion_from_euler(0,np.pi/2,0, axes='rxyz')
+            quat = [0,0,0,0]
+            self.interface.set_obj_xyz(self.obj_goal[0],quat)
+            # self.interface.set_mocap_xyz("target_dummy", self.obj_goal[0][:3])
+            # self.interface.set_mocap_orientation("target", transformations.quaternion_from_euler(
+            #     self.obj_goal[0][3], self.obj_goal[0][4], self.obj_goal[0][5], axes="rxyz"))
+        
         for _ in range(3):
             fb = self.interface.get_feedback()
             self.target_pos = np.hstack([[-0.25, 0, -0.15, 0, 0, 0]*self.n_robots])
             _ = self.__controller_generate(fb)
             self.interface.send_forces([0]*9*self.n_robots)
-        self.reaching_goal, self.obj_goal, self.dest_goal = self.__sample_goal()
-        self.interface.set_obj_xyz(self.obj_goal[0])
-        if self.task in ['grasping', 'pushing']:
+
+        self.grasp_succeed_iter = 0
+        # if self.task in ['grasping', 'pushing']:
+        if self.task == 'pushing':
             self.grasp_succeed_iter = 0
             self.__get_gripper_pose()
             x,y,z = self.obj_goal[0] - self.gripper_pose[0][:3]
@@ -143,14 +152,26 @@ class JacoMujocoEnvUtil:
                 self.target_pos = np.reshape(np.hstack([self.obj_goal,np.repeat([reach_goal_ori],self.n_robots,axis=0)]),(-1))
                 dist_diff = np.linalg.norm(self.gripper_pose[0][:3] - self.obj_goal[0])
                 if dist_diff < 0.15:
-                    # print("break2 ")
                     break
-        elif self.task in ['carrying', 'placing', 'releasing']:
-            pos = self.__get_property('EE_obj', 'pose')
-            self.interface.set_obj_xyz(pos)
+        #elif self.task in ['carrying', 'placing', 'releasing']:
+        elif self.task in ['grasping', 'carrying', 'placing', 'releasing']:
+            pass
         obs = self._get_observation()
-        # self.interface.viewer._paused = True
         return obs[0]
+    
+    def _create_init_angle(self):
+        if self.task in ['reaching', 'picking']:
+            random_init_angle = [uniform_np(-pi/2, pi/2), 3.75, uniform_np(
+                    1.5, 2.5), uniform_np(0.8, 2.3), uniform_np(0.8, 2.3), uniform_np(0.8, 2.3)]
+            random_init_angle *= self.n_robots
+        elif self.task in ['carrying', 'grasping']:
+            random_init_angle = [uniform_np(pi/4, 3*pi/4), 3.85, uniform_np(
+                    1, 1.5), uniform_np(2, 2.1), uniform_np(0.8, 2.3), uniform_np(-1.2, -1.1)]
+            random_init_angle *= self.n_robots
+        elif self.task in ['releasing', 'placing', 'pushing']:
+            # TODO: Find init angle close to the dest position
+            random_init_angle = []
+        return random_init_angle
 
     def __sample_goal(self):
         reach_goal = []
@@ -166,13 +187,10 @@ class JacoMujocoEnvUtil:
             gamma = uniform(-0.1, 0.1)
             reach_goal_ori = np.array([alpha, beta, gamma], dtype=np.float16)
             reach_goal.append(np.hstack([reach_goal_pos, reach_goal_ori]))
-            obj_goal_pos = [0,0.6,0.31]
+            obj_goal_pos = [0,0.6,0.34]
             obj_goal.append(obj_goal_pos)
             dest_goal_pos = [0.5,0.65,1]
             dest_goal.append(dest_goal_pos)
-            # self.interface.set_mocap_xyz("target_reach", reach_goal_pos[:3])
-            # target_quat = transformations.quaternion_from_euler(alpha, beta, gamma, axes='rxyz')
-            # self.interface.set_mocap_orientation("target_reach", target_quat)
         return np.array(reach_goal), np.array(obj_goal), np.array(dest_goal)
 
     def _get_observation(self):
@@ -289,7 +307,7 @@ class JacoMujocoEnvUtil:
                     if obj_diff > 1:
                         print("\033[91m \nGripper too far away from the object \033[0m")
                         return True, -5, wb
-                    if self.interface.get_xyz('object_body')[2] > 0.31:
+                    if self.interface.get_xyz('object_body')[2] > 0.35:
                         self.grasp_succeed_iter += 1
                     if self.grasp_succeed_iter > 20:
                         print("\033[92m Grasping Succeeded \033[0m")
@@ -329,7 +347,6 @@ class JacoMujocoEnvUtil:
                     self.gripper_angle_1 = self.gripper_angle_2 = 10
                 else:
                     pass
-                    
             self.interface.set_mocap_xyz("hand", self.target_pos[:3])
             self.interface.set_mocap_orientation("hand", transformations.quaternion_from_euler(
                 self.target_pos[3], self.target_pos[4], self.target_pos[5], axes="rxyz"))

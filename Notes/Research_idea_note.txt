@@ -336,6 +336,14 @@ Note
                             }
                         5.2. Learning Multi-Level Hierarchies with Hindsight (Levy, 2019)
                             -> Useful for hierarchical policies in a sequential manner, but not in the case of ours
+                    6. Manipulation via RL
+                        6.1 Human Demonstrations
+                            6.1.1. Learning Complex Dexterous Manipulation with Deep Reinforcement Learning and Demonstrations (Rajeswaran, 2018)
+                            {
+                                Key: Used Human Demonstrations
+                                Pros:
+                                Cons:
+                            }
             }
             2. Title: Who cares who I am: Policy transfer between robots without fine-tuning
             {

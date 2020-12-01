@@ -207,18 +207,13 @@ class Mujoco:
 
         return np.copy(xyz)
     
-    def set_obj_xyz(self, xyz):
+    def set_obj_xyz(self, xyz, quat=[0,0,0,0]):
         old_state = self.sim.get_state()
         new_qpos = old_state.qpos.copy()
         new_qvel = old_state.qvel.copy()
-        if len(xyz) == 3:
-            new_qpos[12:18] = np.hstack([xyz, [0,0,0]])
-            new_qvel[12:18] = 0
-        elif len(xyz) == 6:
-            new_qpos[12:18] = xyz
-            new_qvel[12:18] = 0
-        else:
-            raise Exception("Wrong pose type")
+        new_qpos[12:15] = xyz
+        new_qpos[15:] = quat
+        new_qvel[12:] = 0
         new_state = mjp.MjSimState(old_state.time, new_qpos, new_qvel, old_state.act, old_state.udd_state)
         self.sim.set_state(new_state)
         self.sim.forward()

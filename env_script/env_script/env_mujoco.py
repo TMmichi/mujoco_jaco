@@ -61,6 +61,12 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
             gripper_act_min = np.array([self.gripper_action_space_min]*2)
             self.act_max = np.hstack([pose_act, gripper_act_max])
             self.act_min = np.hstack([-pose_act, gripper_act_min])
+        elif kwargs.get('task', None) == 'carrying':
+            pose_act = np.array([self.pose_action_space_max]*6)             # x,y,z,r,p,y
+            gripper_act_max = np.array([self.gripper_action_space_max]*2)   # g1, g2
+            gripper_act_min = np.array([self.gripper_action_space_min]*2)
+            self.act_max = np.hstack([pose_act, gripper_act_max])
+            self.act_min = np.hstack([-pose_act, gripper_act_min])
         self.action_space = spaces.Box(self.act_min, self.act_max, dtype=np.float32)
         self.seed()
 
