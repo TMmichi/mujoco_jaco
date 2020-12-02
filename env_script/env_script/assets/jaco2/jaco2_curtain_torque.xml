@@ -1,6 +1,7 @@
 <mujoco model="jaco2">
     <size njmax="8000" nconmax="4000"/>
     <compiler angle="radian" meshdir="meshes" balanceinertia="true" convexhull="true"/>
+    <!-- <compiler angle="radian" meshdir="meshes" balanceinertia="true" convexhull="false"/> -->
 
 
     <default>
@@ -140,28 +141,31 @@
 
                                     <body name="thumb_proximal" pos="0.002786 -0.03126 0.114668" quat="0.95922726  0.262085    0.02762996 -0.10213274">
                                         <geom name="thumb_proximal" type="mesh" mesh="finger_proximal" euler="0 -1.5707 0" friction="1 0.5 0.01" solimp="0.95 0.95 0.01 0.5 6" solref="0.01 1" condim="6" margin="0.0"/>
-                                        <joint name="joint_thumb" pos="0 0 0" axis="1 0 0" ref="1.1" limited="true" range="-0.2 1.1" solimplimit="0.95 0.95 0.01" solreflimit="0.01 1" stiffness="5" springref="0.0" damping="0.35"/>                                        
+                                        <!-- <joint name="joint_thumb" pos="0 0 0" axis="1 0 0" ref="1.1" limited="true" range="-0.2 1.1" solimplimit="0.95 0.95 0.01" solreflimit="0.01 1" stiffness="5" springref="0.0" damping="0.35"/>                                         -->
+                                        <joint name="joint_thumb" pos="0 0 0" axis="1 0 0" ref="1.1" limited="true" range="0.35 1.1" solimplimit="0.95 0.95 0.01" solreflimit="0.01 1" stiffness="5" springref="0.0" damping="0.35"/>                                        
                                         <body name="thumb_distal" pos="0 -0.003 0.044">
                                             <geom name="thumb_distal" type="mesh" mesh="finger_distal" euler="0 -1.5707 0" friction="1 0.5 0.01" solimp="0.95 0.95 0.01 0.5 6" solref="0.01 1" condim="6" margin="0.0"/>
-                                            <joint name="joint_thumb_distal" pos="0 0 0" axis="-1 0 0" ref="0" limited="true" range="-0.4 0.4" stiffness="5" springref="-0.4" damping="0.5" solimplimit="0.95 0.95 0.01" solreflimit="0.01 1"/>
+                                            <joint name="joint_thumb_distal" pos="0 0 0" axis="-1 0 0" ref="-0.5" limited="true" range="-0.4 0.4" stiffness="5" springref="-0.4" damping="0.5" solimplimit="0.95 0.95 0.01" solreflimit="0.01 1"/>
                                         </body>
                                     </body>
 
                                     <body name="index_proximal" pos="0.022256 0.027073 0.114668" quat="0.96181018 -0.25771638 0.0238668 -0.08907205">
                                         <geom name="index_proximal" type="mesh" mesh="finger_proximal" quat="5.63312174e-04  7.06824957e-01 -5.62863772e-04  7.07388045e-01" friction="1 0.5 0.01" solimp="0.95 0.95 0.01 0.5 6" solref="0.01 1" condim="6" margin="0.0"/>
-                                        <joint name="joint_index" pos="0 0 0" axis="-1 0 0" ref="1.1" limited="true" range="-0.2 1.1" solimplimit="0.95 0.95 0.01" solreflimit="0.01 1" stiffness="5" springref="0.0" damping="0.35"/>
+                                        <!-- <joint name="joint_index" pos="0 0 0" axis="-1 0 0" ref="1.1" limited="true" range="-0.2 1.1" solimplimit="0.95 0.95 0.01" solreflimit="0.01 1" stiffness="5" springref="0.0" damping="0.35"/> -->
+                                        <joint name="joint_index" pos="0 0 0" axis="-1 0 0" ref="1.1" limited="true" range="0.35 1.1" solimplimit="0.95 0.95 0.01" solreflimit="0.01 1" stiffness="5" springref="0.0" damping="0.35"/>
                                         <body name="index_distal" pos="0 0.003 0.044">
                                             <geom name="index_distal" type="mesh" mesh="finger_distal" quat="5.63312174e-04  7.06824957e-01 -5.62863772e-04  7.07388045e-01" friction="1 0.5 0.01" solimp="0.95 0.95 0.01 0.5 6" solref="0.01 1" condim="6" margin="0.0"/>
-                                            <joint name="joint_index_distal" pos="0 0 0" axis="1 0 0" ref="0" limited="true" range="-0.4 0.4" stiffness="5" springref="-0.4" damping="0.5" solimplimit="0.95 0.95 0.01" solreflimit="0.01 1"/>
+                                            <joint name="joint_index_distal" pos="0 0 0" axis="1 0 0" ref="-0.5" limited="true" range="-0.4 0.4" stiffness="5" springref="-0.4" damping="0.5" solimplimit="0.95 0.95 0.01" solreflimit="0.01 1"/>
                                         </body>
                                     </body>
 
                                     <body name="pinky_proximal" pos="-0.022256 0.027073 0.114816" quat="0.96181018 -0.25771638 -0.0238668 0.08907205">
                                         <geom name="pinky_proximal" type="mesh" mesh="finger_proximal" quat="5.63312174e-04  7.06824957e-01 -5.62863772e-04  7.07388045e-01" friction="1 0.5 0.01" solimp="0.95 0.95 0.01 0.5 6" solref="0.01 1" condim="6" margin="0.0"/>
-                                        <joint name="joint_pinky" pos="0 0 0" axis="-1 0 0" ref="1.1" limited="true" range="-0.2 1.1" solimplimit="0.95 0.95 0.01" solreflimit="0.01 1" stiffness="5" springref="0.0" damping="0.35"/>
+                                        <!-- <joint name="joint_pinky" pos="0 0 0" axis="-1 0 0" ref="1.1" limited="true" range="-0.2 1.1" solimplimit="0.95 0.95 0.01" solreflimit="0.01 1" stiffness="5" springref="0.0" damping="0.35"/> -->
+                                        <joint name="joint_pinky" pos="0 0 0" axis="-1 0 0" ref="1.1" limited="true" range="0.35 1.1" solimplimit="0.95 0.95 0.01" solreflimit="0.01 1" stiffness="5" springref="0.0" damping="0.35"/>
                                         <body name="pinky_distal" pos="0 0.003 0.044">
                                             <geom name="pinky_distal" type="mesh" mesh="finger_distal" quat="5.63312174e-04  7.06824957e-01 -5.62863772e-04  7.07388045e-01" friction="1 0.5 0.01" solimp="0.95 0.95 0.01 0.5 6" solref="0.01 1" condim="6" margin="0.0"/>
-                                            <joint name="joint_pinky_distal" pos="0 0 0" axis="1 0 0" ref="0" limited="true" range="-0.4 0.4" stiffness="5" springref="0.4" damping="0.5" solimplimit="0.95 0.95 0.01" solreflimit="0.01 1"/>
+                                            <joint name="joint_pinky_distal" pos="0 0 0" axis="1 0 0" ref="0.2" limited="true" range="-0.4 0.4" stiffness="5" springref="0.4" damping="0.5" solimplimit="0.95 0.95 0.01" solreflimit="0.01 1"/>
                                         </body>
                                     </body>
                                 </body>
@@ -194,8 +198,9 @@
             <geom type="cylinder" size=".03 .01" density="1" pos="-0.09 0 -0.03" euler='0 -1.570796326794896 0' rgba="0 0 0.5 .5"></geom> -->
             <!-- <geom type="cylinder" size=".015 .07" density="1" pos="-0.02 0 -0.03" euler='0 -1.570796326794896 0' rgba="0 0 0.5 .5"></geom>
             <geom type="cylinder" size=".03 .01" density="1" pos="-0.09 0 -0.03" euler='0 -1.570796326794896 0' rgba="0 0 0.5 .5"></geom> -->
-            <geom type="cylinder" size=".015 .07" density="1" pos="0 0 0" rgba="0 0 0.5 .7"></geom>
-            <geom type="cylinder" size=".030 .01" density="1" pos="0 0 0.07" rgba="0 0 0.5 .7"></geom>
+            <geom type="cylinder" size=".015 .07" density="2" pos="0 0 0" rgba="0 0 0.5 .7"></geom>
+                <inertial pos="0 0 0.03" mass="0.01" diaginertia="0.2 0.2 0.2"></inertial>
+            <geom type="cylinder" size=".030 .01" density="0.01" pos="0 0 0.07" rgba="0 0 0.5 .7"></geom>
             <geom name="target_dum" type="sphere" size="0.01" rgba=".9 0 0 .8" contype="8" conaffinity="8"/>
             <!-- <geom name='object_dum' type="sphere" size="0.01" pos="0.02 0 0.03" rgba=".0 0 0 .0" contype="4" conaffinity="4"/>> -->
         </body>
@@ -226,6 +231,9 @@
         <motor name="joint_thumb_motor" joint="joint_thumb"/>
         <motor name="joint_index_motor" joint="joint_index"/>
         <motor name="joint_pinky_motor" joint="joint_pinky"/>
+        <!-- <motor name="joint_thumb_distal_motor" joint="joint_thumb_distal"/>
+        <motor name="joint_index_distal_motor" joint="joint_index_distal"/>
+        <motor name="joint_pinky_distal_motor" joint="joint_pinky_distal"/> -->
     </actuator>
 
 </mujoco>

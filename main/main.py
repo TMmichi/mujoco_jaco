@@ -313,7 +313,7 @@ class RL_controller:
         env = JacoMujocoEnv(**vars(self.args))
         #prefix = "reaching_trained_at_11_25_17:9:27/policy_4999425.zip"
         #prefix = "reaching_trained_at_11_25_17:9:35/policy_4999425.zip"
-        prefix = "grasping_trained_at_12_1_23:13:52/policy_145665.zip"
+        prefix = "grasping_trained_at_12_2_13:46:48/policy_1182465.zip"
         model_dir = self.model_path + prefix
         test_iter = 100
         # self.model = SAC_MULTI.pretrainer_load(model_dir)
@@ -332,6 +332,6 @@ class RL_controller:
 
 if __name__ == "__main__":
     controller = RL_controller()
-    controller.train_from_scratch()
+    # controller.train_from_scratch()
     # controller.test()
-    # controller.train_from_expert()
+    controller.train_from_expert()

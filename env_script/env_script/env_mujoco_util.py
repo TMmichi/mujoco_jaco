@@ -35,7 +35,7 @@ class JacoMujocoEnvUtil:
             xml_name = kwargs['robot_file']
         
         self.jaco = MujocoConfig(xml_name, n_robots=self.n_robots)
-        self.interface = Mujoco(self.jaco, dt=0.005, visualize=False, create_offscreen_rendercontext=False)
+        self.interface = Mujoco(self.jaco, dt=0.005, visualize=True, create_offscreen_rendercontext=False)
         self.interface.connect()
         self.base_position = self.__get_property('link1', 'position')
         self.gripper_angle_1 = 1.3
@@ -253,7 +253,9 @@ class JacoMujocoEnvUtil:
                 return scale_coef * reward
             elif self.task == 'grasping':
                 dist_coef = 5
+                dist_th = 0.2
                 angle_coef = 1
+                angle_th = np.pi/6
                 height_coef = 100
                 scale_coef = 0.05
                 x,y,z = self.obj_goal[0] - self.gripper_pose[0][:3]
@@ -261,9 +263,9 @@ class JacoMujocoEnvUtil:
                 beta = np.arcsin(x / np.linalg.norm([x,y]))
                 roll, pitch, yaw = self.gripper_pose[0][3:]
                 angle_diff = np.linalg.norm([-np.pi/2-roll, beta-pitch, np.sign(yaw)*np.pi/2-yaw])
-                reward = np.exp(-dist_coef * obj_diff)/2        # distance reward
-                reward += np.exp(-angle_coef * angle_diff)/2    # angle reward
-                reward += np.linalg.norm(self.interface.get_xyz('object_body')[2] - 0.37) * height_coef     # pick reward
+                reward = dist_coef * np.exp(-1/dist_th * obj_diff)/2        # distance reward
+                reward += angle_coef * np.exp(-1/angle_th * angle_diff)/2    # angle reward
+                reward +=  height_coef * (self.interface.get_xyz('object_body')[2] - 0.37)     # pick reward
                 return reward * scale_coef
             elif self.task == 'picking':
                 return 0

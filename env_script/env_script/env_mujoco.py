@@ -108,20 +108,24 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
         if self.current_steps % 10 == 0:
             self.logging(self.obs, self.prev_obs, action, wb, total_reward) if log else None
         self.prev_obs = self.obs
+        if np.any(np.isnan(self.obs)):
+            self.obs = self.reset()
+            total_reward = 0
+            done = True
 
         return self.obs, total_reward, done, {0: 0}
 
     def logging(self, obs, prev_obs, action, wb, reward):
         write_str = "Act:"
         for i in range(len(action)):
-            write_str += "\t{0:2.3f}".format(action[i])
+            write_str += " {0: 2.3f}".format(action[i])
         write_str += "\t| Obs:" 
         write_log = write_str
         for i in range(6):
             write_str += self._colored_string(obs[i],prev_obs[i],action[i])
-            write_log += "\t{0:2.3f}".format(obs[i])
-        write_str += "\t| wb = {0:2.3f} | \033[92mReward:\t{1:1.5f}\033[0m".format(wb,reward)
-        write_log += "\t| wb = {0:2.3f} | Reward:\t{1:1.5f}".format(wb,reward)
+            write_log += ", {0: 2.3f}".format(obs[i])
+        write_str += "\t| wb = {0: 2.3f} | \033[92mReward:\t{1:1.5f}\033[0m".format(wb,reward)
+        write_log += "\t| wb = {0: 2.3f} | Reward:\t{1:1.5f}".format(wb,reward)
         print(write_str, end='\r')
         if self.log_save:
             self.joint_angle_log.writelines(write_log+"\n")
