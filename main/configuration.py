@@ -30,7 +30,7 @@ layer_structure_list = [[256, 256, 128, 128, 128, 64, 64], \
                         [512, 256, 256, 512], [256, 256, 128, 128], [128, 64, 64, 32], [64, 64, 32, 32], \
                         [512, 256, 256], [256, 256, 128], [128, 128, 128], \
                         [256, 256], [128, 128], [64, 64]]
-layer_structure = layer_structure_list[-1]
+layer_structure = layer_structure_list[-2]
 layers = {"policy": layer_structure, "value": layer_structure}
 
 model_configuration['learning_starts'] = 100
@@ -55,11 +55,10 @@ pretrain_configuration['learning_rate'] = 5e-5
 pretrain_configuration['val_interval'] = 100
 #####################################################################################################
 info['non_lin'] = 'swish'
-info['Additional Info']='Weight normalized\n\
-    \t\tTarget does not move\n\
-    \t\tSparse Positive reward\n\
-    \t\tNo aux\n\
-    \t\tBaseline alpha, beta = 0.5'
+info['Additional Info']='grasp coef to 5 from 3\n\
+                        \t\tgrasp value to 0.3 from 0.1\n\
+                        \t\tdist_coef to 5 from 3\n\
+                        \t\tScale coef to 0.05 from 0.5'
 # info['Additional Info']= \
 #             'Reset from random initial pos\n\
 #             \t\tAgent roates a bit less\n\

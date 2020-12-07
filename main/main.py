@@ -142,7 +142,7 @@ class RL_controller:
         # self._open_connection()
         self.args.robot_file = "jaco2_curtain_torque"
         env = JacoMujocoEnv(**vars(self.args))        
-        traj_dict = np.load(self.model_path+'/trajectories/'+self.args.task+"_trajectory_expert1.npz", allow_pickle=True)
+        traj_dict = np.load(self.model_path+'trajectories/'+self.args.task+"_trajectory_expert1.npz", allow_pickle=True)
         dataset = ExpertDataset(traj_data=traj_dict, batch_size=1024)
         
         net_arch = {'pi': model_configuration['layers']['policy'], 'vf': model_configuration['layers']['value']}
@@ -166,7 +166,7 @@ class RL_controller:
         self._write_log(model_dir, info)
         print("\033[91mTraining Starts\033[0m")
         self.num_timesteps = self.steps_per_batch * self.batches_per_episodes * self.num_episodes
-        self.trainer.learn(total_time_step, save_interval=int(total_time_step*0.05), save_path=model_dir)
+        self.trainer.learn(total_time_step, save_interval=50, save_path=model_dir)
         print("\033[91mTrain Finished\033[0m")
         self.trainer.save(model_dir+"/policy")
 
@@ -323,10 +323,11 @@ class RL_controller:
         self.args.n_robots = 1
 
         task_list = ['reaching', 'grasping', 'picking', 'carrying', 'releasing', 'placing', 'pushing']
-        self.args.task = task_list[0]
+        self.args.task = task_list[1]
         env = JacoMujocoEnv(**vars(self.args))
-        prefix = self.args.task + "_trained_at_11_27_18:25:54/policy_9999105.zip"
+        # prefix = self.args.task + "_trained_at_11_27_18:25:54/policy_9999105.zip"
         # prefix = self.args.task + '_trained_from_expert_at_12_2_21:30:47/policy.zip'
+        prefix = self.args.task + '_trained_from_expert_at_12_2_21:30:47/policy.zip'
         model_dir = self.model_path + prefix
         test_iter = 100
         # self.model = SAC_MULTI.pretrainer_load(model_dir)
