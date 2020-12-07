@@ -323,10 +323,9 @@ class RL_controller:
         self.args.n_robots = 1
 
         task_list = ['reaching', 'grasping', 'picking', 'carrying', 'releasing', 'placing', 'pushing']
-        self.args.task = task_list[1]
+        self.args.task = task_list[0]
         env = JacoMujocoEnv(**vars(self.args))
-        # prefix = "reaching_trained_at_11_25_17:9:27/policy_4999425.zip"
-        prefix = "reaching_trained_at_11_25_17:9:35/policy_4999425.zip"
+        prefix = self.args.task + "_trained_at_11_27_18:25:54/policy_9999105.zip"
         # prefix = "grasping_trained_at_12_2_13:46:48/policy_1182465.zip"
         model_dir = self.model_path + prefix
         test_iter = 100
@@ -347,6 +346,6 @@ class RL_controller:
 if __name__ == "__main__":
     controller = RL_controller()
     # controller.train_from_scratch()
-    controller.train_from_expert()
+    # controller.train_from_expert()
     # controller.generate_traj()
-    # controller.test()
+    controller.test()
