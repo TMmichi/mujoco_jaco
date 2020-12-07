@@ -50,9 +50,9 @@ model_configuration['box_dist'] = 'beta'
 model_configuration['random_exploration'] = 0.05
 #model_configuration['sa_coupler_index'] = [0,1]
 model_configuration['policy_kwargs'] = {'act_fun':tf.nn.swish}
-pretrain_configuration['n_epochs'] = 1000
-pretrain_configuration['learning_rate'] = 5e-7
-pretrain_configuration['val_interval'] = 1
+pretrain_configuration['n_epochs'] = 15000
+pretrain_configuration['learning_rate'] = 5e-5
+pretrain_configuration['val_interval'] = 100
 #####################################################################################################
 info['non_lin'] = 'swish'
 info['Additional Info']='Weight normalized\n\

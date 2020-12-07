@@ -156,6 +156,9 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
 
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
+    
+    def close(self):
+        pass
 
 
 if __name__ == "__main__":

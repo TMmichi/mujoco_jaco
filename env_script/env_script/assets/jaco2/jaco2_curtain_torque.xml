@@ -231,9 +231,6 @@
         <motor name="joint_thumb_motor" joint="joint_thumb"/>
         <motor name="joint_index_motor" joint="joint_index"/>
         <motor name="joint_pinky_motor" joint="joint_pinky"/>
-        <!-- <motor name="joint_thumb_distal_motor" joint="joint_thumb_distal"/>
-        <motor name="joint_index_distal_motor" joint="joint_index_distal"/>
-        <motor name="joint_pinky_distal_motor" joint="joint_pinky_distal"/> -->
     </actuator>
 
 </mujoco>

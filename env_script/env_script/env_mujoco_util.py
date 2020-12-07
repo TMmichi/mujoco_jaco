@@ -252,9 +252,9 @@ class JacoMujocoEnvUtil:
                     reward -= (z_th - z)
                 return scale_coef * reward
             elif self.task == 'grasping':
-                dist_coef = 5
+                dist_coef = 3
                 dist_th = 0.2
-                angle_coef = 1
+                angle_coef = 2
                 angle_th = np.pi/6
                 height_coef = 100
                 scale_coef = 0.05
@@ -315,12 +315,12 @@ class JacoMujocoEnvUtil:
                     else:
                         return False, 0, wb
                 elif self.task == 'grasping':
-                    if obj_diff > 1:
+                    if obj_diff > 0.5:
                         print("\033[91m \nGripper too far away from the object \033[0m")
                         return True, -5, wb
                     if self.interface.get_xyz('object_body')[2] > 0.40:
                         self.grasp_succeed_iter += 1
-                    if self.grasp_succeed_iter > 200:
+                    if self.grasp_succeed_iter > 50:
                         print("\033[92m Grasping Succeeded \033[0m")
                         return True, 200 - (self.num_episodes*0.1), wb
                     elif self.interface.get_xyz('object_body')[2] < 0.1:
@@ -348,8 +348,8 @@ class JacoMujocoEnvUtil:
             if len(a) == 8:
                 self.gripper_angle_1 += a[6]
                 self.gripper_angle_2 += a[7]
-                self.gripper_angle_1 = max(min(self.gripper_angle_1,10),0)
-                self.gripper_angle_2 = max(min(self.gripper_angle_2,10),0)
+                self.gripper_angle_1 = max(min(self.gripper_angle_1,5.5),0.5)
+                self.gripper_angle_2 = max(min(self.gripper_angle_2,5.5),0.5)
             elif len(a) == 6:
                 self.gripper_angle_1 = 0
                 self.gripper_angle_2 = 0

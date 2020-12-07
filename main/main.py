@@ -138,14 +138,11 @@ class RL_controller:
         prefix = self.args.task+"_trained_from_expert_at_" + str(time.localtime().tm_mon) + "_" + str(time.localtime().tm_mday)\
             + "_" + str(time.localtime().tm_hour) + ":" + str(time.localtime().tm_min) + ":" + str(time.localtime().tm_sec)
         model_dir = self.model_path + prefix
-        os.makedirs(model_dir, exist_ok=True)
 
-        self._open_connection()
+        # self._open_connection()
         self.args.robot_file = "jaco2_curtain_torque"
-        env = JacoMujocoEnv(**vars(self.args))
-        traj_dict = generate_expert_traj(self._expert_3d, self.args.task+'_trajectory_expert', env, n_episodes=n_episodes)
-        self._close_connection()
-        traj_dict = np.load(model_dir+"/trajectory_expert.npz", allow_pickle=True)
+        env = JacoMujocoEnv(**vars(self.args))        
+        traj_dict = np.load(self.model_path+'/trajectories/'+self.args.task+"_trajectory_expert1.npz", allow_pickle=True)
         dataset = ExpertDataset(traj_data=traj_dict, batch_size=1024)
         
         net_arch = {'pi': model_configuration['layers']['policy'], 'vf': model_configuration['layers']['value']}
@@ -158,10 +155,14 @@ class RL_controller:
         policy_kwargs = {'net_arch': [net_arch], 'obs_relativity':obs_relativity, 'obs_index':obs_index}
         policy_kwargs.update(model_configuration['policy_kwargs'])
         model_dict = {'gamma': 0.99, 'clip_param': 0.02,
-                      'tensorboard_log': model_dir, 'policy_kwargs': policy_kwargs}
+                      'tensorboard_log': model_dir, 'policy_kwargs': policy_kwargs, 'verbose':1}
         self.trainer = PPO1(MlpPolicy, env, **model_dict)
+        print("\033[91mPretraining Starts\033[0m")
         self.trainer.pretrain(dataset, **pretrain_configuration)
+        print("\033[91mPretraining Finished\033[0m")
         del dataset
+        os.makedirs(model_dir, exist_ok=True)
+
         self._write_log(model_dir, info)
         print("\033[91mTraining Starts\033[0m")
         self.num_timesteps = self.steps_per_batch * self.batches_per_episodes * self.num_episodes
@@ -220,6 +221,19 @@ class RL_controller:
             action = [0,0,0,0,0,0,0,0]
             return action
     
+
+    def generate_traj(self):
+        print("Trajectory Generating")
+        self.args.train_log = False
+        task_list = ['reaching', 'grasping', 'picking', 'carrying', 'releasing', 'placing', 'pushing']
+        self.args.task = task_list[1]
+
+        self._open_connection()
+        self.args.robot_file = "jaco2_curtain_torque"
+        env = JacoMujocoEnv(**vars(self.args))
+        traj_dict = generate_expert_traj(self._expert_3d, self.model_path+'/trajectories/'+self.args.task+'_trajectory_expert1', env, n_episodes=100)
+        self._close_connection()
+
 
     def train_with_additional_layer(self):
         self.args.train_log = False
@@ -311,9 +325,9 @@ class RL_controller:
         task_list = ['reaching', 'grasping', 'picking', 'carrying', 'releasing', 'placing', 'pushing']
         self.args.task = task_list[1]
         env = JacoMujocoEnv(**vars(self.args))
-        #prefix = "reaching_trained_at_11_25_17:9:27/policy_4999425.zip"
-        #prefix = "reaching_trained_at_11_25_17:9:35/policy_4999425.zip"
-        prefix = "grasping_trained_at_12_2_13:46:48/policy_1182465.zip"
+        # prefix = "reaching_trained_at_11_25_17:9:27/policy_4999425.zip"
+        prefix = "reaching_trained_at_11_25_17:9:35/policy_4999425.zip"
+        # prefix = "grasping_trained_at_12_2_13:46:48/policy_1182465.zip"
         model_dir = self.model_path + prefix
         test_iter = 100
         # self.model = SAC_MULTI.pretrainer_load(model_dir)
@@ -333,5 +347,6 @@ class RL_controller:
 if __name__ == "__main__":
     controller = RL_controller()
     # controller.train_from_scratch()
-    # controller.test()
     controller.train_from_expert()
+    # controller.generate_traj()
+    # controller.test()
