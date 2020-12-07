@@ -166,7 +166,7 @@ class RL_controller:
         self._write_log(model_dir, info)
         print("\033[91mTraining Starts\033[0m")
         self.num_timesteps = self.steps_per_batch * self.batches_per_episodes * self.num_episodes
-        self.trainer.learn(total_time_step, save_interval=int(total_time_step*0.05), save_path=model_dir)
+        self.trainer.learn(total_time_step, save_interval=50, save_path=model_dir)
         print("\033[91mTrain Finished\033[0m")
         self.trainer.save(model_dir+"/policy")
 
@@ -323,10 +323,10 @@ class RL_controller:
         self.args.n_robots = 1
 
         task_list = ['reaching', 'grasping', 'picking', 'carrying', 'releasing', 'placing', 'pushing']
-        self.args.task = task_list[0]
+        self.args.task = task_list[1]
         env = JacoMujocoEnv(**vars(self.args))
-        prefix = self.args.task + "_trained_at_11_27_18:25:54/policy_9999105.zip"
-        # prefix = self.args.task + '_trained_from_expert_at_12_2_21:30:47/policy.zip'
+        # prefix = self.args.task + "_trained_at_11_27_18:25:54/policy_9999105.zip"
+        prefix = self.args.task + '_trained_from_expert_at_12_7_17:32:31/policy_650.zip'
         model_dir = self.model_path + prefix
         test_iter = 100
         # self.model = SAC_MULTI.pretrainer_load(model_dir)
@@ -336,7 +336,6 @@ class RL_controller:
             done = False
             while not done:
                 action, _ = self.model.predict(obs)
-                print(action)
                 obs, reward, done, _ = env.step(action, log=False)
                 print(reward, end='\r')
     
@@ -347,6 +346,6 @@ class RL_controller:
 if __name__ == "__main__":
     controller = RL_controller()
     # controller.train_from_scratch()
-    controller.train_from_expert()
-    # controller.generate_traj()
+    # controller.train_from_expert()
+    controller.generate_traj()
     # controller.test()

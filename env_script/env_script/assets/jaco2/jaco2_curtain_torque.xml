@@ -127,6 +127,7 @@
                                 <body name="link6" pos="0 0.037 0.0641">
                                     <inertial pos="0.000030 -0.006840 0.082220" mass="0.727000" diaginertia="0.025 0.025 0.025"/>
                                     <geom name="link6" type="mesh" mesh="hand_3finger" euler="3.14 0 0" material="carbon" solimp="0.97 0.97 0.01" solref="0.01 1" condim="6" />
+                                    <site name="EE_touch" type="cylinder" size="0.07 0.05 0.1" euler="3.14 0 0" pos="0 0 0.065" rgba="0 0 1 0.5"/>
                                     <geom name="ring5" type="mesh" mesh="ring_small" material="grey_plastic"/>
                                     <joint name="joint5" pos="0 0 0" axis="0 0 -1" ref="0"/>
 
@@ -311,6 +312,7 @@
 
     <sensor>
         <!-- <touch name="boxx" site ="boxx"/> -->
+        <touch name="EE_touch" site ="EE_touch"/>
         <touch name="0_touch" site ="0_touch"/>
         <touch name="1_touch" site ="1_touch"/>
         <touch name="2_touch" site ="2_touch"/>
