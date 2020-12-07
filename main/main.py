@@ -65,7 +65,7 @@ class RL_controller:
         os.makedirs(self.model_path, exist_ok=True)
         
         self.steps_per_batch = 100
-        self.batches_per_episodes = 2000
+        self.batches_per_episodes = 20
         args.steps_per_batch = self.steps_per_batch
         args.batches_per_episodes = self.batches_per_episodes
         self.num_episodes = 10000
@@ -347,6 +347,6 @@ class RL_controller:
 if __name__ == "__main__":
     controller = RL_controller()
     # controller.train_from_scratch()
-    # controller.train_from_expert()
-    controller.generate_traj()
+    controller.train_from_expert()
+    # controller.generate_traj()
     # controller.test()
