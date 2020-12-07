@@ -30,12 +30,12 @@ layer_structure_list = [[256, 256, 128, 128, 128, 64, 64], \
                         [512, 256, 256, 512], [256, 256, 128, 128], [128, 64, 64, 32], [64, 64, 32, 32], \
                         [512, 256, 256], [256, 256, 128], [128, 128, 128], \
                         [256, 256], [128, 128], [64, 64]]
-layer_structure = layer_structure_list[7]
+layer_structure = layer_structure_list[-1]
 layers = {"policy": layer_structure, "value": layer_structure}
 
 model_configuration['learning_starts'] = 100
 model_configuration['layers'] = layers
-model_configuration['batch_size'] = 64
+model_configuration['batch_size'] = 1000
 model_configuration['buffer_size'] = 50000
 model_configuration['gamma'] = 0.99
 model_configuration['learning_rate'] = 0.0003
@@ -50,9 +50,9 @@ model_configuration['box_dist'] = 'beta'
 model_configuration['random_exploration'] = 0.05
 #model_configuration['sa_coupler_index'] = [0,1]
 model_configuration['policy_kwargs'] = {'act_fun':tf.nn.swish}
-pretrain_configuration['n_epochs'] = 1000
-pretrain_configuration['learning_rate'] = 5e-7
-pretrain_configuration['val_interval'] = 1
+pretrain_configuration['n_epochs'] = 15000
+pretrain_configuration['learning_rate'] = 5e-5
+pretrain_configuration['val_interval'] = 100
 #####################################################################################################
 info['non_lin'] = 'swish'
 info['Additional Info']='Weight normalized\n\

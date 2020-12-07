@@ -61,6 +61,12 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
             gripper_act_min = np.array([self.gripper_action_space_min]*2)
             self.act_max = np.hstack([pose_act, gripper_act_max])
             self.act_min = np.hstack([-pose_act, gripper_act_min])
+        elif kwargs.get('task', None) == 'carrying':
+            pose_act = np.array([self.pose_action_space_max]*6)             # x,y,z,r,p,y
+            gripper_act_max = np.array([self.gripper_action_space_max]*2)   # g1, g2
+            gripper_act_min = np.array([self.gripper_action_space_min]*2)
+            self.act_max = np.hstack([pose_act, gripper_act_max])
+            self.act_min = np.hstack([-pose_act, gripper_act_min])
         self.action_space = spaces.Box(self.act_min, self.act_max, dtype=np.float32)
         self.seed()
 
@@ -102,20 +108,24 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
         if self.current_steps % 10 == 0:
             self.logging(self.obs, self.prev_obs, action, wb, total_reward) if log else None
         self.prev_obs = self.obs
+        if np.any(np.isnan(self.obs)):
+            self.obs = self.reset()
+            total_reward = 0
+            done = True
 
         return self.obs, total_reward, done, {0: 0}
 
     def logging(self, obs, prev_obs, action, wb, reward):
         write_str = "Act:"
         for i in range(len(action)):
-            write_str += "\t{0:2.3f}".format(action[i])
+            write_str += " {0: 2.3f}".format(action[i])
         write_str += "\t| Obs:" 
         write_log = write_str
         for i in range(6):
             write_str += self._colored_string(obs[i],prev_obs[i],action[i])
-            write_log += "\t{0:2.3f}".format(obs[i])
-        write_str += "\t| wb = {0:2.3f} | \033[92mReward:\t{1:1.5f}\033[0m".format(wb,reward)
-        write_log += "\t| wb = {0:2.3f} | Reward:\t{1:1.5f}".format(wb,reward)
+            write_log += ", {0: 2.3f}".format(obs[i])
+        write_str += "\t| wb = {0: 2.3f} | \033[92mReward:\t{1:1.5f}\033[0m".format(wb,reward)
+        write_log += "\t| wb = {0: 2.3f} | Reward:\t{1:1.5f}".format(wb,reward)
         print(write_str, end='\r')
         if self.log_save:
             self.joint_angle_log.writelines(write_log+"\n")
@@ -146,6 +156,9 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
 
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
+    
+    def close(self):
+        pass
 
 
 if __name__ == "__main__":
