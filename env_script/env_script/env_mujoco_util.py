@@ -113,7 +113,6 @@ class JacoMujocoEnvUtil:
             self.interface.send_forces([0]*9*self.n_robots)
 
         self.grasp_succeed_iter = 0
-        # if self.task in ['grasping', 'pushing']:
         if self.task == 'grasping':
             self.grasp_succeed_iter = 0
             self.__get_gripper_pose()
@@ -150,9 +149,12 @@ class JacoMujocoEnvUtil:
                 dist_diff = np.linalg.norm(self.gripper_pose[0][:3] - self.obj_goal[0])
                 if dist_diff < 0.15:
                     break
-        #elif self.task in ['carrying', 'placing', 'releasing']:
         elif self.task in ['grasping', 'carrying', 'placing', 'releasing']:
             pass
+        elif self.task == 'reaching':
+            self.interface.set_mocap_xyz("target_reach", self.reaching_goal[0][:3])
+            self.interface.set_mocap_orientation("target_reach", transformations.quaternion_from_euler(
+                self.reaching_goal[0][3], self.reaching_goal[0][4], self.reaching_goal[0][5], axes="rxyz"))
         obs = self._get_observation()
         return obs[0]
     
@@ -176,8 +178,7 @@ class JacoMujocoEnvUtil:
         obj_goal = []
         dest_goal = []
         for i in range(self.n_robots):
-            # TODO: Reaching goal also includes orientation pointing outward from the base
-            reach_goal_pos = np.array([uniform(0.30, 0.40) * sample([-1, 1], 1)[0]
+            reach_goal_pos = np.array([uniform(0.35, 0.45) * sample([-1, 1], 1)[0]
                           for _ in range(2)] + [uniform(0.3, 0.5)])
             x,y,z = reach_goal_pos - self.base_position[i]
             alpha = -np.arcsin(y / np.sqrt(y**2+z**2)) * np.sign(x)
@@ -361,8 +362,6 @@ class JacoMujocoEnvUtil:
             self.interface.set_mocap_xyz("hand", self.target_pos[:3])
             self.interface.set_mocap_orientation("hand", transformations.quaternion_from_euler(
                 self.target_pos[3], self.target_pos[4], self.target_pos[5], axes="rxyz"))
-            self.interface.set_mocap_orientation("target_reach", transformations.quaternion_from_euler(
-                self.target_pos[3], self.target_pos[4], self.target_pos[5], axes="rxyz"))
         else:
             # If Position: Joint Angle Increments (rad)
             # If Velocity: Joint Velocity (rad/s)
@@ -402,8 +401,6 @@ class JacoMujocoEnvUtil:
                     pose = np.append(pos, ori)
                     out.append(pose)
         return np.copy(out)
-
-
 
 
 
