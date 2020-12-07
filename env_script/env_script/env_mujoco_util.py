@@ -258,7 +258,9 @@ class JacoMujocoEnvUtil:
                 angle_coef = 2
                 angle_th = np.pi/6
                 height_coef = 100
-                scale_coef = 0.05
+                grasp_coef = 5
+                grasp_value = 0.1
+                scale_coef = 0.5
                 x,y,z = self.obj_goal[0] - self.gripper_pose[0][:3]
                 obj_diff = np.linalg.norm([x,y,z])
                 beta = np.arcsin(x / np.linalg.norm([x,y]))
@@ -266,6 +268,11 @@ class JacoMujocoEnvUtil:
                 angle_diff = np.linalg.norm([-np.pi/2-roll, beta-pitch, np.sign(yaw)*np.pi/2-yaw])
                 reward = dist_coef * np.exp(-1/dist_th * obj_diff)/2        # distance reward
                 reward += angle_coef * np.exp(-1/angle_th * angle_diff)/2    # angle reward
+                print("touch: ",self._get_touch())
+                if self._get_touch() == 1:
+                    reward += grasp_coef * grasp_value
+                elif self._get_touch() == 2:
+                    reward -= grasp_coef * grasp_value
                 reward +=  height_coef * (self.interface.get_xyz('object_body')[2] - 0.37)     # pick reward
                 return reward * scale_coef
             elif self.task == 'picking':
@@ -283,6 +290,18 @@ class JacoMujocoEnvUtil:
         else:
             print("\033[31mConstant Reward. SHOULD BE FIXED\033[0m")
             return 30
+
+    def _get_touch(self):
+        slicenum = 13
+        touch_array = np.zeros(19)
+        for i in range(len(touch_array)):
+            touch_array[i] = self.interface.sim.data.get_sensor(str(i)+"_touch")
+        if np.any(touch_array[:slicenum][touch_array[:slicenum]>0.001]):
+            return 1
+        elif np.any(touch_array[slicenum:][touch_array[slicenum:]>0.001]):
+            return 2
+        else:
+            return 0
 
     def _get_terminal_inspection(self):
         self.num_episodes += 1

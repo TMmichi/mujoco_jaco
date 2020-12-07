@@ -65,7 +65,7 @@ class RL_controller:
         os.makedirs(self.model_path, exist_ok=True)
         
         self.steps_per_batch = 100
-        self.batches_per_episodes = 20
+        self.batches_per_episodes = 2000
         args.steps_per_batch = self.steps_per_batch
         args.batches_per_episodes = self.batches_per_episodes
         self.num_episodes = 10000
@@ -326,7 +326,7 @@ class RL_controller:
         self.args.task = task_list[0]
         env = JacoMujocoEnv(**vars(self.args))
         prefix = self.args.task + "_trained_at_11_27_18:25:54/policy_9999105.zip"
-        # prefix = "grasping_trained_at_12_2_13:46:48/policy_1182465.zip"
+        # prefix = self.args.task + '_trained_from_expert_at_12_2_21:30:47/policy.zip'
         model_dir = self.model_path + prefix
         test_iter = 100
         # self.model = SAC_MULTI.pretrainer_load(model_dir)
@@ -336,6 +336,7 @@ class RL_controller:
             done = False
             while not done:
                 action, _ = self.model.predict(obs)
+                print(action)
                 obs, reward, done, _ = env.step(action, log=False)
                 print(reward, end='\r')
     
@@ -347,5 +348,5 @@ if __name__ == "__main__":
     controller = RL_controller()
     # controller.train_from_scratch()
     # controller.train_from_expert()
-    # controller.generate_traj()
-    controller.test()
+    controller.generate_traj()
+    # controller.test()
