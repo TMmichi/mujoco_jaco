@@ -54,11 +54,7 @@ pretrain_configuration['n_epochs'] = 15000
 pretrain_configuration['learning_rate'] = 5e-5
 pretrain_configuration['val_interval'] = 100
 #####################################################################################################
-info['non_lin'] = 'swish'
-info['Additional Info']='grasp coef to 5 from 3\n\
-                        \t\tgrasp value to 0.3 from 0.1\n\
-                        \t\tdist_coef to 5 from 3\n\
-                        \t\tScale coef to 0.05 from 0.5'
+info['non_lin'] = 'grasp coef to 1 from 3'
 # info['Additional Info']= \
 #             'Reset from random initial pos\n\
 #             \t\tAgent roates a bit less\n\

@@ -292,9 +292,10 @@ class JacoMujocoEnvUtil:
 
     def _get_touch(self):
         slicenum = 13
-        touch_array = np.zeros(19)
+        touch_array = np.zeros(20)
         for i in range(len(touch_array)):
             touch_array[i] = self.interface.sim.data.get_sensor(str(i)+"_touch")
+        touch_array[-1] = self.interface.sim.data.get_sensor("EE_touch")
         if np.any(touch_array[:slicenum][touch_array[:slicenum]>0.001]):
             return 1
         elif np.any(touch_array[slicenum:][touch_array[slicenum:]>0.001]):
@@ -360,6 +361,8 @@ class JacoMujocoEnvUtil:
 
     def _take_action(self, a):
         self.__get_gripper_pose()
+        if np.any(np.isnan(np.array(a))):
+            print("WARNING, nan in action", a)
         if self.controller:
             # Action: Gripper Pose Increments (m,rad)
             # Action scaled to 0.01m, 0.05 rad

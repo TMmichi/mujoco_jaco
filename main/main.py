@@ -326,8 +326,7 @@ class RL_controller:
         self.args.task = task_list[1]
         env = JacoMujocoEnv(**vars(self.args))
         # prefix = self.args.task + "_trained_at_11_27_18:25:54/policy_9999105.zip"
-        # prefix = self.args.task + '_trained_from_expert_at_12_2_21:30:47/policy.zip'
-        prefix = self.args.task + '_trained_from_expert_at_12_2_21:30:47/policy.zip'
+        prefix = self.args.task + '_trained_from_expert_at_12_7_17:32:31/policy_650.zip'
         model_dir = self.model_path + prefix
         test_iter = 100
         # self.model = SAC_MULTI.pretrainer_load(model_dir)
@@ -337,7 +336,6 @@ class RL_controller:
             done = False
             while not done:
                 action, _ = self.model.predict(obs)
-                print(action)
                 obs, reward, done, _ = env.step(action, log=False)
                 print(reward, end='\r')
     
@@ -348,6 +346,6 @@ class RL_controller:
 if __name__ == "__main__":
     controller = RL_controller()
     # controller.train_from_scratch()
-    controller.train_from_expert()
-    # controller.generate_traj()
+    # controller.train_from_expert()
+    controller.generate_traj()
     # controller.test()
