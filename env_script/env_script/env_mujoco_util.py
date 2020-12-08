@@ -199,7 +199,7 @@ class JacoMujocoEnvUtil:
             for i in range(self.n_robots):
                 # Observation dimensions: 6, 2, 3, 3, 6
                 # [absolute gripper_pose, gripper angle, obj position, dest position, reaching target]
-                observation.append(np.hstack([self.gripper_pose[i], [self.gripper_angle_1, self.gripper_angle_2], self.obj_goal[i], self.dest_goal[i], self.reaching_goal[i]]))
+                observation.append(np.hstack([self.gripper_pose[i], [(self.gripper_angle_1-3)/5, (self.gripper_angle_2-3)/5], self.obj_goal[i], self.dest_goal[i], self.reaching_goal[i]]))
         else:
             image, depth = self._get_camera()
             data = [image, depth]
@@ -293,7 +293,7 @@ class JacoMujocoEnvUtil:
     def _get_touch(self):
         slicenum = 13
         touch_array = np.zeros(20)
-        for i in range(len(touch_array)):
+        for i in range(19):
             touch_array[i] = self.interface.sim.data.get_sensor(str(i)+"_touch")
         touch_array[-1] = self.interface.sim.data.get_sensor("EE_touch")
         if np.any(touch_array[:slicenum][touch_array[:slicenum]>0.001]):

@@ -50,11 +50,16 @@ model_configuration['box_dist'] = 'beta'
 model_configuration['random_exploration'] = 0.05
 #model_configuration['sa_coupler_index'] = [0,1]
 model_configuration['policy_kwargs'] = {'act_fun':tf.nn.swish}
-pretrain_configuration['n_epochs'] = 15000
+pretrain_configuration['n_epochs'] = 20000
 pretrain_configuration['learning_rate'] = 5e-5
 pretrain_configuration['val_interval'] = 100
 #####################################################################################################
-info['non_lin'] = 'grasp coef to 1 from 3'
+info['non_lin'] = 'dist - coef: 5, th: 0.2\n\
+                   \t\tangle - coef: 2, th: pi/6\n\
+                   \t\theight - coef: 100\n\
+                   \t\tgrasp - coef: 5, value: 0.3\n\
+                   \t\tscale - coef: 0.05\n\
+                   Added hand collision cost'
 # info['Additional Info']= \
 #             'Reset from random initial pos\n\
 #             \t\tAgent roates a bit less\n\
