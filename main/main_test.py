@@ -14,6 +14,7 @@ import numpy as np
 
 from env_script.test_env.manipulator_2d import Manipulator2D
 from stable_baselines.gail import generate_expert_traj, ExpertDataset
+from stable_baselines.ppo2 import PPO2
 from stable_baselines.sac_multi import SAC_MULTI
 from stable_baselines.sac_multi.policies import MlpPolicy as MlpPolicy_sac
 from stable_baselines.common.vec_env import SubprocVecEnv
@@ -80,10 +81,10 @@ if __name__ == '__main__':
     model_dir = model_path + prefix
     os.makedirs(model_dir, exist_ok=True)
 
-    train = True
-    separate = True
+    train = False
+    separate = False
     train_mode_list = ['human', 'auto', 'scratch', 'load']
-    train_mode = train_mode_list[1]
+    train_mode = train_mode_list[2]
     auxilary = True and not separate
     test = False and not separate
 
@@ -117,9 +118,9 @@ if __name__ == '__main__':
                 _write_log(save_path, info, trial)
                 model.learn(total_time_step, save_interval=int(total_time_step*0.05), save_path=save_path)
             if train_mode == 'auto':
-                n_episodes = 10000
-                # traj_dict = generate_expert_traj(env.calculate_desired_action, model_dir+env_configuration['action']+"_10000", env, n_episodes=n_episodes)
-                # quit()
+                n_episodes = 1000
+                traj_dict = generate_expert_traj(env.calculate_desired_action, model_dir+env_configuration['action']+"_10000", env, n_episodes=n_episodes)
+                quit()
                 traj_dict = np.load(model_dir+env_configuration['action']+"_10000.npz", allow_pickle=True)
                 for name, elem in traj_dict.items():
                     if np.any(np.isnan(elem)):
@@ -147,7 +148,7 @@ if __name__ == '__main__':
             print("\033[91mTraining finished\033[0m")
 
         elif auxilary:
-            trial = 52
+            trial = 91
 
             prefix2 = env_configuration['action']+"_auxilary_trial"+str(trial)
             save_path = model_dir+prefix2
@@ -182,48 +183,53 @@ if __name__ == '__main__':
             prim_name = 'aux1'
             model.construct_primitive_info(name=prim_name, freeze=False, level=1,
                                                 obs_range=aux1_obs_range, obs_index=aux1_obs_index,
-                                                act_range=aux1_act_range, act_index=aux1_act_index,
+                                                act_range=aux1_act_range, act_index=aux1_act_index, act_scale=0.1,
+                                                obs_relativity={},
                                                 layer_structure={'policy':[64, 64]})
 
             prim_name = 'linear'
-            prim_trial = 75
-            policy_num = 100000
+            prim_trial = 89
+            policy_num = 2265473 #1785473 #1375873
             policy_zip_path = model_path+prefix+prim_name+"_separate_trial"+str(prim_trial)+"/policy_"+str(policy_num)+".zip"
             model.construct_primitive_info(name=prim_name, freeze=True, level=1,
-                                                obs_range=None, obs_index=prim_obs_index,
-                                                act_range=None, act_index=[0],
+                                                obs_range=None, obs_index=[0,1,2,3,4],
+                                                act_range=None, act_index=[0], act_scale=1,
+                                                obs_relativity={'subtract':{'ref':[3,4], 'tar':[0,1]}},
                                                 layer_structure=None,
                                                 loaded_policy=SAC_MULTI._load_from_file(policy_zip_path),
-                                                load_value=True)
+                                                load_value=False)
 
             prim_name = 'angular'
-            prim_trial = 15
-            policy_num = 100000
+            prim_trial = 89
+            policy_num = 1330177
             policy_zip_path = model_path+prefix+prim_name+"_separate_trial"+str(prim_trial)+"/policy_"+str(policy_num)+".zip"
             model.construct_primitive_info(name=prim_name, freeze=True, level=1,
-                                                obs_range=None, obs_index=prim_obs_index,
-                                                act_range=None, act_index=[1],
+                                                obs_range=None, obs_index=[0,1,2,3,4],
+                                                act_range=None, act_index=[1], act_scale=1,
                                                 layer_structure=None,
+                                                obs_relativity={'subtract':{'ref':[3,4], 'tar':[0,1]}},
                                                 loaded_policy=SAC_MULTI._load_from_file(policy_zip_path), 
-                                                load_value=True)
+                                                load_value=False)
             
             prim_name = 'angular_adj'
-            prim_trial = 2
-            policy_num = 0
+            prim_trial = 89
+            policy_num = 152577
             policy_zip_path = model_path+prefix+prim_name+"_separate_trial"+str(prim_trial)+"/policy_"+str(policy_num)+".zip"
             model.construct_primitive_info(name=prim_name, freeze=True, level=1,
-                                                obs_range=None, obs_index=prim_obs_index,
-                                                act_range=None, act_index=[1],
+                                                obs_range=None, obs_index=[2,5],
+                                                act_range=None, act_index=[1], act_scale=1,
                                                 layer_structure=None,
+                                                obs_relativity={'subtract':{'ref':[5], 'tar':[2]}},
                                                 loaded_policy=SAC_MULTI._load_from_file(policy_zip_path), 
-                                                load_value=True)
+                                                load_value=False)
 
             total_obs_dim = 6
             number_of_primitives = 4
             model.construct_primitive_info(name='weight', freeze=False, level=1,
                                                 obs_range=0, obs_index=list(range(total_obs_dim)),
-                                                act_range=0, act_index=list(range(number_of_primitives)),
-                                                layer_structure={'policy':[512, 256, 256],'value':[512, 256, 256]})
+                                                act_range=0, act_index=list(range(number_of_primitives)), act_scale=None,
+                                                obs_relativity={},
+                                                layer_structure={'policy':[64, 64],'value':[64, 64]})
             
             model_configuration['learning_rate'] = _lr_scheduler
             model = SAC_MULTI.pretrainer_load(model=model, policy=MlpPolicy_sac, env=env, **model_configuration)
@@ -390,15 +396,24 @@ if __name__ == '__main__':
 
     else:
         if separate:
-            trial = 83
+            trial = 89
 
             prefix2 = env_configuration['action']+"_separate_trial"+str(trial)
             env_configuration['policy_name'] = prefix2
             env = Manipulator2D(**env_configuration)
 
-            policy_num = 1000000
-            model_dict = {'layers': model_configuration['layers'], 'box_dist': model_configuration['box_dist'], 'policy_kwargs': model_configuration['policy_kwargs']}
-            model = SAC_MULTI.load(model_path+prefix+prefix2+"/policy_"+str(policy_num), **model_dict)
+            policy_num = 2265473
+            # policy_num = 1330177
+            # policy_num = 152577
+            net_arch = {'pi': model_configuration['layers']['policy'], 'vf': model_configuration['layers']['value']}
+            obs_relativity = {'subtract':{'ref':[3,4],'tar':[0,1]}}
+            obs_index = [0,1,2,3,4]
+            # obs_relativity = {'subtract':{'ref':[1],'tar':[0]}}
+            # obs_index = [0,1]
+            policy_kwargs = {'net_arch': [net_arch], 'obs_relativity':obs_relativity, 'obs_index':obs_index}
+            policy_kwargs.update(model_configuration['policy_kwargs'])
+            model_dict = {'layers': model_configuration['layers'], 'policy_kwargs': policy_kwargs}
+            model = PPO2.load(model_path+prefix+prefix2+"/policy_"+str(policy_num), **model_dict)
 
             print("\033[91mTest Starts\033[0m")
             for i in range(10):
@@ -413,7 +428,7 @@ if __name__ == '__main__':
             print("\033[91mTest Finished\033[0m")
 
         else:
-            trial = 44
+            trial = 89
             prefix2 = env_configuration['action']+"_auxilary_trial"+str(trial)
 
             env = Manipulator2D(**env_configuration)
@@ -424,11 +439,12 @@ if __name__ == '__main__':
                 observation_index = list(range(6))
             elif env_configuration['observation_method'] == 'relative':
                 observation_index = list(range(3))
-            policy_num = 1000000
+            policy_num = 1100000
             policy_zip_path = model_path+prefix+prefix2+"/policy_"+str(policy_num)+".zip"
             model.construct_primitive_info(name=None, freeze=True, level=1,
                                                 obs_range=None, obs_index=observation_index,
-                                                act_range=None, act_index=[0, 1],
+                                                act_range=None, act_index=[0, 1], act_scale=1,
+                                                obs_relativity={},
                                                 layer_structure=None,
                                                 loaded_policy=SAC_MULTI._load_from_file(policy_zip_path), 
                                                 load_value=True)

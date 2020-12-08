@@ -24,6 +24,7 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
         except Exception:
             print("Using default max_steps: 500")
             self.max_steps = 500
+        self.num_step_pass = 30  #0.15s per step
 
         ## Observations
         end_effector_pose_max = [2]*6   #[0:6]
@@ -55,7 +56,7 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
             pose_act = np.array([self.pose_action_space_max]*6)             # x,y,z,r,p,y
             self.act_max = pose_act
             self.act_min = -pose_act
-        elif kwargs.get('task', None) == 'grasping':
+        elif kwargs.get('task', 'grasping') == 'grasping':
             pose_act = np.array([self.pose_action_space_max]*6)             # x,y,z,r,p,y
             gripper_act_max = np.array([self.gripper_action_space_max]*2)   # g1, g2
             gripper_act_min = np.array([self.gripper_action_space_min]*2)
@@ -72,10 +73,10 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
 
         ### ------------  LOGGING  ------------ ###
         self.log_save = False
-        if kwargs['train_log']:
-            log_dir = kwargs['log_dir']
-            self.log_save = True
-            self.joint_angle_log = open(log_dir+"/training_log.txt", 'w')
+        # if kwargs['train_log']:
+        #     log_dir = kwargs['log_dir']
+        #     self.log_save = True
+        #     self.joint_angle_log = open(log_dir+"/training_log.txt", 'w')
 
 
     def reset(self):
@@ -95,10 +96,9 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
         return self.pose_action_space_max
 
     def step(self, action, log=True):
-        num_step_pass = 30  #0.15s per step
         action = np.clip(action, self.act_min, self.act_max)
         self.take_action(action)
-        for _ in range(num_step_pass):
+        for _ in range(self.num_step_pass):
             self._step_simulation()
 
         self.make_observation()
@@ -108,7 +108,8 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
         if self.current_steps % 10 == 0:
             self.logging(self.obs, self.prev_obs, action, wb, total_reward) if log else None
         self.prev_obs = self.obs
-        if np.any(np.isnan(self.obs)):
+        if np.any(np.isnan(self.obs)) or np.any(np.isnan(total_reward)):
+            print("WARNING: NAN in obs, resetting.")
             self.obs = self.reset()
             total_reward = 0
             done = True

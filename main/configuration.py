@@ -10,7 +10,7 @@ action_option = ['linear', 'angular', 'angular_adj', 'fused', 'pickAndplace']
 observation_option = ['absolute', 'relative']
 reward_option = ['target', 'time', 'sparse', None]
 
-env_configuration['action'] = action_option[0]
+env_configuration['action'] = action_option[3]
 env_configuration['n_robots'] = 1
 env_configuration['n_target'] = 1
 env_configuration['arm1'] = 1
@@ -30,7 +30,7 @@ layer_structure_list = [[256, 256, 128, 128, 128, 64, 64], \
                         [512, 256, 256, 512], [256, 256, 128, 128], [128, 64, 64, 32], [64, 64, 32, 32], \
                         [512, 256, 256], [256, 256, 128], [128, 128, 128], \
                         [256, 256], [128, 128], [64, 64]]
-layer_structure = layer_structure_list[-2]
+layer_structure = layer_structure_list[-1]
 layers = {"policy": layer_structure, "value": layer_structure}
 
 model_configuration['learning_starts'] = 100
@@ -45,16 +45,22 @@ model_configuration['ent_coef'] = 'auto'
 model_configuration['train_freq'] = 1
 model_configuration['gradient_steps'] = 1
 model_configuration['verbose'] = 1
-# model_configuration['box_dist'] = 'gaussian'
-model_configuration['box_dist'] = 'beta'
+model_configuration['box_dist'] = 'gaussian'
+# model_configuration['box_dist'] = 'beta'
 model_configuration['random_exploration'] = 0.05
 #model_configuration['sa_coupler_index'] = [0,1]
 model_configuration['policy_kwargs'] = {'act_fun':tf.nn.swish}
-pretrain_configuration['n_epochs'] = 15000
-pretrain_configuration['learning_rate'] = 5e-5
-pretrain_configuration['val_interval'] = 100
+pretrain_configuration['n_epochs'] = 1000
+pretrain_configuration['learning_rate'] = 5e-3
+pretrain_configuration['val_interval'] = 1
 #####################################################################################################
-info['non_lin'] = 'grasp coef to 1 from 3'
+info['non_lin'] = 'dist - coef: 5, th: 0.2\n\
+                   \t\tangle - coef: 2, th: pi/6\n\
+                   \t\theight - coef: 100\n\
+                   \t\tgrasp - coef: 5, value: 0.5\n\
+                   \t\tscale - coef: 0.05\n\
+                   \t\tAdded hand collision cost\n\
+                   \t\tobs z added'
 # info['Additional Info']= \
 #             'Reset from random initial pos\n\
 #             \t\tAgent roates a bit less\n\
