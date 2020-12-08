@@ -402,12 +402,12 @@ class RL_controller:
         self.args.task = task_list[1]
         env = JacoMujocoEnv(**vars(self.args))
         # prefix = self.args.task + "_trained_at_11_27_18:25:54/policy_9999105.zip"
-        # prefix = self.args.task + '_trained_from_expert_at_12_7_17:32:31/policy_4000.zip'
-        prefix = self.args.task + '_trained_at_12_8_8:41:4/policy_152577.zip'
+        prefix = self.args.task + '_trained_at_12_8_9:9:21/policy_485889.zip'
 
         model_dir = self.model_path + prefix
         test_iter = 100
-        # self.model = SAC_MULTI.pretrainer_load(model_dir)
+        # self.model = SAC_MULTI.load(model_dir)
+        # self.model = SAC_MULTI.pretrainer_load(model_dir, MlpPolicy_sac, env)
         self.model = PPO1.load(model_dir)
         for _ in range(test_iter):
             obs = env.reset()
@@ -415,7 +415,7 @@ class RL_controller:
             while not done:
                 action, _ = self.model.predict(obs)
                 obs, reward, done, _ = env.step(action, log=False)
-                print(reward, end='\r')
+                # print(reward, end='\r')
     
     def generate(self):
         pass
@@ -424,8 +424,8 @@ class RL_controller:
 if __name__ == "__main__":
     controller = RL_controller()
     # controller.train_from_scratch()
-    # controller.train_from_scratch_2()
-    controller.train_from_scratch_3()
+    controller.train_from_scratch_2()
+    # controller.train_from_scratch_3()
     # controller.train_from_expert()
     # controller.generate_traj()
     # controller.test()

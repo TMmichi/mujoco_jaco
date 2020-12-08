@@ -272,7 +272,7 @@ class JacoMujocoEnvUtil:
                 if self._get_touch() == 1:
                     reward += grasp_coef * grasp_value
                 elif self._get_touch() == 2:
-                    reward -= grasp_coef * grasp_value
+                    reward -= grasp_coef * grasp_value * 0.1
                 reward +=  height_coef * (self.interface.get_xyz('object_body')[2] - 0.37)     # pick reward
                 return reward * scale_coef
             elif self.task == 'picking':
