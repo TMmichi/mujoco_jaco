@@ -38,8 +38,8 @@ model_configuration['layers'] = layers
 model_configuration['batch_size'] = 1000
 model_configuration['buffer_size'] = 50000
 model_configuration['gamma'] = 0.99
-model_configuration['learning_rate'] = 0.0003
-# model_configuration['learning_rate'] = 1e-5
+# model_configuration['learning_rate'] = 0.0003
+model_configuration['learning_rate'] = 1e-5
 model_configuration['ent_coef'] = 'auto'
 # model_configuration['ent_coef'] = 0.0001
 model_configuration['train_freq'] = 1
@@ -50,9 +50,9 @@ model_configuration['box_dist'] = 'gaussian'
 model_configuration['random_exploration'] = 0.05
 #model_configuration['sa_coupler_index'] = [0,1]
 model_configuration['policy_kwargs'] = {'act_fun':tf.nn.swish}
-pretrain_configuration['n_epochs'] = 1000
-pretrain_configuration['learning_rate'] = 5e-3
-pretrain_configuration['val_interval'] = 1
+pretrain_configuration['n_epochs'] = 20000
+pretrain_configuration['learning_rate'] = 5e-5
+pretrain_configuration['val_interval'] = 100
 #####################################################################################################
 info['non_lin'] = 'dist - coef: 5, th: 0.2\n\
                    \t\tangle - coef: 2, th: pi/6\n\

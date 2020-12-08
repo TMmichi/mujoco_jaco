@@ -219,7 +219,7 @@ class RL_controller:
         self.args.robot_file = "jaco2_curtain_torque"
         env = JacoMujocoEnv(**vars(self.args))        
         traj_dict = np.load(self.model_path+'trajectories/'+self.args.task+"_trajectory_expert2.npz", allow_pickle=True)
-        dataset = ExpertDataset(traj_data=traj_dict, batch_size=1024)
+        dataset = ExpertDataset(traj_data=traj_dict, batch_size=16384)
         
         net_arch = {'pi': model_configuration['layers']['policy'], 'vf': model_configuration['layers']['value']}
         if self.args.task is 'reaching':
@@ -424,8 +424,9 @@ class RL_controller:
 if __name__ == "__main__":
     controller = RL_controller()
     # controller.train_from_scratch()
-    # controller.train_from_scratch_2()
-    # controller.train_from_scratch_3()
     controller.train_from_expert()
+    controller.train_from_scratch_2()
+    # controller.train_from_scratch_3()
+    # controller.train_from_expert()
     # controller.generate_traj()
     # controller.test()
