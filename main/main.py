@@ -218,7 +218,7 @@ class RL_controller:
         # self._open_connection()
         self.args.robot_file = "jaco2_curtain_torque"
         env = JacoMujocoEnv(**vars(self.args))        
-        traj_dict = np.load(self.model_path+'trajectories/'+self.args.task+"_trajectory_expert1.npz", allow_pickle=True)
+        traj_dict = np.load(self.model_path+'trajectories/'+self.args.task+"_trajectory_expert2.npz", allow_pickle=True)
         dataset = ExpertDataset(traj_data=traj_dict, batch_size=16384)
         
         net_arch = {'pi': model_configuration['layers']['policy'], 'vf': model_configuration['layers']['value']}
@@ -226,7 +226,7 @@ class RL_controller:
             obs_relativity = {'subtract':{'ref':[14,15,16,17,18,19],'tar':[0,1,2,3,4,5]}}
             obs_index = [0,1,2,3,4,5, 14,15,16,17,18,19]
         elif self.args.task is 'grasping':
-            obs_relativity = {'subtract':{'ref':[8,9,10],'tar':[0,1,2]}}
+            obs_relativity = {'subtract':{'ref':[8,9,10],'tar':[0,1,2]}, 'leave':[2]}
             obs_index = [0,1,2,3,4,5, 6,7, 8,9,10]
         policy_kwargs = {'net_arch': [net_arch], 'obs_relativity':obs_relativity, 'obs_index':obs_index}
         policy_kwargs.update(model_configuration['policy_kwargs'])
@@ -307,7 +307,7 @@ class RL_controller:
         self._open_connection()
         self.args.robot_file = "jaco2_curtain_torque"
         env = JacoMujocoEnv(**vars(self.args))
-        traj_dict = generate_expert_traj(self._expert_3d, self.model_path+'/trajectories/'+self.args.task+'_trajectory_expert1', env, n_episodes=100)
+        traj_dict = generate_expert_traj(self._expert_3d, self.model_path+'/trajectories/'+self.args.task+'_trajectory_expert2', env, n_episodes=100)
         self._close_connection()
 
 
@@ -402,7 +402,7 @@ class RL_controller:
         self.args.task = task_list[1]
         env = JacoMujocoEnv(**vars(self.args))
         # prefix = self.args.task + "_trained_at_11_27_18:25:54/policy_9999105.zip"
-        prefix = self.args.task + '_trained_from_expert_at_12_7_20:3:6/policy_12150.zip'
+        prefix = self.args.task + '_trained_at_12_8_8:41:4/policy_1176577.zip'
 
         model_dir = self.model_path + prefix
         test_iter = 100
@@ -424,12 +424,9 @@ class RL_controller:
 if __name__ == "__main__":
     controller = RL_controller()
     # controller.train_from_scratch()
-<<<<<<< HEAD
     controller.train_from_expert()
-=======
     controller.train_from_scratch_2()
     # controller.train_from_scratch_3()
     # controller.train_from_expert()
->>>>>>> ef4572d5b24303d381cb613dff1042a6157a1c78
     # controller.generate_traj()
     # controller.test()
