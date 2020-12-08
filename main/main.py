@@ -402,12 +402,8 @@ class RL_controller:
         self.args.task = task_list[1]
         env = JacoMujocoEnv(**vars(self.args))
         # prefix = self.args.task + "_trained_at_11_27_18:25:54/policy_9999105.zip"
-<<<<<<< HEAD
         prefix = self.args.task + '_trained_from_expert_at_12_7_20:3:6/policy_12150.zip'
-=======
-        prefix = self.args.task + '_trained_at_12_8_9:9:21/policy_485889.zip'
 
->>>>>>> ef4572d5b24303d381cb613dff1042a6157a1c78
         model_dir = self.model_path + prefix
         test_iter = 100
         # self.model = SAC_MULTI.load(model_dir)
