@@ -24,7 +24,7 @@ class JacoMujocoEnvUtil:
     def __init__(self, controller=True, **kwargs):
         ### ------------  MODEL CONFIGURATION  ------------ ###
         self.n_robots = kwargs.get('n_robots', 1)
-        robot_file = kwargs.get('robot_file', None)
+        robot_file = kwargs.get('robot_file', "jaco2_curtain_torque")
         if robot_file == None:
             n_robot_postfix = ['', '_dual', '_tri']    
             try:
@@ -32,17 +32,18 @@ class JacoMujocoEnvUtil:
             except Exception:
                 raise NotImplementedError("\n\t\033[91m[ERROR]: xml_file of the given number of robots doesn't exist\033[0m")
         else:
-            xml_name = kwargs['robot_file']
+            xml_name = robot_file
         
         self.jaco = MujocoConfig(xml_name, n_robots=self.n_robots)
         self.interface = Mujoco(self.jaco, dt=0.005, visualize=False, create_offscreen_rendercontext=False)
         self.interface.connect()
         self.base_position = self.__get_property('link1', 'position')
-        self.gripper_angle_1 = 1.3
-        self.gripper_angle_2 = 1.3
+        self.gripper_angle_1 = 5.5
+        self.gripper_angle_2 = 5.5
         self.ctrl_type = self.jaco.ctrl_type
-        self.task = kwargs.get('task', None)
+        self.task = kwargs.get('task', 'grasping')
         self.num_episodes = 0
+        self.metadata = []
 
         ### ------------  STATE GENERATION  ------------ ###
         self.package_path = str(Path(__file__).resolve().parent.parent)
@@ -259,7 +260,7 @@ class JacoMujocoEnvUtil:
                 angle_th = np.pi/6
                 height_coef = 100
                 grasp_coef = 5
-                grasp_value = 0.3
+                grasp_value = 0.5
                 scale_coef = 0.05
                 x,y,z = self.obj_goal[0] - self.gripper_pose[0][:3]
                 obj_diff = np.linalg.norm([x,y,z])
@@ -271,7 +272,7 @@ class JacoMujocoEnvUtil:
                 if self._get_touch() == 1:
                     reward += grasp_coef * grasp_value
                 elif self._get_touch() == 2:
-                    reward -= grasp_coef * grasp_value
+                    reward -= grasp_coef * grasp_value * 0.1
                 reward +=  height_coef * (self.interface.get_xyz('object_body')[2] - 0.37)     # pick reward
                 return reward * scale_coef
             elif self.task == 'picking':

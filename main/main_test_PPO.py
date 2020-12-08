@@ -3,8 +3,7 @@ import time
 import path_config
 from configuration import pretrain_configuration
 from pathlib import Path
-from collections import OrderedDict
-#os.environ['CUDA_VISIBLE_DEVICES']='3'
+from configuration import env_configuration, model_configuration, pretrain_configuration, info, total_time_step
 
 import numpy as np
 import tensorflow as tf
@@ -19,20 +18,22 @@ from stable_baselines.common.vec_env import SubprocVecEnv
 from stable_baselines.common import set_global_seeds
 
 
-def _write_log(model_log, info):
+def _write_log(save_path, info, trial):
+    model_log = open(save_path+"/model_log.txt", 'w')
+    model_log.writelines("Trial: "+str(trial))
     if info['layers'] != None:
         model_log.writelines("Layers:\n")
         model_log.write("\tpolicy:\t[")
-        for i in range(len(info['layers']['pi'])):
-            model_log.write(str(info['layers']['pi'][i]))
-            if i != len(info['layers']['pi'])-1:
+        for i in range(len(info['layers']['policy'])):
+            model_log.write(str(info['layers']['policy'][i]))
+            if i != len(info['layers']['policy'])-1:
                 model_log.write(", ")
             else:
                 model_log.writelines("]\n")
         model_log.write("\tvalue:\t[")
-        for i in range(len(info['layers']['vf'])):
-            model_log.write(str(info['layers']['vf'][i]))
-            if i != len(info['layers']['vf'])-1:
+        for i in range(len(info['layers']['value'])):
+            model_log.write(str(info['layers']['value'][i]))
+            if i != len(info['layers']['value'])-1:
                 model_log.write(", ")
             else:
                 model_log.writelines("]\n\n")
@@ -40,6 +41,7 @@ def _write_log(model_log, info):
     
     for name, item in info.items():
         model_log.writelines(name+":\t\t{0}\n".format(item))
+    model_log.close()
 
 def make_env(rank, seed=0, **kwargs):
     def _init():
@@ -62,65 +64,50 @@ if __name__ == '__main__':
     os.makedirs(model_dir, exist_ok=True)
 
     train = True
-    scratch = True
+    scratch = False
 
     if train:
-        action_option = ['linear', 'angular', 'fused', 'pickAndplace']
-        observation_option = ['absolute', 'relative']
-        reward_option = ['target', 'time', 'sparse', None]
-        action = action_option[0]
-        trial = 76
+        trial = 89
 
-        prefix2 = action+"_separate_trial"+str(trial)
+        prefix2 = env_configuration['action']+"_separate_trial"+str(trial)
         save_path = model_dir+prefix2
         os.makedirs(save_path, exist_ok=True)
+        env_configuration['policy_name'] = prefix2
 
-        n_robots = 1
-        n_target = 1
-        tol = 0.1
-        episode_length = 2000
-        reward_method = reward_option[2]
-        observation_method = observation_option[0]
-        info_dict = {'action': action, 'n_robots': n_robots, 'n_target':n_target, 'tol':tol, 
-                    'episode_length':episode_length, 'reward_method':reward_method, 'observation_method':observation_method, 
-                    'policy_name':prefix2}
-        num_cpu = 2
-        env = SubprocVecEnv([make_env(i, **info_dict) for i in range(num_cpu)])
-        #env = Manipulator2D(visualize=False, **info_dict)
-        
-        layer_structure_list = [[256, 256, 128, 128, 128, 64, 64], \
-                                [256, 256, 128, 128, 64], [128, 128, 64, 64, 32], [64, 128, 256, 128, 64], \
-                                [256, 256, 128, 128], [128, 64, 64, 32], [64, 64, 32, 32], \
-                                [512, 256, 256], [256, 256, 128], [128, 128, 128], \
-                                [256, 256], [128, 128]]
-        layer_structure = layer_structure_list[7]
-        net_arch = {"pi": layer_structure, "vf": layer_structure}
-        policy_kwargs={'net_arch': [net_arch], 'act_fun': tf.nn.swish, 'squash':False, 'box_dist': 'beta'}
+        num_cpu = 8
+        # env = SubprocVecEnv([make_env(i, **env_configuration) for i in range(num_cpu)])
+        env = Manipulator2D(**env_configuration)
+        model_configuration['tensorboard_log'] = save_path
 
-        total_time_step = 50000000
-        model_dict = {'learning_rate': _lr_scheduler, 'gamma': 0.99, 'n_steps': 4096, 'nminibatches': 1024, 'cliprange': 0.02,
-                        'tensorboard_log': save_path, 'policy_kwargs': policy_kwargs, 'verbose':1}
+        net_arch = {'pi': model_configuration['layers']['policy'], 'vf': model_configuration['layers']['value']}
+        obs_relativity = {'subtract':{'ref':[3,4],'tar':[0,1]}}
+        # obs_relativity = {'subtract':{'ref':[1],'tar':[0]}}
+        obs_index = [0,1,2,3,4]
+        policy_kwargs = {'net_arch': [net_arch], 'obs_relativity':obs_relativity, 'obs_index':obs_index}
+        policy_kwargs.update(model_configuration['policy_kwargs'])
+        model_dict = {'gamma': 0.99, 'tensorboard_log': save_path, 'policy_kwargs': policy_kwargs, 'verbose':1}
+
         if scratch:
-            # print("traj loading")
-            # traj_dict = np.load(model_dir+action+"_10000.npz", allow_pickle=True)
-            # print("traj loaded")
-            # dataset = ExpertDataset(traj_data=traj_dict, batch_size=1024)
-            # print("dataset formed")
             model = PPO2(MlpPolicy, env, **model_dict)
             print("model created")
-            #model.pretrain(dataset, **pretrain_configuration)
+            _write_log(save_path, info, trial)
+            model.learn(total_timesteps=total_time_step, save_interval=50, save_path=save_path)
         else:
-            load_policy_num = 49741825
-            path = save_path+'/policy_'+str(load_policy_num)
-            print("loaded_policy_path: ",path)
-            model = PPO2.load(path, env=env, **model_dict)
+            traj_dict = np.load(model_dir+env_configuration['action']+"_10000.npz", allow_pickle=True)
+            dataset = ExpertDataset(traj_data=traj_dict, batch_size=32764)
+            model = PPO2(MlpPolicy, env, **model_dict)
+            model.pretrain(dataset, **pretrain_configuration)
+            model.save(save_path+"/policy_0")
+            del dataset
+            _write_log(save_path, info, trial)
+            model.learn(total_timesteps=total_time_step, save_interval=50, save_path=save_path)
 
-        print("\033[91mTraining Starts, action: {0}\033[0m".format(action))
-        if scratch:
-            model.learn(total_time_step, save_interval=int(total_time_step*0.05), save_path=save_path)
-        else:
-            model.learn(total_time_step, loaded_step_num=load_policy_num, save_interval=int(total_time_step*0.05), save_path=save_path)
-        print("\033[91mTraining finished\033[0m")
+        # print("\033[91mTraining Starts, action: {0}\033[0m".format(action))
+        # if scratch:
+        #     model.learn(total_time_step, save_interval=int(total_time_step*0.05), save_path=save_path)
+        # else:
+        #     model.learn(total_time_step, loaded_step_num=load_policy_num, save_interval=int(total_time_step*0.05), save_path=save_path)
+        # print("\033[91mTraining finished\033[0m")
 
     else:
         action_list = ['linear', 'angular', 'fused', 'pickAndplace']

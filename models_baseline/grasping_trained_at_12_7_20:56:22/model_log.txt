@@ -2,11 +2,12 @@ Layers:
 	policy:	[64, 64]
 	value:	[64, 64]
 
-non_lin:		swish
-Additional Info:		grasp coef to 5 from 3
-                        		grasp value to 0.3 from 0.1
-                        		dist_coef to 5 from 3
-                        		Scale coef to 0.05 from 0.5
+non_lin:		dist - coef: 5, th: 0.2
+                   		angle - coef: 2, th: pi/6
+                   		height - coef: 100
+                   		grasp - coef: 5, value: 0.5
+                   		scale - coef: 0.05
+                   Added hand collision cost
 action:		angular_adj
 total_time_steps:		5000000
 batch_size:		1000

@@ -104,8 +104,8 @@ class Transformation:
 
 
 class Manipulator2D(gym.Env):
-    def __init__(self, action=None, n_robots=1, n_target=1, arm1=1, arm2=1, dt=0.01, tol=0.1, 
-                    episode_length=1500, reward_method=None, observation_method='relative', her=False, policy_name='', visualize=False):
+    def __init__(self, action=None, n_robots=1, n_target=1, arm1=1, arm2=1, dt=0.05, tol=0.1, 
+                    episode_length=1500, reward_method=None, observation_method='absolute', her=False, policy_name='', visualize=False):
         self.env_boundary = 5
         self.action_type = action
         self.observation_method = observation_method
@@ -126,7 +126,7 @@ class Manipulator2D(gym.Env):
         
         if self.action_type == 'linear':
             if observation_method == 'absolute':
-                self.obs_high = np.array([self.env_boundary, self.env_boundary, np.pi, self.env_boundary, self.env_boundary, np.pi])
+                self.obs_high = np.array([self.env_boundary, self.env_boundary, np.pi, self.env_boundary, self.env_boundary])
                 self.obs_low = -self.obs_high
             elif observation_method == 'relative':
                 self.obs_high = np.array([float('inf'), np.pi])
@@ -135,7 +135,7 @@ class Manipulator2D(gym.Env):
             self.action_low = np.array([-1])
         elif self.action_type == 'angular':
             if observation_method == 'absolute':
-                self.obs_high = np.array([self.env_boundary, self.env_boundary, np.pi, self.env_boundary, self.env_boundary, np.pi])
+                self.obs_high = np.array([self.env_boundary, self.env_boundary, np.pi, self.env_boundary, self.env_boundary])
                 self.obs_low = -self.obs_high
             elif observation_method == 'relative':
                 self.obs_high = np.array([float('inf'), np.pi])
@@ -144,7 +144,7 @@ class Manipulator2D(gym.Env):
             self.action_low = np.array([-np.pi])
         elif self.action_type == 'angular_adj':
             if observation_method == 'absolute':
-                self.obs_high = np.array([self.env_boundary, self.env_boundary, np.pi, self.env_boundary, self.env_boundary, np.pi])
+                self.obs_high = np.array([np.pi, np.pi])
                 self.obs_low = -self.obs_high
             elif observation_method == 'relative':
                 self.obs_high = np.array([float('inf'), np.pi])
@@ -572,8 +572,7 @@ class Manipulator2D(gym.Env):
                         self.accum_succ += 1
                         print("\033[92m  SUCCEEDED\033[0m")      
                     else:
-                        #reward = np.exp(-(l-self.tol)**2*0.25)*0.01 + np.exp(-(angle_diff/np.pi/max(l,1))**2*0.25)*0.01
-                        reward = 1/(l+0.5) * 0.002 + (np.pi+2)/(angle_diff+1) * 0.001
+                        reward = np.exp(-(l-self.tol)**2*0.25)*0.01 + np.exp(-(angle_diff/np.pi/max(l,1))**2*0.25)*0.01
         elif self.action_type == 'pickAndplace':
             if self.crash_check():
                 reward = -100
@@ -733,7 +732,28 @@ class Manipulator2D(gym.Env):
                         ('achieved_goal', [0]),
                         ('desired_goal', [1])])
         else:
-            if self.action_type in ['linear', 'angular', 'angular_adj', 'fused']:
+            if self.action_type in ['linear', 'angular']:
+                if self.observation_method == 'absolute':
+                    state = self.robot_tf.get_translation()
+                    state = np.append(state, self.robot_tf.euler_angle())
+                    state = np.append(state, self.target_tf[0].get_translation())
+                    return state
+                elif self.observation_method == 'relative':
+                    if self.action_type in ['linear', 'angular']:
+                        return np.array([dist, ang])
+                    else:
+                        return np.array([dist, ang, angle_diff])
+            elif self.action_type == 'angular_adj':
+                if self.observation_method == 'absolute':
+                    state = np.array(self.robot_tf.euler_angle())
+                    state = np.append(state, self.target_tf[0].euler_angle())
+                    return state
+                elif self.observation_method == 'relative':
+                    if self.action_type in ['linear', 'angular']:
+                        return np.array([dist, ang])
+                    else:
+                        return np.array([dist, ang, angle_diff])
+            elif self.action_type == 'fused':
                 if self.observation_method == 'absolute':
                     state = self.robot_tf.get_translation()
                     state = np.append(state, self.robot_tf.euler_angle())
@@ -768,7 +788,7 @@ class Manipulator2D(gym.Env):
 
     def calculate_desired_action(self, obs):
         robot_tf = Transformation(translation=obs[:2],rotation=obs[2])
-        target_tf = Transformation(translation=obs[3:5],rotation=obs[5])
+        target_tf = Transformation(translation=obs[3:5],rotation=0)
         mat_target_robot = robot_tf.inv()*target_tf
         if self.action_type == 'linear':
             target_vector = np.dot(mat_target_robot.get_translation(), np.array([1,0])) * np.array([1,0])

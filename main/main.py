@@ -65,7 +65,7 @@ class RL_controller:
         os.makedirs(self.model_path, exist_ok=True)
         
         self.steps_per_batch = 100
-        self.batches_per_episodes = 20
+        self.batches_per_episodes = 5
         args.steps_per_batch = self.steps_per_batch
         args.batches_per_episodes = self.batches_per_episodes
         self.num_episodes = 10000
@@ -92,7 +92,8 @@ class RL_controller:
             obs_relativity = {'subtract':{'ref':[14,15,16,17,18,19],'tar':[0,1,2,3,4,5]}}
             obs_index = [0,1,2,3,4,5, 14,15,16,17,18,19]
         elif self.args.task in ['grasping','carrying']:
-            obs_relativity = {'subtract':{'ref':[8,9,10],'tar':[0,1,2]}}
+            # obs_relativity = {'subtract':{'ref':[8,9,10],'tar':[0,1,2]}}
+            obs_relativity = {'subtract':{'ref':[8,9,10],'tar':[0,1,2]}, 'leave':[2]}
             obs_index = [0,1,2,3,4,5, 6,7, 8,9,10]
         policy_kwargs = {'net_arch': [net_arch], 'obs_relativity':obs_relativity, 'obs_index':obs_index}
         policy_kwargs.update(model_configuration['policy_kwargs'])
@@ -105,6 +106,81 @@ class RL_controller:
         print("\033[91mTraining Starts\033[0m")
         self.num_timesteps = self.steps_per_batch * self.batches_per_episodes * self.num_episodes
         self.trainer.learn(total_timesteps=self.num_timesteps, save_interval=50, save_path=model_dir)
+        print("\033[91mTrain Finished\033[0m")
+        self.trainer.save(model_dir+"/policy")
+
+    def train_from_scratch_2(self):
+        print("Training from scratch called")
+        self.args.train_log = False
+        task_list = ['reaching', 'grasping', 'picking', 'carrying', 'releasing', 'placing', 'pushing']
+        self.args.task = task_list[1]
+        prefix = self.args.task+"_trained_at_" + str(time.localtime().tm_mon) + "_" + str(time.localtime().tm_mday)\
+            + "_" + str(time.localtime().tm_hour) + ":" + str(time.localtime().tm_min) + ":" + str(time.localtime().tm_sec)
+        model_dir = self.model_path + prefix
+        os.makedirs(model_dir, exist_ok=True)
+
+        self.args.log_dir = model_dir
+        self.args.robot_file = "jaco2_curtain_torque"
+        self.args.n_robots = 1
+        
+        env_list = []
+        for i in range(4):
+            env_list.append(JacoMujocoEnv)
+        env = DummyVecEnv(env_list)
+        env = VecNormalize(env)
+        
+        net_arch = {'pi': model_configuration['layers']['policy'], 'vf': model_configuration['layers']['value']}
+        if self.args.task is 'reaching':
+            obs_relativity = {'subtract':{'ref':[14,15,16,17,18,19],'tar':[0,1,2,3,4,5]}}
+            obs_index = [0,1,2,3,4,5, 14,15,16,17,18,19]
+        elif self.args.task in ['grasping','carrying']:
+            # obs_relativity = {'subtract':{'ref':[8,9,10],'tar':[0,1,2]}}
+            obs_relativity = {'subtract':{'ref':[8,9,10],'tar':[0,1,2]}, 'leave':[2]}
+            obs_index = [0,1,2,3,4,5, 6,7, 8,9,10]
+        policy_kwargs = {'net_arch': [net_arch], 'obs_relativity':obs_relativity, 'obs_index':obs_index}
+        policy_kwargs.update(model_configuration['policy_kwargs'])
+        model_dict = {'gamma': 0.99, 'tensorboard_log': model_dir, 'policy_kwargs': policy_kwargs}
+        self.trainer = PPO2(MlpPolicy, env, **model_dict)
+        
+        self._write_log(model_dir, info)
+        print("\033[91mTraining Starts\033[0m")
+        self.num_timesteps = self.steps_per_batch * self.batches_per_episodes * self.num_episodes
+        self.trainer.learn(total_timesteps=self.num_timesteps, save_interval=50, save_path=model_dir)
+        print("\033[91mTrain Finished\033[0m")
+        self.trainer.save(model_dir+"/policy")
+    
+    def train_from_scratch_3(self):
+        print("Training from scratch called")
+        self.args.train_log = False
+        task_list = ['reaching', 'grasping', 'picking', 'carrying', 'releasing', 'placing', 'pushing']
+        self.args.task = task_list[1]
+        prefix = self.args.task+"_trained_at_" + str(time.localtime().tm_mon) + "_" + str(time.localtime().tm_mday)\
+            + "_" + str(time.localtime().tm_hour) + ":" + str(time.localtime().tm_min) + ":" + str(time.localtime().tm_sec)
+        model_dir = self.model_path + prefix
+        os.makedirs(model_dir, exist_ok=True)
+
+        self.args.log_dir = model_dir
+        self.args.robot_file = "jaco2_curtain_torque"
+        self.args.n_robots = 1
+        env = JacoMujocoEnv(**vars(self.args))
+        
+        net_arch = {'pi': model_configuration['layers']['policy'], 'vf': model_configuration['layers']['value']}
+        if self.args.task is 'reaching':
+            obs_relativity = {'subtract':{'ref':[14,15,16,17,18,19],'tar':[0,1,2,3,4,5]}}
+            obs_index = [0,1,2,3,4,5, 14,15,16,17,18,19]
+        elif self.args.task in ['grasping','carrying']:
+            # obs_relativity = {'subtract':{'ref':[8,9,10],'tar':[0,1,2]}}
+            obs_relativity = {'subtract':{'ref':[8,9,10],'tar':[0,1,2]}, 'leave':[2]}
+            obs_index = [0,1,2,3,4,5, 6,7, 8,9,10]
+        policy_kwargs = {'net_arch': [net_arch], 'obs_relativity':obs_relativity, 'obs_index':obs_index}
+        policy_kwargs.update(model_configuration['policy_kwargs'])
+        model_dict = {'gamma': 0.99, 'tensorboard_log': model_dir, 'policy_kwargs': policy_kwargs}
+        self.trainer = SAC_MULTI(MlpPolicy_sac, env, **model_dict)
+        
+        self._write_log(model_dir, info)
+        print("\033[91mTraining Starts\033[0m")
+        self.num_timesteps = self.steps_per_batch * self.batches_per_episodes * self.num_episodes
+        self.trainer.learn(total_timesteps=self.num_timesteps, save_interval=10000, save_path=model_dir)
         print("\033[91mTrain Finished\033[0m")
         self.trainer.save(model_dir+"/policy")
 
@@ -326,10 +402,16 @@ class RL_controller:
         self.args.task = task_list[1]
         env = JacoMujocoEnv(**vars(self.args))
         # prefix = self.args.task + "_trained_at_11_27_18:25:54/policy_9999105.zip"
+<<<<<<< HEAD
         prefix = self.args.task + '_trained_from_expert_at_12_7_20:3:6/policy_12150.zip'
+=======
+        prefix = self.args.task + '_trained_at_12_8_9:9:21/policy_485889.zip'
+
+>>>>>>> ef4572d5b24303d381cb613dff1042a6157a1c78
         model_dir = self.model_path + prefix
         test_iter = 100
-        # self.model = SAC_MULTI.pretrainer_load(model_dir)
+        # self.model = SAC_MULTI.load(model_dir)
+        # self.model = SAC_MULTI.pretrainer_load(model_dir, MlpPolicy_sac, env)
         self.model = PPO1.load(model_dir)
         for _ in range(test_iter):
             obs = env.reset()
@@ -337,7 +419,7 @@ class RL_controller:
             while not done:
                 action, _ = self.model.predict(obs)
                 obs, reward, done, _ = env.step(action, log=False)
-                print(reward, end='\r')
+                # print(reward, end='\r')
     
     def generate(self):
         pass
@@ -346,6 +428,12 @@ class RL_controller:
 if __name__ == "__main__":
     controller = RL_controller()
     # controller.train_from_scratch()
+<<<<<<< HEAD
     controller.train_from_expert()
+=======
+    controller.train_from_scratch_2()
+    # controller.train_from_scratch_3()
+    # controller.train_from_expert()
+>>>>>>> ef4572d5b24303d381cb613dff1042a6157a1c78
     # controller.generate_traj()
     # controller.test()
