@@ -191,7 +191,7 @@ class RL_controller:
         try:
             # self.trainer = SAC.load(self.model_path + model_dir + "/policy.zip", env=env)
             model_dir = self.model_path + 'grasping_trained_from_expert_at_12_8_12:15:5'
-            policy_dir = model_dir + "/policy_19500.zip"
+            policy_dir = model_dir + ".zip"
             sub_dir = '/continue1'
             os.makedirs(model_dir+sub_dir, exist_ok=True)
             self.trainer = PPO1.load(policy_dir, env=env)
