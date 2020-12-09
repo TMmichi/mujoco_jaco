@@ -344,6 +344,8 @@ Note
                                 Pros:
                                 Cons:
                             }
+                        6.2 Manipulation
+                            6.2.2 
             }
             2. Title: Who cares who I am: Policy transfer between robots without fine-tuning
             {
