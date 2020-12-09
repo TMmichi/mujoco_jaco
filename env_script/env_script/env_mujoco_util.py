@@ -200,7 +200,7 @@ class JacoMujocoEnvUtil:
             for i in range(self.n_robots):
                 # Observation dimensions: 6, 2, 3, 3, 6
                 # [absolute gripper_pose, gripper angle, obj position, dest position, reaching target]
-                observation.append(np.hstack([self.gripper_pose[i], [(self.gripper_angle_1-4)/7, (self.gripper_angle_2-4)/7], self.obj_goal[i], self.dest_goal[i], self.reaching_goal[i]]))
+                observation.append(np.hstack([self.gripper_pose[i], [(self.gripper_angle_1-4)/7, (self.gripper_angle_2-4)/7], self.interface.get_xyz('object_body'), self.dest_goal[i], self.reaching_goal[i]]))
         else:
             image, depth = self._get_camera()
             data = [image, depth]
