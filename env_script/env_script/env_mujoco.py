@@ -69,6 +69,7 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
             self.act_max = np.hstack([pose_act, gripper_act_max])
             self.act_min = np.hstack([-pose_act, gripper_act_min])
         self.action_space = spaces.Box(self.act_min, self.act_max, dtype=np.float32)
+        self.wb = 0
         self.seed()
 
         ### ------------  LOGGING  ------------ ###
@@ -103,10 +104,10 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
 
         self.make_observation()
         reward_val = self._get_reward()
-        done, additional_reward, wb = self.terminal_inspection()
+        done, additional_reward, self.wb = self.terminal_inspection()
         total_reward = reward_val + additional_reward
         if self.current_steps % 10 == 0:
-            self.logging(self.obs, self.prev_obs, action, wb, total_reward) if log else None
+            self.logging(self.obs, self.prev_obs, action, self.wb, total_reward) if log else None
         self.prev_obs = self.obs
         if np.any(np.isnan(self.obs)) or np.any(np.isnan(total_reward)):
             print("WARNING: NAN in obs, resetting.")
@@ -115,6 +116,9 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
             done = True
 
         return self.obs, total_reward, done, {0: 0}
+    
+    def get_wb(self):
+        return self.wb
 
     def logging(self, obs, prev_obs, action, wb, reward):
         write_str = "Act:"

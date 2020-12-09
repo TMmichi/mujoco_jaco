@@ -35,7 +35,7 @@ class JacoMujocoEnvUtil:
             xml_name = robot_file
         
         self.jaco = MujocoConfig(xml_name, n_robots=self.n_robots)
-        self.interface = Mujoco(self.jaco, dt=0.005, visualize=True, create_offscreen_rendercontext=False)
+        self.interface = Mujoco(self.jaco, dt=0.005, visualize=kwargs.get('visualize', False), create_offscreen_rendercontext=False)
         self.interface.connect()
         self.base_position = self.__get_property('link1', 'position')
         self.gripper_angle_1 = 5.5
@@ -200,7 +200,7 @@ class JacoMujocoEnvUtil:
             for i in range(self.n_robots):
                 # Observation dimensions: 6, 2, 3, 3, 6
                 # [absolute gripper_pose, gripper angle, obj position, dest position, reaching target]
-                observation.append(np.hstack([self.gripper_pose[i], [(self.gripper_angle_1-3)/5, (self.gripper_angle_2-3)/5], self.obj_goal[i], self.dest_goal[i], self.reaching_goal[i]]))
+                observation.append(np.hstack([self.gripper_pose[i], [(self.gripper_angle_1-4)/7, (self.gripper_angle_2-4)/7], self.obj_goal[i], self.dest_goal[i], self.reaching_goal[i]]))
         else:
             image, depth = self._get_camera()
             data = [image, depth]
@@ -258,22 +258,26 @@ class JacoMujocoEnvUtil:
                 dist_th = 0.2
                 angle_coef = 2
                 angle_th = np.pi/6
-                height_coef = 100
+                height_coef = 200
                 grasp_coef = 5
                 grasp_value = 0.5
-                scale_coef = 0.05
-                x,y,z = self.obj_goal[0] - self.gripper_pose[0][:3]
+                scale_coef = 0.01
+                x,y,z = self.interface.get_xyz('object_body') - self.gripper_pose[0][:3]
                 obj_diff = np.linalg.norm([x,y,z])
                 beta = np.arcsin(x / np.linalg.norm([x,y]))
                 roll, pitch, yaw = self.gripper_pose[0][3:]
                 angle_diff = np.linalg.norm([-np.pi/2-roll, beta-pitch, np.sign(yaw)*np.pi/2-yaw])
-                reward = dist_coef * np.exp(-1/dist_th * obj_diff)/2        # distance reward
-                reward += angle_coef * np.exp(-1/angle_th * angle_diff)/2    # angle reward
-                if self._get_touch() == 1:
-                    reward += grasp_coef * grasp_value
-                elif self._get_touch() == 2:
+
+                reward = dist_coef * np.exp(-1/dist_th * obj_diff)/2                            # distance reward
+                reward += angle_coef * np.exp(-1/angle_th * angle_diff)/2                       # angle reward
+                if self._get_touch() == 1:                                                      # gripper in-touch reward
+                    reward += grasp_coef * grasp_value * 0.1
+                elif self._get_touch() == 2:                                                    # gripper out-touch negative reward
                     reward -= grasp_coef * grasp_value * 0.1
-                reward +=  height_coef * (self.interface.get_xyz('object_body')[2] - 0.37)     # pick reward
+                elif self._get_touch() == 3:                                                    # gripper grasp reward
+                    reward += grasp_coef * grasp_value
+                reward +=  height_coef * (self.interface.get_xyz('object_body')[2] - 0.37)      # pick up reward
+
                 return reward * scale_coef
             elif self.task == 'picking':
                 return 0
@@ -297,10 +301,15 @@ class JacoMujocoEnvUtil:
         for i in range(19):
             touch_array[i] = self.interface.sim.data.get_sensor(str(i)+"_touch")
         touch_array[-1] = self.interface.sim.data.get_sensor("EE_touch")
-        if np.any(touch_array[:slicenum][touch_array[:slicenum]>0.001]):
-            return 1
-        elif np.any(touch_array[slicenum:][touch_array[slicenum:]>0.001]):
+        thumb = 1 if np.any(touch_array[1:5][touch_array[1:5]>0.001]) else 0
+        index = 1 if np.any(touch_array[5:9][touch_array[5:9]>0.001]) else 0
+        pinky = 1 if np.any(touch_array[9:13][touch_array[9:13]>0.001]) else 0
+        if (thumb and index) == 1 or (thumb and pinky) == 1:
+            return 3
+        if np.any(touch_array[slicenum:][touch_array[slicenum:]>0.001]):
             return 2
+        elif np.any(touch_array[:slicenum][touch_array[:slicenum]>0.001]):
+            return 1
         else:
             return 0
 
@@ -371,8 +380,8 @@ class JacoMujocoEnvUtil:
             if len(a) == 8:
                 self.gripper_angle_1 += a[6]
                 self.gripper_angle_2 += a[7]
-                self.gripper_angle_1 = max(min(self.gripper_angle_1,5.5),0.5)
-                self.gripper_angle_2 = max(min(self.gripper_angle_2,5.5),0.5)
+                self.gripper_angle_1 = max(min(self.gripper_angle_1,7.5),0.5)
+                self.gripper_angle_2 = max(min(self.gripper_angle_2,7.5),0.5)
             elif len(a) == 6:
                 self.gripper_angle_1 = 0
                 self.gripper_angle_2 = 0

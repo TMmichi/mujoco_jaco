@@ -43,6 +43,7 @@ class RL_controller:
 
         self.sess_SRL = tf_util.single_threaded_session()
         args.sess = self.sess_SRL
+        args.visualize = False
 
         # State Generation Module defined here
         # self.stateGen = State_generator(**vars(args))
@@ -184,27 +185,21 @@ class RL_controller:
         print("\033[91mTrain Finished\033[0m")
         self.trainer.save(model_dir+"/policy")
 
-
-    def train_continue(self, model_dir):
+    def train_continue(self):
         self.args.train_log = False
         env = JacoMujocoEnv(**vars(self.args))
-        self.num_timesteps = self.steps_per_batch * self.batches_per_episodes * self.num_episodes 
         try:
             # self.trainer = SAC.load(self.model_path + model_dir + "/policy.zip", env=env)
-            self.trainer = SAC_MULTI.load(self.model_path+model_dir+"/policy.zip", env=env)
-            print("layer_norm: ",self.trainer.policy_tf.layer_norm)
-            '''
-            param_dict = SAC_MULTI._load_from_file(self.model_path+model_dir+"/policy.zip")[1]
-            for name, value in param_dict.items():
-                print(name, value.shape)
-            '''
-            quit()
-            self.trainer.learn(total_timesteps=self.num_timesteps)
+            model_dir = self.model_path + 'grasping_trained_from_expert_at_12_8_12:15:5'
+            policy_dir = model_dir + "/policy_19500.zip"
+            sub_dir = '/continue1'
+            os.makedirs(model_dir+sub_dir, exist_ok=True)
+            self.trainer = PPO1.load(policy_dir, env=env)
+            self.trainer.learn(total_time_step, save_interval=50, save_path=model_dir+sub_dir)
             print("Train Finished")
             self.trainer.save(model_dir)
         except Exception as e:
             print(e)
-
 
     def train_from_expert(self, n_episodes=100):
         print("Training from expert called")
@@ -232,13 +227,20 @@ class RL_controller:
         policy_kwargs.update(model_configuration['policy_kwargs'])
         model_dict = {'gamma': 0.99, 'clip_param': 0.02,
                       'tensorboard_log': model_dir, 'policy_kwargs': policy_kwargs, 'verbose':1}
-        self.trainer = PPO1(MlpPolicy, env, **model_dict)
+        # self.trainer = PPO1(MlpPolicy, env, **model_dict)
+
+        model_dir = self.model_path + 'grasping_trained_from_expert_at_12_8_12:15:5'
+        policy_dir = model_dir + "/policy_19500.zip"
+        sub_dir = '/continue_from_expert'
+        model_dir += sub_dir
+        self.trainer = PPO1.load(policy_dir, env=env)
+
         print("\033[91mPretraining Starts\033[0m")
         self.trainer.pretrain(dataset, **pretrain_configuration)
         print("\033[91mPretraining Finished\033[0m")
         del dataset
         os.makedirs(model_dir, exist_ok=True)
-
+        
         self._write_log(model_dir, info)
         print("\033[91mTraining Starts\033[0m")
         self.num_timesteps = self.steps_per_batch * self.batches_per_episodes * self.num_episodes
@@ -297,7 +299,6 @@ class RL_controller:
             action = [0,0,0,0,0,0,0,0]
             return action
     
-
     def generate_traj(self):
         print("Trajectory Generating")
         self.args.train_log = False
@@ -402,20 +403,33 @@ class RL_controller:
         self.args.task = task_list[1]
         env = JacoMujocoEnv(**vars(self.args))
         # prefix = self.args.task + "_trained_at_11_27_18:25:54/policy_9999105.zip"
-        prefix = self.args.task + '_trained_at_12_8_8:41:4/policy_1176577.zip'
+        # prefix = self.args.task + '_trained_from_expert_at_12_8_12:15:5/policy_19500.zip'
+        # prefix = self.args.task + '_trained_from_expert_at_12_8_12:15:5/continue/policy_10500.zip'
+        prefix = self.args.task + '_trained_from_expert_at_12_8_12:15:5/continue2/policy_600.zip'
+        # prefix = self.args.task + '_trained_from_expert_at_12_8_12:15:5/continue3/policy_50.zip'
 
         model_dir = self.model_path + prefix
         test_iter = 100
-        # self.model = SAC_MULTI.load(model_dir)
         # self.model = SAC_MULTI.pretrainer_load(model_dir, MlpPolicy_sac, env)
         self.model = PPO1.load(model_dir)
         for _ in range(test_iter):
+            accum = 0
+            iter = 0
             obs = env.reset()
             done = False
+
             while not done:
+                iter += 1
                 action, _ = self.model.predict(obs)
                 obs, reward, done, _ = env.step(action, log=False)
-                # print(reward, end='\r')
+                print('gripper action: ', action[-2:])
+                print('reward: {0:2.3f}'.format(reward), 'wb: {0:2.3f}'.format(env.get_wb()), end='\n')
+                accum += reward
+                if iter % 20 == 0:
+                    print("accum reward: ", accum)
+                if done:
+                    print("Total Reward: ",accum)
+
     
     def generate(self):
         pass
@@ -424,9 +438,10 @@ class RL_controller:
 if __name__ == "__main__":
     controller = RL_controller()
     # controller.train_from_scratch()
-    controller.train_from_expert()
-    controller.train_from_scratch_2()
+    # controller.train_from_expert()
+    # controller.train_from_scratch_2()
     # controller.train_from_scratch_3()
+    controller.train_continue()
     # controller.train_from_expert()
     # controller.generate_traj()
     # controller.test()

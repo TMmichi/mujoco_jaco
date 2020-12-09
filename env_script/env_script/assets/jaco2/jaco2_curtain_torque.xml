@@ -261,7 +261,7 @@
 
         <!--############## OBJECT BODY ##############-->
         <body name="object_holder" pos="0 0.6 0">
-            <geom type="cylinder" size=".1 .15" density="100" pos="0 0 .15" rgba=".5 .5 .5 .5"></geom>
+            <geom type="cylinder" size=".2 .15" density="100" pos="0 0 .15" rgba=".5 .5 .5 .5"></geom>
         </body>
 
         <!-- <body name="obj_dummy" pos="1 1 1" euler='0.5 0.5 0.5'>
@@ -278,6 +278,7 @@
             <geom type="cylinder" size=".015 .07" density="2" pos="0 0 0" rgba="0 0 0.5 .7"></geom>
                 <inertial pos="0 0 0.03" mass="0.01" diaginertia="0.2 0.2 0.2"></inertial>
             <geom type="cylinder" size=".030 .01" density="0.01" pos="0 0 0.07" rgba="0 0 0.5 .7"></geom>
+            <geom type="cylinder" size=".040 .01" density="0.02" pos="0 0 -0.06" rgba="0 0 0.5 1"></geom>
             <geom name="target_dum" type="sphere" size="0.01" rgba=".9 0 0 .8" contype="8" conaffinity="8"/>
             <!-- <geom name='object_dum' type="sphere" size="0.01" pos="0.02 0 0.03" rgba=".0 0 0 .0" contype="4" conaffinity="4"/>> -->
         </body>
