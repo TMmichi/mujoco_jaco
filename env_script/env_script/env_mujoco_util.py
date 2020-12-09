@@ -93,6 +93,10 @@ class JacoMujocoEnvUtil:
 
     def _reset(self, target_angle=None):
         self.num_episodes = 0
+        self.gripper_angle_1 = 5
+        self.gripper_angle_2 = 5
+        self.curr_action = np.zeros((6))
+        self.prev_action = np.zeros((6))
         # self.interface.viewer._paused = True
         init_angle = self._create_init_angle()
         self.interface.set_joint_state(init_angle, [0]*6*self.n_robots)
@@ -179,12 +183,17 @@ class JacoMujocoEnvUtil:
         obj_goal = []
         dest_goal = []
         for i in range(self.n_robots):
-            reach_goal_pos = np.array([uniform(0.35, 0.45) * sample([-1, 1], 1)[0]
+            reach_goal_pos = np.array([uniform(0.3, 0.42) * sample([-1, 1], 1)[0]
                           for _ in range(2)] + [uniform(0.3, 0.5)])
-            x,y,z = reach_goal_pos - self.base_position[i]
-            alpha = -np.arcsin(y / np.sqrt(y**2+z**2)) * np.sign(x)
-            beta = np.arccos(x / np.linalg.norm([x,y,z])) * np.sign(x)
-            gamma = uniform(-0.1, 0.1)
+            xyz = reach_goal_pos - self.base_position[i]
+            xyz /= np.linalg.norm(xyz)
+            x,y,z = xyz
+            # alpha = -np.arcsin(y / np.sqrt(y**2+z**2)) * np.sign(x)
+            # beta = np.arccos(x / np.linalg.norm([x,y,z])) * np.sign(x)
+            # gamma = uniform(-0.1, 0.1)
+            alpha = uniform(-0.1, 0.1)
+            beta = np.arctan(x/np.sqrt(1-x**2))
+            gamma = np.arctan(y/z)
             reach_goal_ori = np.array([alpha, beta, gamma], dtype=np.float16)
             reach_goal.append(np.hstack([reach_goal_pos, reach_goal_ori]))
             obj_goal_pos = [0,0.6,0.371]
@@ -198,9 +207,16 @@ class JacoMujocoEnvUtil:
             self.__get_gripper_pose()
             observation = []
             for i in range(self.n_robots):
-                # Observation dimensions: 6, 2, 3, 3, 6
-                # [absolute gripper_pose, gripper angle, obj position, dest position, reaching target]
-                observation.append(np.hstack([self.gripper_pose[i], [(self.gripper_angle_1-4)/7, (self.gripper_angle_2-4)/7], self.interface.get_xyz('object_body'), self.dest_goal[i], self.reaching_goal[i]]))
+                # Observation dimensions: 6, 2, 6, 3, 3, 6
+                # [absolute gripper_pose, gripper angle, prev_pose_action, obj position, dest position, reaching target]
+                observation.append(np.hstack([
+                    self.gripper_pose[i], 
+                    [(self.gripper_angle_1-4)/7, (self.gripper_angle_2-4)/7], 
+                    self.prev_action[:6],
+                    self.interface.get_xyz('object_body'), 
+                    self.dest_goal[i], 
+                    self.reaching_goal[i]
+                ]))
         else:
             image, depth = self._get_camera()
             data = [image, depth]
@@ -252,6 +268,8 @@ class JacoMujocoEnvUtil:
                 z = self.gripper_pose[0][2]
                 if z < z_th:
                     reward -= (z_th - z)
+                reward -= np.linalg.norm(self.curr_action - self.prev_action) * 0.1     # action regularizer
+                self.curr_action = np.copy(self.prev_action)
                 return scale_coef * reward
             elif self.task == 'grasping':
                 dist_coef = 5
@@ -317,7 +335,7 @@ class JacoMujocoEnvUtil:
         self.num_episodes += 1
         dist_diff = np.linalg.norm(self.gripper_pose[0][:3] - self.reaching_goal[0][:3])
         
-        obj_diff = np.linalg.norm(self.gripper_pose[0][:3] - self.obj_goal[0])
+        obj_diff = np.linalg.norm(self.gripper_pose[0][:3] - self.interface.get_xyz('object_body'))
         wb = np.linalg.norm(self.__get_property('EE', 'position')[0] - self.base_position[0])
         if pi - 0.1 < self.interface.get_feedback()['q'][2] < pi + 0.1:
             print("\033[91m \nUn wanted joint angle - possible singular state \033[0m")
@@ -371,6 +389,7 @@ class JacoMujocoEnvUtil:
 
     def _take_action(self, a):
         self.__get_gripper_pose()
+        self.curr_action = np.array(a)
         if np.any(np.isnan(np.array(a))):
             print("WARNING, nan in action", a)
         if self.controller:
@@ -393,6 +412,8 @@ class JacoMujocoEnvUtil:
             self.interface.set_mocap_xyz("hand", self.target_pos[:3])
             self.interface.set_mocap_orientation("hand", transformations.quaternion_from_euler(
                 self.target_pos[3], self.target_pos[4], self.target_pos[5], axes="rxyz"))
+            # self.interface.set_mocap_orientation("target_reach", transformations.quaternion_from_euler(
+            #     self.target_pos[3], self.target_pos[4], self.target_pos[5], axes="rxyz"))
         else:
             # If Position: Joint Angle Increments (rad)
             # If Velocity: Joint Velocity (rad/s)
