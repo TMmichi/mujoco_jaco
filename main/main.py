@@ -43,7 +43,7 @@ class RL_controller:
 
         self.sess_SRL = tf_util.single_threaded_session()
         args.sess = self.sess_SRL
-        args.visualize = False
+        args.visualize = True
 
         # State Generation Module defined here
         # self.stateGen = State_generator(**vars(args))
@@ -191,8 +191,8 @@ class RL_controller:
         try:
             # self.trainer = SAC.load(self.model_path + model_dir + "/policy.zip", env=env)
             model_dir = self.model_path + 'grasping_trained_from_expert_at_12_8_12:15:5'
-            policy_dir = model_dir + ".zip"
-            sub_dir = '/continue1'
+            policy_dir = model_dir + "/continue1/policy_6800.zip"
+            sub_dir = '/continue2'
             os.makedirs(model_dir+sub_dir, exist_ok=True)
             self.trainer = PPO1.load(policy_dir, env=env)
             self.trainer.learn(total_time_step, save_interval=50, save_path=model_dir+sub_dir)
@@ -404,9 +404,7 @@ class RL_controller:
         env = JacoMujocoEnv(**vars(self.args))
         # prefix = self.args.task + "_trained_at_11_27_18:25:54/policy_9999105.zip"
         # prefix = self.args.task + '_trained_from_expert_at_12_8_12:15:5/policy_19500.zip'
-        # prefix = self.args.task + '_trained_from_expert_at_12_8_12:15:5/continue/policy_10500.zip'
-        prefix = self.args.task + '_trained_from_expert_at_12_8_12:15:5/continue2/policy_600.zip'
-        # prefix = self.args.task + '_trained_from_expert_at_12_8_12:15:5/continue3/policy_50.zip'
+        prefix = self.args.task + '_trained_from_expert_at_12_8_12:15:5/continue1/policy_8400.zip'
 
         model_dir = self.model_path + prefix
         test_iter = 100
@@ -439,9 +437,9 @@ if __name__ == "__main__":
     controller = RL_controller()
     # controller.train_from_scratch()
     # controller.train_from_expert()
-    # controller.train_from_scratch_2()
+    controller.train_from_scratch_2()
     # controller.train_from_scratch_3()
-    controller.train_continue()
+    # controller.train_continue()
     # controller.train_from_expert()
     # controller.generate_traj()
     # controller.test()

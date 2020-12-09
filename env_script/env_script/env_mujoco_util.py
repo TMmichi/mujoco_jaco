@@ -93,7 +93,8 @@ class JacoMujocoEnvUtil:
 
     def _reset(self, target_angle=None):
         self.num_episodes = 0
-        # self.interface.viewer._paused = True
+        self.gripper_angle_1 = 0.5
+        self.gripper_angle_2 = 0.5
         init_angle = self._create_init_angle()
         self.interface.set_joint_state(init_angle, [0]*6*self.n_robots)
         self.reaching_goal, self.obj_goal, self.dest_goal = self.__sample_goal()
@@ -317,7 +318,7 @@ class JacoMujocoEnvUtil:
         self.num_episodes += 1
         dist_diff = np.linalg.norm(self.gripper_pose[0][:3] - self.reaching_goal[0][:3])
         
-        obj_diff = np.linalg.norm(self.gripper_pose[0][:3] - self.obj_goal[0])
+        obj_diff = np.linalg.norm(self.gripper_pose[0][:3] - self.interface.get_xyz('object_body'))
         wb = np.linalg.norm(self.__get_property('EE', 'position')[0] - self.base_position[0])
         if pi - 0.1 < self.interface.get_feedback()['q'][2] < pi + 0.1:
             print("\033[91m \nUn wanted joint angle - possible singular state \033[0m")
