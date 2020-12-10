@@ -197,9 +197,10 @@ class RL_controller:
         self.args.train_log = False
         task_list = ['reaching', 'grasping', 'picking', 'carrying', 'releasing', 'placing', 'pushing']
         self.args.task = task_list[0]
+        self.args.prev_action = True
         # model_dir = self.model_path + 'grasping_trained_from_expert_at_12_8_12:15:5'
-        model_dir = self.model_path + 'grasping_trained_at_12_9_20:28:58'
-        policy_dir = model_dir + '/policy_972289.zip'
+        model_dir = self.model_path + 'reaching_trained_at_12_9_19:50:36'
+        policy_dir = model_dir + '/policy_10000.zip'
         sub_dir = '/continue1'
 
         self.args.log_dir = model_dir
@@ -419,9 +420,9 @@ class RL_controller:
         self.args.task = task_list[1]
         env = JacoMujocoEnv(**vars(self.args))
         # prefix = self.args.task + "_trained_at_11_27_18:25:54/policy_9999105.zip"
-        # prefix = self.args.task + '_trained_from_expert_at_12_8_12:15:5/policy_19500.zip'
-        prefix = self.args.task + '_trained_from_expert_at_12_8_12:15:5/continue1/policy_8400.zip'
-        prefix = self.args.task + '_trained_at_12_9_20:28:58/policy_281089.zip'
+        prefix = self.args.task + '_trained_from_expert_at_12_8_12:15:5/policy_19500.zip'
+        prefix = self.args.task + '_trained_from_expert_at_12_8_12:15:5/continue1/policy_750.zip'
+        prefix = self.args.task + '_trained_at_11_27_18:25:54/continue1/policy_3850.zip'
         prefix = self.args.task + '_trained_from_expert_at_12_8_12:15:5.zip'
 
         model_dir = self.model_path + prefix

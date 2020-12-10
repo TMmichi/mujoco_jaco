@@ -41,7 +41,7 @@ class JacoMujocoEnvUtil:
         self.gripper_angle_1 = 5.5
         self.gripper_angle_2 = 5.5
         self.ctrl_type = self.jaco.ctrl_type
-        self.task = kwargs.get('task', 'grasping')
+        self.task = kwargs.get('task', None)
         self.obs_prev_action = kwargs.get('prev_action', False)
         self.num_episodes = 0
         self.metadata = []
@@ -189,12 +189,12 @@ class JacoMujocoEnvUtil:
             xyz = reach_goal_pos - self.base_position[i]
             xyz /= np.linalg.norm(xyz)
             x,y,z = xyz
-            # alpha = -np.arcsin(y / np.sqrt(y**2+z**2)) * np.sign(x)
-            # beta = np.arccos(x / np.linalg.norm([x,y,z])) * np.sign(x)
-            # gamma = uniform(-0.1, 0.1)
-            alpha = uniform(-0.1, 0.1)
-            beta = np.arctan(x/np.sqrt(1-x**2))
-            gamma = np.arctan(y/z)
+            alpha = -np.arcsin(y / np.sqrt(y**2+z**2)) * np.sign(x)
+            beta = np.arccos(x / np.linalg.norm([x,y,z])) * np.sign(x)
+            gamma = uniform(-0.1, 0.1)
+            # alpha = uniform(-0.1, 0.1)
+            # beta = np.arctan(x/np.sqrt(1-x**2))
+            # gamma = np.arctan(y/z)
             reach_goal_ori = np.array([alpha, beta, gamma], dtype=np.float16)
             reach_goal.append(np.hstack([reach_goal_pos, reach_goal_ori]))
             obj_goal_pos = [0,0.6,0.371]
