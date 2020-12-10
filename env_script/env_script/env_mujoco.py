@@ -71,7 +71,7 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
         # unit action from the policy = 1 (cm) in real world
         # max distance diff/s = 1cm / 0.15s
         # max angular diff/s = 0.05rad / 0.15s
-        self.pose_action_space_max = 1
+        self.pose_action_space_max = 15
         # 10: max open, 0: max closed
         # incremental angle
         # takes 2 seconds to fully stretch/grasp the gripper

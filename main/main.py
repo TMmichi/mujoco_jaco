@@ -44,7 +44,7 @@ class RL_controller:
 
         self.sess_SRL = tf_util.single_threaded_session()
         args.sess = self.sess_SRL
-        args.visualize = True
+        args.visualize = False
 
         # State Generation Module defined here
         # self.stateGen = State_generator(**vars(args))
@@ -67,7 +67,7 @@ class RL_controller:
         os.makedirs(self.model_path, exist_ok=True)
         
         self.steps_per_batch = 100
-        self.batches_per_episodes = 5
+        self.batches_per_episodes = 5000
         args.steps_per_batch = self.steps_per_batch
         args.batches_per_episodes = self.batches_per_episodes
         self.num_episodes = 20000
@@ -227,22 +227,23 @@ class RL_controller:
         
         net_arch = {'pi': model_configuration['layers']['policy'], 'vf': model_configuration['layers']['value']}
         if self.args.task is 'reaching':
-            obs_relativity = {'subtract':{'ref':[23,24,25,26,27,28],'tar':[0,1,2,3,4,5]}}
-            obs_index = [0,1,2,3,4,5, 8,9,10,11,12,13, 23,24,25,26,27,28]
+            obs_relativity = {'subtract':{'ref':[17,18,19],'tar':[0,1,2]}}
+            # obs_index = [0,1,2,3,4,5, 8,9,10,11,12,13, 23,24,25,26,27,28] #prev action
+            obs_index = [0,1,2,3,4,5, 17,18,19]
         elif self.args.task in ['grasping','carrying']:
-            obs_relativity = {'subtract':{'ref':[14,15,16],'tar':[0,1,2]}, 'leave':[2]}
-            obs_index = [0,1,2,3,4,5, 6,7, 14,15,16]
+            obs_relativity = {'subtract':{'ref':[8,9,10],'tar':[0,1,2]}, 'leave':[2]}
+            obs_index = [0,1,2,3,4,5, 6,7, 8,9,10]
         policy_kwargs = {'net_arch': [net_arch], 'obs_relativity':obs_relativity, 'obs_index':obs_index}
         policy_kwargs.update(model_configuration['policy_kwargs'])
         model_dict = {'gamma': 0.99, 'clip_param': 0.02,
                       'tensorboard_log': model_dir, 'policy_kwargs': policy_kwargs, 'verbose':1}
-        # self.trainer = PPO1(MlpPolicy, env, **model_dict)
+        self.trainer = PPO1(MlpPolicy, env, **model_dict)
 
-        model_dir = self.model_path + 'grasping_trained_from_expert_at_12_8_12:15:5'
-        policy_dir = model_dir + "/policy_19500.zip"
-        sub_dir = '/continue_from_expert'
-        model_dir += sub_dir
-        self.trainer = PPO1.load(policy_dir, env=env)
+        # model_dir = self.model_path + 'grasping_trained_from_expert_at_12_8_12:15:5'
+        # policy_dir = model_dir + "/policy_19500.zip"
+        # sub_dir = '/continue_from_expert'
+        # model_dir += sub_dir
+        # self.trainer = PPO1.load(policy_dir, env=env)
 
         print("\033[91mPretraining Starts\033[0m")
         self.trainer.pretrain(dataset, **pretrain_configuration)
@@ -312,12 +313,12 @@ class RL_controller:
         print("Trajectory Generating")
         self.args.train_log = False
         task_list = ['reaching', 'grasping', 'picking', 'carrying', 'releasing', 'placing', 'pushing']
-        self.args.task = task_list[0]
+        self.args.task = task_list[1]
 
         self._open_connection()
         self.args.robot_file = "jaco2_curtain_torque"
         env = JacoMujocoEnv(**vars(self.args))
-        traj_dict = generate_expert_traj(self._expert_3d, self.model_path+'/trajectories/'+self.args.task+'_trajectory_expert2', env, n_episodes=100)
+        traj_dict = generate_expert_traj(self._expert_3d, self.model_path+'/trajectories/'+self.args.task+'_trajectory_expert3', env, n_episodes=100)
         self._close_connection()
 
 
