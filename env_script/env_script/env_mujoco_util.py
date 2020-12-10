@@ -42,6 +42,7 @@ class JacoMujocoEnvUtil:
         self.gripper_angle_2 = 5.5
         self.ctrl_type = self.jaco.ctrl_type
         self.task = kwargs.get('task', 'grasping')
+        self.obs_prev_action = kwargs.get('prev_action', False)
         self.num_episodes = 0
         self.metadata = []
 
@@ -209,14 +210,23 @@ class JacoMujocoEnvUtil:
             for i in range(self.n_robots):
                 # Observation dimensions: 6, 2, 6, 3, 3, 6
                 # [absolute gripper_pose, gripper angle, prev_pose_action, obj position, dest position, reaching target]
-                observation.append(np.hstack([
-                    self.gripper_pose[i], 
-                    [(self.gripper_angle_1-4)/7, (self.gripper_angle_2-4)/7], 
-                    self.prev_action[:6],
-                    self.interface.get_xyz('object_body'), 
-                    self.dest_goal[i], 
-                    self.reaching_goal[i]
-                ]))
+                if self.obs_prev_action:
+                    observation.append(np.hstack([
+                        self.gripper_pose[i], 
+                        [(self.gripper_angle_1-4)/7, (self.gripper_angle_2-4)/7], 
+                        self.prev_action[:6],
+                        self.interface.get_xyz('object_body'), 
+                        self.dest_goal[i], 
+                        self.reaching_goal[i]
+                    ]))
+                else:
+                    observation.append(np.hstack([
+                        self.gripper_pose[i], 
+                        [(self.gripper_angle_1-4)/7, (self.gripper_angle_2-4)/7], 
+                        self.interface.get_xyz('object_body'), 
+                        self.dest_goal[i], 
+                        self.reaching_goal[i]
+                    ]))
         else:
             image, depth = self._get_camera()
             data = [image, depth]

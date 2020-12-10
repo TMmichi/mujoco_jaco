@@ -413,6 +413,7 @@ class RL_controller:
         self.args.train_log = False
         self.args.robot_file = "jaco2_curtain_torque"
         self.args.n_robots = 1
+        self.args.prev_action = False
 
         task_list = ['reaching', 'grasping', 'picking', 'carrying', 'releasing', 'placing', 'pushing']
         self.args.task = task_list[1]
