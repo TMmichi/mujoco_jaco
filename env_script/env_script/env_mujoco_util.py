@@ -74,7 +74,6 @@ class JacoMujocoEnvUtil:
         self.reward_module = kwargs.get('reward_module', None)
         
 
-
     def _step_simulation(self):
         fb = self.interface.get_feedback()
         if self.controller:
@@ -84,12 +83,10 @@ class JacoMujocoEnvUtil:
                     np.hstack([u, [
                         self.gripper_angle_1_array[self.gripper_iter], 
                         self.gripper_angle_1_array[self.gripper_iter],
-                        self.gripper_angle_2_array[self.gripper_iter]]])
-                )
+                        self.gripper_angle_2_array[self.gripper_iter]]]))
             else:
                 self.interface.send_forces(
-                    np.hstack([u, [self.gripper_angle_1, self.gripper_angle_1, self.gripper_angle_2]])
-                )
+                    np.hstack([u, [self.gripper_angle_1, self.gripper_angle_1, self.gripper_angle_2]]))
             self.gripper_iter += 1
         else:
             if self.ctrl_type == "torque":
@@ -135,7 +132,7 @@ class JacoMujocoEnvUtil:
             self.interface.send_forces([0]*9*self.n_robots)
 
         self.grasp_succeed_iter = 0
-        if self.task == 'grasping':
+        if self.task in ['grasping', 'carrying']:
             self.grasp_succeed_iter = 0
             self.__get_gripper_pose()
             x,y,z = self.obj_goal[0] - self.gripper_pose[0][:3]
@@ -171,7 +168,7 @@ class JacoMujocoEnvUtil:
                 dist_diff = np.linalg.norm(self.gripper_pose[0][:3] - self.obj_goal[0])
                 if dist_diff < 0.15:
                     break
-        elif self.task in ['grasping', 'carrying', 'placing', 'releasing']:
+        elif self.task in ['placing', 'releasing']:
             pass
         elif self.task == 'reaching':
             self.interface.set_mocap_xyz("target_reach", self.reaching_goal[0][:3])
@@ -208,14 +205,11 @@ class JacoMujocoEnvUtil:
             alpha = -np.arcsin(y / np.sqrt(y**2+z**2)) * np.sign(x)
             beta = np.arccos(x / np.linalg.norm([x,y,z])) * np.sign(x)
             gamma = uniform(-0.1, 0.1)
-            # alpha = uniform(-0.1, 0.1)
-            # beta = np.arctan(x/np.sqrt(1-x**2))
-            # gamma = np.arctan(y/z)
             reach_goal_ori = np.array([alpha, beta, gamma], dtype=np.float16)
             reach_goal.append(np.hstack([reach_goal_pos, reach_goal_ori]))
             obj_goal_pos = [uniform(-0.05,0.05), 0.55+uniform(-0.02,0.02), self.object_z]
             obj_goal.append(obj_goal_pos)
-            dest_goal_pos = [0.5,0.65,1]
+            dest_goal_pos = [0.5+uniform(-0.05,0.05),0.2+uniform(-0.05,0.05),0.3]
             dest_goal.append(dest_goal_pos)
         return np.array(reach_goal), np.array(obj_goal), np.array(dest_goal)
 
