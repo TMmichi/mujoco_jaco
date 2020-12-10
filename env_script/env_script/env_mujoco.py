@@ -27,38 +27,38 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
         self.num_step_pass = 30  #0.15s per step
 
         ## Observations
-        end_effector_position_max = [2]*3           #[0:3]
-        end_effector_orientation_max = [np.pi]*3    #[3:6]
-        gripper_angle_max = [0.5]*2                 #[6:8]
-        prev_position_action_max = [2]*3            #[8:11]
-        prev_orientation_action_max = [2]*3         #[11:14]
-        obj_position_max = [2]*3                    #[14:17]
-        obj_orientation_max = [np.pi]*3             #[17:20]
-        dest_max = [2]*3                            #[20:23]
-        reach_position_max = [2]*3                  #[23:26]
-        reach_orientation_max = [np.pi]*3           #[26:29]
+        end_effector_position_max = [2]*3           
+        end_effector_orientation_max = [np.pi]*3    
+        gripper_angle_max = [0.5]*2                 
+        prev_position_action_max = [2]*3            
+        prev_orientation_action_max = [2]*3         
+        obj_position_max = [2]*3                    
+        obj_orientation_max = [np.pi]*3             
+        dest_max = [2]*3                            
+        reach_position_max = [2]*3                  
+        reach_orientation_max = [np.pi]*3           
         if kwargs.get('prev_action', False):
             obs_max = np.hstack([
-                end_effector_position_max,
-                end_effector_orientation_max,
-                gripper_angle_max,
-                prev_position_action_max,
-                prev_orientation_action_max,
-                obj_position_max,
-                obj_orientation_max,
-                dest_max,
-                reach_position_max, 
-                reach_orientation_max])
+                end_effector_position_max,          #[0:3]
+                end_effector_orientation_max,       #[3:6]
+                gripper_angle_max,                  #[6:8]
+                prev_position_action_max,           #[8:11]
+                prev_orientation_action_max,        #[11:14]
+                obj_position_max,                   #[14:17]
+                obj_orientation_max,                #[17:20]
+                dest_max,                           #[20:23]
+                reach_position_max,                 #[23:26]
+                reach_orientation_max])             #[26:29]
         else:
             obs_max = np.hstack([
-                end_effector_position_max,
-                end_effector_orientation_max,
-                gripper_angle_max,
-                obj_position_max,
-                obj_orientation_max,
-                dest_max,
-                reach_position_max, 
-                reach_orientation_max])
+                end_effector_position_max,          #[0:3]
+                end_effector_orientation_max,       #[3:6]
+                gripper_angle_max,                  #[6:8]
+                obj_position_max,                   #[8:11]
+                obj_orientation_max,                #[11:14]
+                dest_max,                           #[14:17]
+                reach_position_max,                 #[17:20]
+                reach_orientation_max])             #[20:23]
         obs_min = -obs_max
         self.observation_space = spaces.Box(obs_min, obs_max, dtype=np.float32)
         try:

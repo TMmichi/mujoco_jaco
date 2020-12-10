@@ -153,7 +153,7 @@ class JacoMujocoEnvUtil:
                 self.__get_gripper_pose()
                 self.target_pos = np.reshape(np.hstack([self.obj_goal,np.repeat([reach_goal_ori],self.n_robots,axis=0)]),(-1))
                 dist_diff = np.linalg.norm(self.gripper_pose[0][:3] - self.obj_goal[0])
-                if dist_diff < 0.15:
+                if dist_diff < 0.1:
                     break
         elif self.task in ['grasping', 'carrying', 'placing', 'releasing']:
             pass
@@ -230,7 +230,7 @@ class JacoMujocoEnvUtil:
             image, depth = self._get_camera()
             data = [image, depth]
             observation = self.state_gen.generate(data)
-        return np.array(observation)
+        return np.array(observation, dtype=np.float32)
     
     def _get_camera(self):
         self.interface.offscreen.render(width=640, height=480, camera_id=0)
