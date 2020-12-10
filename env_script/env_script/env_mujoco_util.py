@@ -94,8 +94,8 @@ class JacoMujocoEnvUtil:
 
     def _reset(self, target_angle=None):
         self.num_episodes = 0
-        self.gripper_angle_1 = 5
-        self.gripper_angle_2 = 5
+        self.gripper_angle_1 = 0.5
+        self.gripper_angle_2 = 0.5
         self.curr_action = np.zeros((6))
         self.prev_action = np.zeros((6))
         # self.interface.viewer._paused = True

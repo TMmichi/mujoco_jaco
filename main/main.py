@@ -77,7 +77,7 @@ class RL_controller:
         print("Training from scratch called")
         self.args.train_log = False
         task_list = ['reaching', 'grasping', 'picking', 'carrying', 'releasing', 'placing', 'pushing']
-        self.args.task = task_list[0]
+        self.args.task = task_list[1]
         prefix = self.args.task+"_trained_at_" + str(time.localtime().tm_mon) + "_" + str(time.localtime().tm_mday)\
             + "_" + str(time.localtime().tm_hour) + ":" + str(time.localtime().tm_min) + ":" + str(time.localtime().tm_sec)
         model_dir = self.model_path + prefix
@@ -103,7 +103,7 @@ class RL_controller:
         policy_kwargs = {'net_arch': [net_arch], 'obs_relativity':obs_relativity, 'obs_index':obs_index}
         policy_kwargs.update(model_configuration['policy_kwargs'])
         model_dict = {'gamma': 0.99, 'clip_param': 0.02,
-                      'tensorboard_log': model_dir, 'policy_kwargs': policy_kwargs}
+                      'tensorboard_log': model_dir, 'policy_kwargs': policy_kwargs, 'verbose':1}
         self.trainer = PPO1(MlpPolicy, env, **model_dict)
         #self.trainer = SAC_MULTI(MlpPolicy_sac, env, **model_configuration)
         
@@ -136,12 +136,16 @@ class RL_controller:
         
         net_arch = {'pi': model_configuration['layers']['policy'], 'vf': model_configuration['layers']['value']}
         if self.args.task is 'reaching':
-            obs_relativity = {'subtract':{'ref':[14,15,16,17,18,19],'tar':[0,1,2,3,4,5]}}
-            obs_index = [0,1,2,3,4,5, 14,15,16,17,18,19]
+            # obs_relativity = {'subtract':{'ref':[14,15,16,17,18,19],'tar':[0,1,2,3,4,5]}}
+            obs_relativity = {'subtract':{'ref':[20,21,22,23,24,25],'tar':[0,1,2,3,4,5]}}
+            # obs_index = [0,1,2,3,4,5, 14,15,16,17,18,19]
+            obs_index = [0,1,2,3,4,5, 8,9,10,11,12,13, 20,21,22,23,24,25]
         elif self.args.task in ['grasping','carrying']:
             # obs_relativity = {'subtract':{'ref':[8,9,10],'tar':[0,1,2]}}
-            obs_relativity = {'subtract':{'ref':[8,9,10],'tar':[0,1,2]}, 'leave':[2]}
-            obs_index = [0,1,2,3,4,5, 6,7, 8,9,10]
+            # obs_relativity = {'subtract':{'ref':[8,9,10],'tar':[0,1,2]}, 'leave':[2]}
+            obs_relativity = {'subtract':{'ref':[14,15,16],'tar':[0,1,2]}, 'leave':[2]}
+            # obs_index = [0,1,2,3,4,5, 6,7, 8,9,10]
+            obs_index = [0,1,2,3,4,5, 6,7, 14,15,16]
         policy_kwargs = {'net_arch': [net_arch], 'obs_relativity':obs_relativity, 'obs_index':obs_index}
         policy_kwargs.update(model_configuration['policy_kwargs'])
         model_dict = {'gamma': 0.99, 'tensorboard_log': model_dir, 'policy_kwargs': policy_kwargs}
