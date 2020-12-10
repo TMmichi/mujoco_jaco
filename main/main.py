@@ -43,7 +43,7 @@ class RL_controller:
 
         self.sess_SRL = tf_util.single_threaded_session()
         args.sess = self.sess_SRL
-        args.visualize = False
+        args.visualize = True
 
         # State Generation Module defined here
         # self.stateGen = State_generator(**vars(args))
@@ -193,9 +193,10 @@ class RL_controller:
         self.args.train_log = False
         task_list = ['reaching', 'grasping', 'picking', 'carrying', 'releasing', 'placing', 'pushing']
         self.args.task = task_list[0]
+        self.args.prev_action = True
         # model_dir = self.model_path + 'grasping_trained_from_expert_at_12_8_12:15:5'
-        model_dir = self.model_path + 'reaching_trained_at_11_27_18:25:54'
-        policy_dir = model_dir + '/policy_9999105.zip'
+        model_dir = self.model_path + 'reaching_trained_at_12_9_19:50:36'
+        policy_dir = model_dir + '/policy_10000.zip'
         sub_dir = '/continue1'
 
         self.args.log_dir = model_dir
@@ -409,14 +410,16 @@ class RL_controller:
         self.args.train_log = False
         self.args.robot_file = "jaco2_curtain_torque"
         self.args.n_robots = 1
+        self.args.prev_action = False
 
         task_list = ['reaching', 'grasping', 'picking', 'carrying', 'releasing', 'placing', 'pushing']
-        self.args.task = task_list[0]
+        self.args.task = task_list[1]
         env = JacoMujocoEnv(**vars(self.args))
         # prefix = self.args.task + "_trained_at_11_27_18:25:54/policy_9999105.zip"
         prefix = self.args.task + '_trained_from_expert_at_12_8_12:15:5/policy_19500.zip'
         prefix = self.args.task + '_trained_from_expert_at_12_8_12:15:5/continue1/policy_750.zip'
-        prefix = self.args.task + '_trained_at_11_27_18:25:54/continue1/policy_3800.zip'
+        prefix = self.args.task + '_trained_at_11_27_18:25:54/continue1/policy_3850.zip'
+        prefix = self.args.task + '_trained_from_expert_at_12_8_12:15:5.zip'
 
         model_dir = self.model_path + prefix
         test_iter = 100
@@ -447,11 +450,11 @@ class RL_controller:
 
 if __name__ == "__main__":
     controller = RL_controller()
-    controller.train_from_scratch()
+    # controller.train_from_scratch()
     # controller.train_from_expert()
     # controller.train_from_scratch_2()
     # controller.train_from_scratch_3()
     # controller.train_continue()
     # controller.train_from_expert()
     # controller.generate_traj()
-    # controller.test()
+    controller.test()
