@@ -38,8 +38,8 @@ class JacoMujocoEnvUtil:
         self.interface = Mujoco(self.jaco, dt=0.005, visualize=kwargs.get('visualize', False), create_offscreen_rendercontext=False)
         self.interface.connect()
         self.base_position = self.__get_property('link1', 'position')
-        self.gripper_angle_1 = 5.5
-        self.gripper_angle_2 = 5.5
+        self.gripper_angle_1 = 2.5
+        self.gripper_angle_2 = 2.5
         self.ctrl_type = self.jaco.ctrl_type
         self.task = kwargs.get('task', None)
         self.obs_prev_action = kwargs.get('prev_action', False)
@@ -94,8 +94,8 @@ class JacoMujocoEnvUtil:
 
     def _reset(self, target_angle=None):
         self.num_episodes = 0
-        self.gripper_angle_1 = 0.5
-        self.gripper_angle_2 = 0.5
+        self.gripper_angle_1 = 2.5
+        self.gripper_angle_2 = 2.5
         self.curr_action = np.zeros((6))
         self.prev_action = np.zeros((6))
         # self.interface.viewer._paused = True
@@ -208,14 +208,13 @@ class JacoMujocoEnvUtil:
             self.__get_gripper_pose()
             observation = []
             for i in range(self.n_robots):
-                # Observation dimensions: 6, 2, 6, 3, 3, 6
-                # [absolute gripper_pose, gripper angle, prev_pose_action, obj position, dest position, reaching target]
+                # Observation dimensions: 6, 2, 6, 6, 3, 6
                 if self.obs_prev_action:
                     observation.append(np.hstack([
                         self.gripper_pose[i], 
                         [(self.gripper_angle_1-4)/7, (self.gripper_angle_2-4)/7], 
                         self.prev_action[:6],
-                        self.interface.get_xyz('object_body'), 
+                        self.__get_property('object_body','pose')[0],
                         self.dest_goal[i], 
                         self.reaching_goal[i]
                     ]))
@@ -223,7 +222,7 @@ class JacoMujocoEnvUtil:
                     observation.append(np.hstack([
                         self.gripper_pose[i], 
                         [(self.gripper_angle_1-4)/7, (self.gripper_angle_2-4)/7], 
-                        self.interface.get_xyz('object_body'), 
+                        self.__get_property('object_body','pose')[0],
                         self.dest_goal[i], 
                         self.reaching_goal[i]
                     ]))
@@ -412,8 +411,8 @@ class JacoMujocoEnvUtil:
                 self.gripper_angle_1 = max(min(self.gripper_angle_1,7.5),0.5)
                 self.gripper_angle_2 = max(min(self.gripper_angle_2,7.5),0.5)
             elif len(a) == 6:
-                self.gripper_angle_1 = 0
-                self.gripper_angle_2 = 0
+                self.gripper_angle_1 = 2.5
+                self.gripper_angle_2 = 2.5
             elif len(a) == 7:
                 if a[6] == 1:
                     self.gripper_angle_1 = self.gripper_angle_2 = 10
@@ -425,9 +424,6 @@ class JacoMujocoEnvUtil:
             # self.interface.set_mocap_orientation("target_reach", transformations.quaternion_from_euler(
             #     self.target_pos[3], self.target_pos[4], self.target_pos[5], axes="rxyz"))
         else:
-            # If Position: Joint Angle Increments (rad)
-            # If Velocity: Joint Velocity (rad/s)
-            # If Torque: Joint Torque (Nm)
             self.target_signal = a
 
     def __get_property(self, subject, prop):

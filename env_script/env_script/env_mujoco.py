@@ -27,18 +27,39 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
         self.num_step_pass = 30  #0.15s per step
 
         ## Observations
-        end_effector_pose_max = [2]*6               #[0:6]
-        gripper_angle_max = [10]*2                  #[6:8]
-        prev_pose_action_max = [1] * 6              #[8:14]
-        obj_max = [2]*3                             #[8:11]
-        dest_max = [2]*3                            #[11:14]
-        reach_max = [np.pi]*6                       #[14:17]
+        end_effector_position_max = [2]*3           #[0:3]
+        end_effector_orientation_max = [np.pi]*3    #[3:6]
+        gripper_angle_max = [0.5]*2                 #[6:8]
+        prev_position_action_max = [2]*3            #[8:11]
+        prev_orientation_action_max = [2]*3         #[11:14]
+        obj_position_max = [2]*3                    #[14:17]
+        obj_orientation_max = [np.pi]*3             #[17:20]
+        dest_max = [2]*3                            #[20:23]
+        reach_position_max = [2]*3                  #[23:26]
+        reach_orientation_max = [np.pi]*3           #[26:29]
         if kwargs.get('prev_action', False):
-            obs_max = np.hstack([end_effector_pose_max, gripper_angle_max, prev_pose_action_max, obj_max, dest_max, reach_max])
+            obs_max = np.hstack([
+                end_effector_position_max,
+                end_effector_orientation_max,
+                gripper_angle_max,
+                prev_position_action_max,
+                prev_orientation_action_max,
+                obj_position_max,
+                obj_orientation_max,
+                dest_max,
+                reach_position_max, 
+                reach_orientation_max])
         else:
-            obs_max = np.hstack([end_effector_pose_max, gripper_angle_max, obj_max, dest_max, reach_max])
+            obs_max = np.hstack([
+                end_effector_position_max,
+                end_effector_orientation_max,
+                gripper_angle_max,
+                obj_position_max,
+                obj_orientation_max,
+                dest_max,
+                reach_position_max, 
+                reach_orientation_max])
         obs_min = -obs_max
-        obs_min[6:8] = 0
         self.observation_space = spaces.Box(obs_min, obs_max, dtype=np.float32)
         try:
             self.state_shape = kwargs['stateGen'].get_state_shape()
@@ -60,13 +81,7 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
             pose_act = np.array([self.pose_action_space_max]*6)             # x,y,z,r,p,y
             self.act_max = pose_act
             self.act_min = -pose_act
-        elif kwargs.get('task', 'grasping') == 'grasping':
-            pose_act = np.array([self.pose_action_space_max]*6)             # x,y,z,r,p,y
-            gripper_act_max = np.array([self.gripper_action_space_max]*2)   # g1, g2
-            gripper_act_min = np.array([self.gripper_action_space_min]*2)
-            self.act_max = np.hstack([pose_act, gripper_act_max])
-            self.act_min = np.hstack([-pose_act, gripper_act_min])
-        elif kwargs.get('task', None) == 'carrying':
+        elif kwargs.get('task', None) in ['grasping', 'carrying']:
             pose_act = np.array([self.pose_action_space_max]*6)             # x,y,z,r,p,y
             gripper_act_max = np.array([self.gripper_action_space_max]*2)   # g1, g2
             gripper_act_min = np.array([self.gripper_action_space_min]*2)
