@@ -44,7 +44,7 @@ class RL_controller:
 
         self.sess_SRL = tf_util.single_threaded_session()
         args.sess = self.sess_SRL
-        args.visualize = False
+        args.visualize = True
 
         # State Generation Module defined here
         # self.stateGen = State_generator(**vars(args))
@@ -87,16 +87,17 @@ class RL_controller:
         self.args.log_dir = model_dir
         self.args.robot_file = "jaco2_curtain_torque"
         self.args.n_robots = 1
-        self.args.prev_action = True
+        self.args.prev_action = False
         env = JacoMujocoEnv(**vars(self.args))
 
         net_arch = {'pi': model_configuration['layers']['policy'], 'vf': model_configuration['layers']['value']}
         if self.args.task is 'reaching':
-            obs_relativity = {'subtract':{'ref':[23,24,25,26,27,28],'tar':[0,1,2,3,4,5]}}
-            obs_index = [0,1,2,3,4,5, 8,9,10,11,12,13, 23,24,25,26,27,28]
+            obs_relativity = {'subtract':{'ref':[17,18,19],'tar':[0,1,2]}}
+            # obs_index = [0,1,2,3,4,5, 8,9,10,11,12,13, 23,24,25,26,27,28] #prev action
+            obs_index = [0,1,2,3,4,5, 17,18,19]
         elif self.args.task in ['grasping','carrying']:
-            obs_relativity = {'subtract':{'ref':[14,15,16],'tar':[0,1,2]}, 'leave':[2]}
-            obs_index = [0,1,2,3,4,5, 6,7, 14,15,16]
+            obs_relativity = {'subtract':{'ref':[8,9,10],'tar':[0,1,2]}, 'leave':[2]}
+            obs_index = [0,1,2,3,4,5, 6,7, 8,9,10]
         policy_kwargs = {'net_arch': [net_arch], 'obs_relativity':obs_relativity, 'obs_index':obs_index}
         policy_kwargs.update(model_configuration['policy_kwargs'])
         model_dict = {'gamma': 0.99, 'clip_param': 0.02,
@@ -169,13 +170,14 @@ class RL_controller:
         net_arch = {'pi': model_configuration['layers']['policy'], 'vf': model_configuration['layers']['value']}
         if self.args.task is 'reaching':
             obs_relativity = {'subtract':{'ref':[23,24,25,26,27,28],'tar':[0,1,2,3,4,5]}}
-            obs_index = [0,1,2,3,4,5, 8,9,10,11,12,13, 23,24,25,26,27,28]
+            # obs_index = [0,1,2,3,4,5, 8,9,10,11,12,13, 23,24,25,26,27,28]
+            obs_index = [0,1,2,3,4,5, 23,24,25,26,27,28]
         elif self.args.task in ['grasping','carrying']:
             obs_relativity = {'subtract':{'ref':[14,15,16],'tar':[0,1,2]}, 'leave':[2]}
             obs_index = [0,1,2,3,4,5, 6,7, 14,15,16]
         policy_kwargs = {'net_arch': [net_arch], 'obs_relativity':obs_relativity, 'obs_index':obs_index}
         policy_kwargs.update(model_configuration['policy_kwargs'])
-        model_dict = {'gamma': 0.99, 'tensorboard_log': model_dir, 'policy_kwargs': policy_kwargs}
+        model_dict = {'gamma': 0.99, 'tensorboard_log': model_dir, 'policy_kwargs': policy_kwargs, 'verbose': 1}
         self.trainer = SAC_MULTI(MlpPolicy_sac, env, **model_dict)
         
         self._write_log(model_dir, info)
@@ -406,19 +408,21 @@ class RL_controller:
         self.args.visualize = True
         self.args.robot_file = "jaco2_curtain_torque"
         self.args.n_robots = 1
-        self.args.prev_action = True
+        self.args.prev_action = False
 
         task_list = ['reaching', 'grasping', 'picking', 'carrying', 'releasing', 'placing', 'pushing']
         self.args.task = task_list[0]
         env = JacoMujocoEnv(**vars(self.args))
-        # prefix = self.args.task + "_trained_at_11_27_18:25:54/policy_9999105.zip"
-        prefix = self.args.task + '_trained_from_expert_at_12_8_12:15:5/policy_19500.zip'
+        prefix = self.args.task + '_trained_at_12_10_15:29:59/policy_1300000.zip'
+        # prefix = self.args.task + '_trained_at_12_10_15:30:18/policy_1210000.zip'
+        prefix = self.args.task + '_trained_at_11_27_18:25:9/policy_4029185.zip'
+        
 
         model_dir = self.model_path + prefix
         test_iter = 100
         # self.model = SAC_MULTI.pretrainer_load(model_dir, MlpPolicy_sac, env)
-        # self.model = PPO1.load(model_dir)
-        self.model = SAC_MULTI.load(model_dir)
+        self.model = PPO1.load(model_dir)
+        # self.model = SAC_MULTI.load(model_dir, MlpPolicy_sac, env)
         for _ in range(test_iter):
             accum = 0
             iter = 0
@@ -429,8 +433,8 @@ class RL_controller:
                 iter += 1
                 action, _ = self.model.predict(obs)
                 obs, reward, done, _ = env.step(action, log=False)
-                print('gripper action: ', action)
-                print('reward: {0:2.3f}'.format(reward), 'wb: {0:2.3f}'.format(env.get_wb()), end='\n')
+                # print('gripper action: ', action)
+                # print('reward: {0:2.3f}'.format(reward), 'wb: {0:2.3f}'.format(env.get_wb()), end='\n')
                 accum += reward
                 if iter % 20 == 0:
                     print("accum reward: ", accum)
