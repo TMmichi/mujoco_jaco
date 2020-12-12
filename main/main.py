@@ -72,6 +72,7 @@ class RL_controller:
         args.batches_per_episodes = self.batches_per_episodes
         self.num_episodes = 20000
         self.args = args
+        self.trial = 0
 
 
     def train_from_scratch(self):
@@ -81,7 +82,7 @@ class RL_controller:
         self.args.task = task_list[1]
         prefix = self.args.task+"_trained_at_" + str(time.localtime().tm_mon) + "_" + str(time.localtime().tm_mday)\
             + "_" + str(time.localtime().tm_hour) + ":" + str(time.localtime().tm_min) + ":" + str(time.localtime().tm_sec)
-        model_dir = self.model_path + prefix
+        model_dir = self.model_path + prefix + "_" + str(self.trial)
         os.makedirs(model_dir, exist_ok=True)
 
         self.args.log_dir = model_dir
@@ -98,7 +99,7 @@ class RL_controller:
         elif self.args.task in ['grasping','carrying']:
             obs_relativity = {'subtract':{'ref':[8,9,10],'tar':[0,1,2]}, 'leave':[2]}
             obs_index = [0,1,2,3,4,5, 6,7, 8,9,10]
-        policy_kwargs = {'net_arch': [net_arch], 'obs_relativity':obs_relativity, 'obs_index':obs_index}
+        policy_kwargs = {'net_arch': [net_arch], 'obs_relativity':obs_relativity, 'obs_index':obs_index, 'squash':True}
         policy_kwargs.update(model_configuration['policy_kwargs'])
         model_dict = {'gamma': 0.99, 'clip_param': 0.02,
                       'tensorboard_log': model_dir, 'policy_kwargs': policy_kwargs, 'verbose':1}
@@ -119,7 +120,7 @@ class RL_controller:
         self.args.task = task_list[1]
         prefix = self.args.task+"_trained_at_" + str(time.localtime().tm_mon) + "_" + str(time.localtime().tm_mday)\
             + "_" + str(time.localtime().tm_hour) + ":" + str(time.localtime().tm_min) + ":" + str(time.localtime().tm_sec)
-        model_dir = self.model_path + prefix
+        model_dir = self.model_path + prefix + "_" + str(self.trial)
         os.makedirs(model_dir, exist_ok=True)
 
         self.args.log_dir = model_dir
@@ -158,7 +159,7 @@ class RL_controller:
         self.args.task = task_list[1]
         prefix = self.args.task+"_trained_at_" + str(time.localtime().tm_mon) + "_" + str(time.localtime().tm_mday)\
             + "_" + str(time.localtime().tm_hour) + ":" + str(time.localtime().tm_min) + ":" + str(time.localtime().tm_sec)
-        model_dir = self.model_path + prefix
+        model_dir = self.model_path + prefix + "_" + str(self.trial)
         os.makedirs(model_dir, exist_ok=True)
 
         self.args.log_dir = model_dir
@@ -190,12 +191,12 @@ class RL_controller:
     def train_continue(self):
         self.args.train_log = False
         task_list = ['reaching', 'grasping', 'picking', 'carrying', 'releasing', 'placing', 'pushing']
-        self.args.task = task_list[0]
-        self.args.prev_action = True
-        # model_dir = self.model_path + 'grasping_trained_from_expert_at_12_8_12:15:5'
-        model_dir = self.model_path + 'reaching_trained_at_12_9_19:50:36'
-        policy_dir = model_dir + '/policy_10000.zip'
-        sub_dir = '/continue2'
+        self.args.task = task_list[1]
+        self.args.prev_action = False
+        model_dir = self.model_path + 'grasping_trained_at_12_10_23:45:41'
+        # model_dir = self.model_path + 'reaching_trained_at_12_9_19:50:36'
+        policy_dir = model_dir + '/policy_8450.zip'
+        sub_dir = '/continue1'
 
         self.args.log_dir = model_dir
         self.args.robot_file = "jaco2_curtain_torque"
@@ -203,9 +204,9 @@ class RL_controller:
         env = JacoMujocoEnv(**vars(self.args))
         
         os.makedirs(model_dir+sub_dir, exist_ok=True)
-        self.trainer = SAC_MULTI.load(policy_dir, policy=MlpPolicy_sac, env=env, tensorboard_log=model_dir+sub_dir)
-        # self.trainer = PPO1.load(policy_dir, env=env)
-        self.trainer.learn(total_time_step, save_interval=10000, save_path=model_dir+sub_dir)
+        # self.trainer = SAC_MULTI.load(policy_dir, policy=MlpPolicy_sac, env=env, tensorboard_log=model_dir+sub_dir)
+        self.trainer = PPO1.load(policy_dir, env=env, tensorboard_log=model_dir+sub_dir)
+        self.trainer.learn(total_time_step, save_interval=100, save_path=model_dir+sub_dir)
         print("Train Finished")
         self.trainer.save(model_dir+sub_dir)
 
@@ -216,7 +217,7 @@ class RL_controller:
         self.args.task = task_list[1]
         prefix = self.args.task+"_trained_from_expert_at_" + str(time.localtime().tm_mon) + "_" + str(time.localtime().tm_mday)\
             + "_" + str(time.localtime().tm_hour) + ":" + str(time.localtime().tm_min) + ":" + str(time.localtime().tm_sec)
-        model_dir = self.model_path + prefix
+        model_dir = self.model_path + prefix + "_" + self.trial
 
         # self._open_connection()
         self.args.robot_file = "jaco2_curtain_torque"
@@ -313,11 +314,11 @@ class RL_controller:
         print("Trajectory Generating")
         self.args.train_log = False
         task_list = ['reaching', 'grasping', 'picking', 'carrying', 'releasing', 'placing', 'pushing']
-        self.args.task = task_list[3]
+        self.args.task = task_list[1]
 
         self._open_connection()
         self.args.robot_file = "jaco2_curtain_torque"
-        self.args.steps_per_batch /= 100
+        self.args.steps_per_batch *= 100
         env = JacoMujocoEnv(**vars(self.args))
         traj_dict = generate_expert_traj(self._expert_3d, self.model_path+'/trajectories/'+self.args.task+'_trajectory_expert3', env, n_episodes=100)
         self._close_connection()
@@ -412,11 +413,14 @@ class RL_controller:
         self.args.prev_action = False
 
         task_list = ['reaching', 'grasping', 'picking', 'carrying', 'releasing', 'placing', 'pushing']
-        self.args.task = task_list[0]
+        self.args.task = task_list[1]
         env = JacoMujocoEnv(**vars(self.args))
-        prefix = self.args.task + '_trained_at_12_10_15:29:59/policy_1300000.zip'
+        prefix = self.args.task + '_trained_at_12_10_15:26:52/policy_30700.zip'
         # prefix = self.args.task + '_trained_at_12_10_15:30:18/policy_1210000.zip'
-        prefix = self.args.task + '_trained_at_11_27_18:25:9/policy_4029185.zip'
+        # prefix = self.args.task + '_trained_at_11_27_18:25:9/policy_4029185.zip'
+        # prefix = self.args.task + '_trained_at_12_11_23:51:36/policy_5750.zip'
+        prefix = self.args.task + '_trained_at_12_11_23:52:28/policy_2500.zip'
+        # prefix = self.args.task + '_trained_at_12_11_22:1:19/policy_7600.zip'
         
 
         model_dir = self.model_path + prefix
@@ -435,7 +439,7 @@ class RL_controller:
                 action, _ = self.model.predict(obs)
                 obs, reward, done, _ = env.step(action, log=False)
                 # print('gripper action: ', action)
-                # print('reward: {0:2.3f}'.format(reward), 'wb: {0:2.3f}'.format(env.get_wb()), end='\n')
+                print('reward: {0:2.3f}'.format(reward), 'wb: {0:2.3f}'.format(env.get_wb()), end='\n')
                 accum += reward
                 if iter % 20 == 0:
                     print("accum reward: ", accum)
@@ -449,11 +453,11 @@ class RL_controller:
 
 if __name__ == "__main__":
     controller = RL_controller()
-    # controller.train_from_scratch()
+    controller.train_from_scratch()
     # controller.train_from_expert()
     # controller.train_from_scratch_2()
     # controller.train_from_scratch_3()
     # controller.train_continue()
     # controller.train_from_expert()
-    controller.generate_traj()
+    # controller.generate_traj()
     # controller.test()

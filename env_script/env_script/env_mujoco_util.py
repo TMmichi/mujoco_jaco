@@ -36,19 +36,19 @@ class JacoMujocoEnvUtil:
         self.jaco = MujocoConfig(xml_name, n_robots=self.n_robots)
         self.interface = Mujoco(self.jaco, dt=0.005, visualize=kwargs.get('visualize', False), create_offscreen_rendercontext=False)
         self.interface.connect()
+        self.skip_frames = 30
         self.base_position = self.__get_property('link1', 'position')
         self.gripper_angle_1 = 2.5
         self.gripper_angle_2 = 2.5
-        self.gripper_angle_1_array = [0]
-        self.gripper_angle_2_array = [0]
+        self.gripper_angle_1_array = np.zeros(self.skip_frames)
+        self.gripper_angle_2_array = np.zeros(self.skip_frames)
         self.gripper_iter = 0
-        self.action_in = False
         self.object_z = 0.315
+        self.action_in = False
         self.ctrl_type = self.jaco.ctrl_type
         self.task = kwargs.get('task', None)
         self.obs_prev_action = kwargs.get('prev_action', False)
         self.num_episodes = 0
-        self.metadata = []
 
         ### ------------  STATE GENERATION  ------------ ###
         self.package_path = str(Path(__file__).resolve().parent.parent)
@@ -207,7 +207,8 @@ class JacoMujocoEnvUtil:
             gamma = uniform(-0.1, 0.1)
             reach_goal_ori = np.array([alpha, beta, gamma], dtype=np.float16)
             reach_goal.append(np.hstack([reach_goal_pos, reach_goal_ori]))
-            obj_goal_pos = [uniform(-0.05,0.05), 0.55+uniform(-0.02,0.02), self.object_z]
+            obj_goal_pos = [uniform(-0.05,0.05), 0.65+uniform(-0.02,0.02), self.object_z]
+            # obj_goal_pos = [0.2, 0.67, self.object_z]
             obj_goal.append(obj_goal_pos)
             dest_goal_pos = [0.5+uniform(-0.05,0.05),0.2+uniform(-0.05,0.05),0.3]
             dest_goal.append(dest_goal_pos)
@@ -299,7 +300,7 @@ class JacoMujocoEnvUtil:
                 height_coef = 200
                 grasp_coef = 5
                 grasp_value = 0.5
-                scale_coef = 0.01
+                scale_coef = 0.05
                 x,y,z = self.interface.get_xyz('object_body') - self.gripper_pose[0][:3]
                 obj_diff = np.linalg.norm([x,y,z])
                 beta = np.arcsin(x / np.linalg.norm([x,y]))
@@ -309,7 +310,7 @@ class JacoMujocoEnvUtil:
                 reward = dist_coef * np.exp(-1/dist_th * obj_diff)/2                            # distance reward
                 reward += angle_coef * np.exp(-1/angle_th * angle_diff)/2                       # angle reward
                 if self._get_touch() == 1:                                                      # gripper in-touch reward
-                    reward += grasp_coef * grasp_value * 0.1
+                    reward += grasp_coef * grasp_value * 0.3
                 elif self._get_touch() == 2:                                                    # gripper out-touch negative reward
                     reward -= grasp_coef * grasp_value * 0.1
                 elif self._get_touch() == 3:                                                    # gripper grasp reward
@@ -409,6 +410,7 @@ class JacoMujocoEnvUtil:
 
     def _take_action(self, a):
         self.action_in = True
+        self.gripper_iter = 0
         self.__get_gripper_pose()
         self.curr_action = np.array(a)
         if np.any(np.isnan(np.array(a))):
@@ -418,15 +420,14 @@ class JacoMujocoEnvUtil:
             # Action scaled to 0.01m, 0.05 rad
             self.target_pos = self.gripper_pose[0] + np.hstack([a[:3]/100, a[3:6]/20])
             if len(a) == 8:
-                self.gripper_iter = 0
                 prev1 = self.gripper_angle_1
                 prev2 = self.gripper_angle_2
                 self.gripper_angle_1 += a[6]
                 self.gripper_angle_2 += a[7]
                 self.gripper_angle_1 = max(min(self.gripper_angle_1,7.5),0.5)
                 self.gripper_angle_2 = max(min(self.gripper_angle_2,7.5),0.5)
-                self.gripper_angle_1_array = np.linspace(prev1, self.gripper_angle_1, 30)
-                self.gripper_angle_2_array = np.linspace(prev2, self.gripper_angle_2, 30)
+                self.gripper_angle_1_array = np.linspace(prev1, self.gripper_angle_1, self.skip_frames)
+                self.gripper_angle_2_array = np.linspace(prev2, self.gripper_angle_2, self.skip_frames)
             elif len(a) == 6:
                 self.gripper_angle_1 = 2.5
                 self.gripper_angle_2 = 2.5
