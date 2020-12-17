@@ -72,7 +72,7 @@ class RL_controller:
         args.batches_per_episodes = self.batches_per_episodes
         self.num_episodes = 20000
         self.args = args
-        self.trial = 8
+        self.trial = 9
 
 
     def train_from_scratch(self):
@@ -199,10 +199,10 @@ class RL_controller:
         task_list = ['reaching', 'grasping', 'picking', 'carrying', 'releasing', 'placing', 'pushing']
         self.args.task = task_list[1]
         self.args.prev_action = False
-        model_dir = self.model_path + 'grasping_trained_at_12_16_23:9:15_6'
+        model_dir = self.model_path + 'grasping_trained_at_12_16_23:9:15_6/continue3'
         # model_dir = self.model_path + 'reaching_trained_at_12_9_19:50:36'
-        policy_dir = model_dir + '/policy_36350.zip'
-        sub_dir = '/continue3'
+        policy_dir = model_dir + '/policy_1200.zip'
+        sub_dir = '/continue3_1'
         print(model_dir + sub_dir)
 
         self.args.log_dir = model_dir
@@ -211,10 +211,11 @@ class RL_controller:
         env = JacoMujocoEnv(**vars(self.args))
         
         os.makedirs(model_dir+sub_dir, exist_ok=True)
-        net_arch = {'pi': [128,128], 'vf': [64, 64]}
-        policy_kwargs = {'net_arch': [net_arch]}
+        # net_arch = {'pi': [128,128], 'vf': [64, 64]}
+        # policy_kwargs = {'net_arch': [net_arch]}
         # self.trainer = SAC_MULTI.load(policy_dir, policy=MlpPolicy_sac, env=env, tensorboard_log=model_dir+sub_dir)
-        self.trainer = PPO1.load(policy_dir, env=env, tensorboard_log=model_dir+sub_dir, policy_kwargs=policy_kwargs, exact_match=True, only={'value':True})
+        # self.trainer = PPO1.load(policy_dir, env=env, tensorboard_log=model_dir+sub_dir, policy_kwargs=policy_kwargs, exact_match=True, only={'value':True})
+        self.trainer = PPO1.load(policy_dir, env=env, tensorboard_log=model_dir+sub_dir)
         self.trainer.learn(total_time_step, save_interval=100, save_path=model_dir+sub_dir)
         print("Train Finished")
         self.trainer.save(model_dir+sub_dir)

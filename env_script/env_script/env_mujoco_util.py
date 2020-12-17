@@ -329,7 +329,8 @@ class JacoMujocoEnvUtil:
                 # distance reward
                 reward = dist_coef * np.exp(-1/dist_th * obj_diff)/2                            
                 # angle reward
-                reward += angle_coef * np.exp(-1/angle_th * angle_diff)/2
+                # reward += angle_coef * np.exp(-1/angle_th * angle_diff)/2
+                reward += angle_coef * np.exp(-1/angle_th * angle_diff)/2 / (obj_diff*15+1)
                 # gripper in-touch reward
                 if self.touch_index == 1:
                     reward += grasp_coef * grasp_value * 0.3

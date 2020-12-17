@@ -1,0 +1,9 @@
+Layers:
+	policy:	[64, 64]
+	value:	[64, 64]
+
+grasping obs still normed to 1
+angular reward / (dist*15+1) -> if 0.1, then reward / 2.5
+
+expected characteristics:
+    no matter what the angle is, the gripper will first try to reach for the object, then do some angular modulation
