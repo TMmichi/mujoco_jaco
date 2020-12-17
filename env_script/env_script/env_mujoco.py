@@ -35,7 +35,7 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
         # normalized into 1
         end_effector_orientation_max = [1]*3    
         # normalized into 0.5
-        gripper_angle_max = [0.5]
+        gripper_angle_max = [1]
         prev_position_action_max = [2]*3            
         prev_orientation_action_max = [2]*3         
         # normalized into 1

@@ -228,7 +228,7 @@ class JacoMujocoEnvUtil:
                         self.touch_index,
                         self.gripper_pose[i][:3],
                         self.gripper_pose[i][3:]/np.pi,
-                        [(self.gripper_angle_1-4)/7], 
+                        [(self.gripper_angle_1-4)/3.5], 
                         self.prev_action[:6],
                         self.__get_property('object_body','pose')[0][:3],
                         self.__get_property('object_body','pose')[0][3:]/np.pi,

@@ -1,0 +1,6 @@
+Layers:
+	policy:	[64, 64]
+	value:	[64, 64]
+
+from trial 6, continue 1: gripper angle state normalized to 1 instead of 0.5
+To check: Would it provide more variance, just like other actions for gripper movement?

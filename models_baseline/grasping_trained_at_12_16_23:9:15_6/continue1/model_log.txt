@@ -11,3 +11,4 @@ Characteristics at 2069:
     Gripper keep lean over left side no matter where the object is	
     More variance to the gripper angle. It actually changes!
     But still lacks its variance compared to the other actions. Should I also normalize it to 1?
+        -> To check, grasp trial 8

@@ -72,7 +72,7 @@ class RL_controller:
         args.batches_per_episodes = self.batches_per_episodes
         self.num_episodes = 20000
         self.args = args
-        self.trial = 7
+        self.trial = 8
 
 
     def train_from_scratch(self):
@@ -462,11 +462,11 @@ class RL_controller:
 
 if __name__ == "__main__":
     controller = RL_controller()
-    # controller.train_from_scratch()
+    controller.train_from_scratch()
     # controller.train_from_expert()
     # controller.train_from_scratch_2()
     # controller.train_from_scratch_3()
-    controller.train_continue()
+    # controller.train_continue()
     # controller.train_from_expert()
     # controller.generate_traj()
     # controller.test()
