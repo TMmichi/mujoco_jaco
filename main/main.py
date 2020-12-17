@@ -211,7 +211,7 @@ class RL_controller:
         env = JacoMujocoEnv(**vars(self.args))
         
         os.makedirs(model_dir+sub_dir, exist_ok=True)
-        net_arch = {'pi': [128,128]}
+        net_arch = {'pi': [128,128], 'vf': [64, 64]}
         policy_kwargs = {'net_arch': [net_arch]}
         # self.trainer = SAC_MULTI.load(policy_dir, policy=MlpPolicy_sac, env=env, tensorboard_log=model_dir+sub_dir)
         self.trainer = PPO1.load(policy_dir, env=env, tensorboard_log=model_dir+sub_dir, policy_kwargs=policy_kwargs, exact_match=True, only={'value':True})

@@ -1,0 +1,9 @@
+Layers:
+	policy:	[128,128]
+	value:	[64, 64]
+
+gripper angle merged into 1 (pre-training)
+touch sensor improved than the pre-training session (continue1)
+transfer learning. Only value parameters from pre-training session updated (continue2)
+Different from continue2, policy layer changed to 128,128 to see policy parameter underfits.
+
