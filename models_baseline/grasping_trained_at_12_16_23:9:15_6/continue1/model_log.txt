@@ -12,3 +12,10 @@ Characteristics at 2069:
     More variance to the gripper angle. It actually changes!
     But still lacks its variance compared to the other actions. Should I also normalize it to 1?
         -> To check, grasp trial 8
+
+Characteristics at 4710:
+    Still leaning to the left side.
+    Not sure if it is reaching for the 'object' or the 'position'
+        -> more noisy version is required..?
+    Also, gripper is learned to be closed. No sign of grap tries...
+
