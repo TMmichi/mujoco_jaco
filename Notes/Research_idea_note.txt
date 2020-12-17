@@ -422,6 +422,65 @@ Note
 
                 Dexterous manipulation -> 
             }
+            1-2. IRL for problem solving!!! // grasping
+            {
+                1. 저번주 이후로 상당히 많은 state/reward shaping 과정이 있었음
+
+
+                2. 교수님께서 주신 MaxEnt IRL paper:
+                    - 일단 expert trajectory가 존재. 나도 있음
+                    - 어떤 task에 대해 optimal인지 유추함. 근데 난 딱 grasping에 쓰일건데? "어떻게"가 아니라, "얼마나 잘"이 문제라...
+                    - 방법:
+                        1. trajectory를 relable하고, 이걸로 off-policy RL을 돌림
+                            의의: 기존의 hindsight relable method를 generalize 해서 비단 goal-reaching 뿐만 아니라 task distribution에 적용할 수 있게 함.
+                        2. Behavior Cloning을 relabled experience에 사용함.
+                            의의: policy search를 multi-task setting으로, goal-conditioned imitation learning을 임의의 task distribution으로 확장시킴.
+
+
+                Apprenticeship learning paper를 보고 혹시 state의 non-linear 
+
+                3. 일단, 재현형님 연구에서 GP로 reward function의 parameter 및 state feature 추정한 것을 어떻게 내 연구에 접목시킬까?
+                    3-1. 특징
+                        - reward function의 each term 형태가 정해져있고, 한 term의 coefficient에 대해 expert trajectory로 GP realization을 시킴
+                        - trajectory의 state feature 중 어느 것이 coefficient를 결정하는 데에 dominant 한 영향을 미치나 알아봄
+                    3-2.
+                        내 state: 15 dimensions
+                            - touch index : 1 dimension
+                            - EE pose (normalized into range (-1 ~ 1)) : 6 dimensions
+                            - gripper angle (normalized into range (-0.5 ~ 0.5)) : 2 dimensions
+                            - object pose (normalized into range (-1 ~ 1)) : 6 dimensions
+                        내 reward:
+                            - distance btw EE and the object
+                            - difference btw EE angle and the desired angle
+                            - touch index (grasp, in-touch, out-touch)
+                            - object height
+                                의 linear combination으로 이루어져 있음
+                        내 action: 8 dimensions
+                            - del_pose : 6 dimensions
+                            - del_gripper angle : 2 dimensions
+                        
+                        Q. state 또한
+                
+                4. 내 HPC 또한 curriculum learning 중 하나. 그럼 grasping을 진짜 더 세부화 시켜서 curriculum화 하면 어떨까?
+                
+                Way of constituting a curriculum: order-wise
+                How can tasks/experience samples be sequenced into a curriculum?
+                    -> manually
+                    -> automated methods have been proposed.
+                How can an agent transfer knowledge between tasks of curriculum?
+                    !!Assume: MDPs share state/action spaces or task mapping(manual/automatic) occurs.
+                    -> transfer learning. It is important to transfer relevant, reusable info from each task, and combine them.
+                    -> knowledge can be: samples, options, policies, models, value functions
+                    -> Transfer can be one-to-one or many-to-one
+                Evaluation Metric:
+                    - just step-value graph
+                    - time to expected return threshold
+                    - asymptotic performance: final performance after convergence
+                    - jumpstart: initial performance increase
+                    - total reward ratio: total reward accumulated by the agent during training till same stopping point
+                    Weak transfer: time spent @ source task is not accounted
+                    Strong transfer: source task time added
+            }
             
 
 

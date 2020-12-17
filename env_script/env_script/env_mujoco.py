@@ -18,27 +18,39 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
         ### ------------  RL SETUP  ------------ ###
         ## Env Steps
         self.current_steps = 0
-        try:
-            self.max_steps = kwargs['steps_per_batch'] * \
-                kwargs['batches_per_episodes']
-        except Exception:
-            print("Using default max_steps: 500")
-            self.max_steps = 500
-        self.num_step_pass = 30  #0.15s per step
+        self.max_steps = 2500
+        if kwargs.get('task', None) in ['reaching','grasping', 'carrying', 'releasing', 'pushing']:
+            self.task_max_steps = 500
+        elif kwargs.get('task', None) in ['picking', 'placing']:
+            self.task_max_steps = 1200
+        else:
+            self.task_max_steps = 2500
+        self.num_step_pass = 80  #0.15s per step
 
         ## Observations
-        end_effector_position_max = [2]*3           
-        end_effector_orientation_max = [np.pi]*3    
-        gripper_angle_max = [0.5]*2                 
+        # Not touched, Inner touched, Outer touched, grasped
+        touch_index = [3]
+        # normalized into 1
+        end_effector_position_max = [1]*3           
+        # normalized into 1
+        end_effector_orientation_max = [1]*3    
+        # normalized into 0.5
+        gripper_angle_max = [0.5]
         prev_position_action_max = [2]*3            
         prev_orientation_action_max = [2]*3         
-        obj_position_max = [2]*3                    
-        obj_orientation_max = [np.pi]*3             
-        dest_max = [2]*3                            
-        reach_position_max = [2]*3                  
-        reach_orientation_max = [np.pi]*3           
+        # normalized into 1
+        obj_position_max = [1]*3                    
+        # normalized into 1
+        obj_orientation_max = [1]*3
+        # normalized into 1
+        dest_max = [1]*3
+        # normalized into 1
+        reach_position_max = [1]*3                  
+        # normalized into 1
+        reach_orientation_max = [1]*3           
         if kwargs.get('prev_action', False):
             obs_max = np.hstack([
+                touch_index,                          #[0]
                 end_effector_position_max,          #[0:3]
                 end_effector_orientation_max,       #[3:6]
                 gripper_angle_max,                  #[6:8]
@@ -51,9 +63,10 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
                 reach_orientation_max])             #[26:29]
         else:
             obs_max = np.hstack([
-                end_effector_position_max,          #[0:3]
-                end_effector_orientation_max,       #[3:6]
-                gripper_angle_max,                  #[6:8]
+                touch_index,                        #[0]
+                end_effector_position_max,          #[1:4]
+                end_effector_orientation_max,       #[4:7]
+                gripper_angle_max,                  #[7:8]
                 obj_position_max,                   #[8:11]
                 obj_orientation_max,                #[11:14]
                 dest_max,                           #[14:17]
@@ -83,8 +96,8 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
             self.act_min = -pose_act
         elif kwargs.get('task', None) in ['grasping', 'carrying']:
             pose_act = np.array([self.pose_action_space_max]*6)             # x,y,z,r,p,y
-            gripper_act_max = np.array([self.gripper_action_space_max]*2)   # g1, g2
-            gripper_act_min = np.array([self.gripper_action_space_min]*2)
+            gripper_act_max = np.array([self.gripper_action_space_max])     # g
+            gripper_act_min = np.array([self.gripper_action_space_min])
             self.act_max = np.hstack([pose_act, gripper_act_max])
             self.act_min = np.hstack([-pose_act, gripper_act_min])
         self.action_space = spaces.Box(self.act_min, self.act_max, dtype=np.float32)
@@ -146,8 +159,9 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
             write_str += " {0: 2.3f}".format(action[i])
         write_str += "\t| Obs:" 
         write_log = write_str
-        for i in range(6):
-            write_str += self._colored_string(obs[i],prev_obs[i],action[i])
+        write_str += str(int(obs[0]))
+        for i in range(1,8):
+            write_str += self._colored_string(obs[i],prev_obs[i],action[i-1])
             write_log += ", {0: 2.3f}".format(obs[i])
         write_str += "\t| wb = {0: 2.3f} | \033[92mReward:\t{1:1.5f}\033[0m".format(wb,reward)
         write_log += "\t| wb = {0: 2.3f} | Reward:\t{1:1.5f}".format(wb,reward)
@@ -162,7 +176,7 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
     def terminal_inspection(self):
         # TODO: terminal state definition
         self.current_steps += 1
-        if self.current_steps < self.max_steps:
+        if self.current_steps < self.task_max_steps:
             return self._get_terminal_inspection()
         else:
             return True, 0, 0

@@ -1,0 +1,6 @@
+Layers:
+	policy:	[64, 64]
+	value:	[64, 64]
+
+gripper angle merged into 1
+touch sensor improved than the pre-training session

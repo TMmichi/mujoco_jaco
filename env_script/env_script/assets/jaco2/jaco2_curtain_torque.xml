@@ -153,11 +153,11 @@
                                             <geom name="thumb_outer_proximal_plane" type="box"  size="0.01 0.02 0.0005" rgba="0 1 0 0.5" />
                                             <site name="13_touch" type="box" pos="0 0 0.0010 " size="0.01 0.02 0.0005" rgba="0 0 1 0.5"/>
                                         </body>
-                                        <body name="thumb_proximal_plane" pos="0 0.0035 0.032">
+                                        <body name="thumb_proximal_plane" pos="0 0.0045 0.032">
                                             <geom name="thumb_proximal_plane" type="box" euler="1.44 0 0" size="0.01 0.02 0.0005" rgba="0 1 0 0.5" />
                                             <site name="1_touch" type="box" pos="0 0.0010 0.0" size="0.01 0.02 0.0005" euler="1.44 0 0" rgba="0 0 1 0.5"/>
                                         </body>
-                                        <body name="thumb_proximal_plane2" pos="0 0.0035 0.013">
+                                        <body name="thumb_proximal_plane2" pos="0 0.0045 0.013">
                                             <geom name="thumb_proximal_plane2" type="box" euler="1.7453 0 0" size="0.01 0.02 0.0005" rgba="0 1 0 0.5" />
                                             <site name="2_touch" type="box" pos="0 0.0010 0.0" size="0.01 0.02 0.0005" euler="1.7453 0 0" rgba="0 0 1 0.5"/>
                                         </body>
@@ -168,11 +168,11 @@
                                                 <geom name="thumb_outer_distal_plane" type="box"  size="0.01 0.022 0.0005" rgba="0 1 0 0.5" />
                                                 <site name="14_touch" type="box" pos="0 0 0.0010 " size="0.01 0.022 0.0005" rgba="0 0 1 0.5"/>
                                             </body>                                            
-                                            <body name="thumb_distal_plane" pos="0 -0.0015 0.037">
+                                            <body name="thumb_distal_plane" pos="0 -0.0025 0.037">
                                                 <geom name="thumb_distal_plane" type="box" euler="1.8325 0 0" size="0.01 0.008 0.0005" rgba="0 1 0 0.5" />
                                                 <site name="3_touch" type="box" pos="0 0.001 0.0" size="0.01 0.008 0.0005" euler="1.8325 0 0" rgba="0 0 1 0.5"/>
                                             </body>
-                                            <body name="thumb_distal_plane2" pos="0 0.0045 0.016">
+                                            <body name="thumb_distal_plane2" pos="0 0.0055 0.016">
                                                 <geom name="thumb_distal_plane2" type="box" euler="1.9 0 0" size="0.01 0.008 0.0005" rgba="0 1 0 0.5" />
                                                 <site name="4_touch" type="box" pos="0 0.001 0.0" size="0.01 0.008 0.0005" euler="1.9 0 0" rgba="0 0 1 0.5"/>
                                             </body>
@@ -187,11 +187,11 @@
                                             <geom name="index_outer_proximal_plane" type="box"  size="0.01 0.02 0.0005" rgba="0 1 0 0.5" />
                                             <site name="15_touch" type="box" pos="0 0 -0.0010" size="0.01 0.02 0.0005" rgba="0 0 1 0.5"/>
                                         </body>
-                                        <body name="index_proximal_plane" pos="0 -0.0025 0.032">
+                                        <body name="index_proximal_plane" pos="0 -0.0035 0.032">
                                             <geom name="index_proximal_plane" type="box" euler="1.7 0 0" size="0.01 0.02 0.0005" rgba="0 1 0 0.5" />
                                             <site name="5_touch" type="box" pos="0 -0.001 0.0" size="0.01 0.02 0.0005" euler="1.7 0 0" rgba="0 0 1 0.5"/>
                                         </body>
-                                        <body name="index_proximal_plane2" pos="0 -0.0025 0.013">
+                                        <body name="index_proximal_plane2" pos="0 -0.0035 0.013">
                                             <geom name="index_proximal_plane2" type="box" euler="1.3963 0 0" size="0.01 0.02 0.0005" rgba="0 1 0 0.5" />
                                             <site name="6_touch" type="box" pos="0 -0.001 0.0" size="0.01 0.02 0.0005" euler="1.3963 0 0" rgba="0 0 1 0.5"/>
                                         </body>
@@ -202,11 +202,11 @@
                                                 <geom name="index_outer_distal_plane" type="box"  size="0.01 0.022 0.0005" rgba="0 1 0 0.5" />
                                                 <site name="16_touch" type="box" pos="0 0 -0.0010 " size="0.01 0.022 0.0005" rgba="0 0 1 0.5"/>
                                             </body> 
-                                            <body name="index_distal_plane" pos="0 0.0015 0.037">
+                                            <body name="index_distal_plane" pos="0 0.0025 0.037">
                                                 <geom name="index_distal_plane" type="box" euler="1.309 0 0" size="0.01 0.008 0.0005" rgba="0 1 0 0.5" />
                                                 <site name="7_touch" type="box" pos="0 -0.001 0.0" size="0.01 0.008 0.0005" euler="1.309 0 0" rgba="0 0 1 0.5"/>
                                             </body>
-                                            <body name="index_distal_plane2" pos="0 -0.0035 0.016">
+                                            <body name="index_distal_plane2" pos="0 -0.0045 0.016">
                                                 <geom name="index_distal_plane2" type="box" euler="1.309 0 0" size="0.01 0.008 0.0005" rgba="0 1 0 0.5" />
                                                 <site name="8_touch" type="box" pos="0 -0.001 0.0" size="0.01 0.008 0.0005" euler="1.309 0 0" rgba="0 0 1 0.5"/>
                                             </body>
@@ -221,11 +221,11 @@
                                             <geom name="pinky_outer_proximal_plane" type="box"  size="0.01 0.02 0.0005" rgba="0 1 0 0.5" />
                                             <site name="17_touch" type="box" pos="0 0 -0.0010" size="0.01 0.02 0.0005" rgba="0 0 1 0.5"/>
                                         </body>
-                                        <body name="pinky_proximal_plane" pos="0 -0.0025 0.032">
+                                        <body name="pinky_proximal_plane" pos="0 -0.0035 0.032">
                                             <geom name="pinky_proximal_plane" type="box" euler="1.7 0 0" size="0.01 0.02 0.0005" rgba="0 1 0 0.5" />
                                             <site name="9_touch" type="box" pos="0 -0.001 0.0" size="0.01 0.02 0.0005" euler="1.7 0 0" rgba="0 0 1 0.5"/>
                                         </body>
-                                        <body name="pinky_proximal_plane2" pos="0 -0.0025 0.013">
+                                        <body name="pinky_proximal_plane2" pos="0 -0.0035 0.013">
                                             <geom name="pinky_proximal_plane2" type="box" euler="1.3963 0 0" size="0.01 0.02 0.0005" rgba="0 1 0 0.5" />
                                             <site name="10_touch" type="box" pos="0 -0.001 0.0" size="0.01 0.02 0.0005" euler="1.3963 0 0" rgba="0 0 1 0.5"/>
                                         </body>
@@ -236,11 +236,11 @@
                                                 <geom name="pink_outer_distal_plane" type="box"  size="0.01 0.022 0.0005" rgba="0 1 0 0.5" />
                                                 <site name="18_touch" type="box" pos="0 0 -0.0010 " size="0.01 0.022 0.0005" rgba="0 0 1 0.5"/>
                                             </body> 
-                                            <body name="pinky_distal_plane" pos="0 0.0015 0.037">
+                                            <body name="pinky_distal_plane" pos="0 0.0025 0.037">
                                                 <geom name="pinky_distal_plane" type="box" euler="1.309 0 0" size="0.01 0.008 0.0005" rgba="0 1 0 0.5" />
                                                 <site name="11_touch" type="box" pos="0 -0.0008 0.0" size="0.01 0.008 0.0005" euler="1.309 0 0" rgba="0 0 1 0.5"/>
                                             </body>
-                                            <body name="pinky_distal_plane2" pos="0 -0.0035 0.016">
+                                            <body name="pinky_distal_plane2" pos="0 -0.0045 0.016">
                                                 <geom name="pinky_distal_plane2" type="box" euler="1.309 0 0" size="0.01 0.008 0.0005" rgba="0 1 0 0.5" />
                                                 <site name="12_touch" type="box" pos="0 -0.001 0.0" size="0.01 0.008 0.0005" euler="1.309 0 0" rgba="0 0 1 0.5"/>
                                             </body>
@@ -288,10 +288,9 @@
             
             <!-- <geom type="box" size=".05 0.025 0.025" density="7" pos="0 0 0" rgba="0 0 0.5 0.8"></geom> -->
 
-            <geom type="cylinder" size=".015 .07" density="2" pos="0 0 0" rgba="0 0 0.5 1"></geom>
-                <inertial pos="0 0 0.03" mass="0.01" diaginertia="0.2 0.2 0.2"></inertial>
-            <geom type="cylinder" size=".030 .01" density="0.01" pos="0 0 0.07" rgba="0 0 0.5 1"></geom>
-            <geom type="cylinder" size=".040 .01" density="0.02" pos="0 0 -0.06" rgba="0 0 0.5 1"></geom>
+            <geom type="cylinder" size=".015 .07" density="1" pos="0 0 0" rgba="0 0 0.5 .5"></geom>
+            <geom type="cylinder" size=".030 .01" density="1" pos="0 0 0.07" rgba="0 0 0.5 .5"></geom>
+            <geom type="cylinder" size=".040 .01" density="2" pos="0 0 -0.06" rgba="0 0 0.5 .5"></geom>
             <geom name="target_dum" type="sphere" size="0.01" rgba=".9 0 0 1" contype="8" conaffinity="8"/>
             <!-- <geom name='object_dum' type="sphere" size="0.01" pos="0.02 0 0.03" rgba=".0 0 0 .0" contype="4" conaffinity="4"/>> -->
         </body>

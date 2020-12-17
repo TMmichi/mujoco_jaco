@@ -1195,3 +1195,7 @@
 
 2020 11 17 (Tue)
     - 30 Natural Gradient scheme added to the SAC (Emperical Fisher inv multiplied to the gradient of SAC objective)
+
+2020 12 13 (Sun)
+    - Should timesteps be added???
+        -> if yes, then how to train each primitives and fuse them?

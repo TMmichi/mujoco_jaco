@@ -51,7 +51,7 @@ model_configuration['random_exploration'] = 0.05
 #model_configuration['sa_coupler_index'] = [0,1]
 # model_configuration['policy_kwargs'] = {'act_fun':tf.nn.swish}
 model_configuration['policy_kwargs'] = {'act_fun':tf.nn.relu}
-pretrain_configuration['n_epochs'] = 20000
+pretrain_configuration['n_epochs'] = 1000000
 pretrain_configuration['learning_rate'] = 5e-5
 pretrain_configuration['val_interval'] = 100
 #####################################################################################################

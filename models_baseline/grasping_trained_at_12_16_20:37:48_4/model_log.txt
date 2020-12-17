@@ -1,0 +1,14 @@
+Layers:
+	policy:	[64, 64]
+	value:	[64, 64]
+
+non_lin:		dist - coef: 5, th: 0.2
+                   		angle - coef: 2, th: pi/6
+                   		height - coef: 100
+                   		grasp - coef: 5, value: 0.5
+                   		scale - coef: 0.05
+                   		Added hand collision cost
+                   		obs z added
+
+skip frame changed from 30 (0.15s) to 80 (0.4s)
+
