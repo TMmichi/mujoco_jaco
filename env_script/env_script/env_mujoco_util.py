@@ -209,7 +209,7 @@ class JacoMujocoEnvUtil:
             gamma = uniform(-0.1, 0.1)
             reach_goal_ori = np.array([alpha, beta, gamma], dtype=np.float16)
             reach_goal.append(np.hstack([reach_goal_pos, reach_goal_ori]))
-            obj_goal_pos = [uniform(-0.05,0.05), 0.65+uniform(-0.02,0.02), self.object_z]
+            obj_goal_pos = [uniform(-0.1,0.1), 0.65+uniform(-0.08,0.02), self.object_z]
             # obj_goal_pos = [0.2, 0.67, self.object_z]
             obj_goal.append(obj_goal_pos)
             dest_goal_pos = [0.5+uniform(-0.05,0.05),0.2+uniform(-0.05,0.05),0.3]
