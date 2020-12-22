@@ -211,9 +211,9 @@ class Mujoco:
         old_state = self.sim.get_state()
         new_qpos = old_state.qpos.copy()
         new_qvel = old_state.qvel.copy()
-        new_qpos[12:15] = xyz
-        new_qpos[15:] = quat
-        new_qvel[12:] = 0
+        new_qpos[9:12] = xyz
+        new_qpos[12:] = quat
+        new_qvel[9:] = 0
         new_state = mjp.MjSimState(old_state.time, new_qpos, new_qvel, old_state.act, old_state.udd_state)
         self.sim.set_state(new_state)
         self.sim.forward()
@@ -221,7 +221,7 @@ class Mujoco:
     def stop_obj(self):
         old_state = self.sim.get_state()
         new_qvel = old_state.qvel.copy()
-        new_qvel[12:] = 0
+        new_qvel[9:] = 0
         new_state = mjp.MjSimState(old_state.time, old_state.qpos, new_qvel, old_state.act, old_state.udd_state)
         self.sim.set_state(new_state)
         self.sim.forward()
@@ -252,6 +252,7 @@ class Mujoco:
 
         # NOTE: the qpos_addr's are unrelated to the order of the motors
         # NOTE: assuming that the robot arm motors are the first len(u) values
+        # print(['{: 2.3f}'.format(item) for item in self.sim.data.ctrl])
         self.sim.data.ctrl[:] = u[:]
 
         # move simulation ahead one time step

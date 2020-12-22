@@ -25,11 +25,14 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
             self.task_max_steps = 1200
         else:
             self.task_max_steps = 2500
-        self.num_step_pass = 80  #0.15s per step
+        self.skip_frames = 50  #0.05s per step
 
         ## Observations
         # Not touched, Inner touched, Outer touched, grasped
         touch_index = [3]
+        #
+        joint_pos_max = [10] * 6
+        joint_vel_max = [10] * 6
         # normalized into 1
         end_effector_position_max = [1]*3           
         # normalized into 1
@@ -42,33 +45,49 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
         obj_position_max = [1]*3                    
         # normalized into 1
         obj_orientation_max = [1]*3
+        obj_dist_max = [3]
         # normalized into 1
         dest_max = [1]*3
         # normalized into 1
         reach_position_max = [1]*3                  
         # normalized into 1
-        reach_orientation_max = [1]*3           
-        if kwargs.get('prev_action', False):
-            obs_max = np.hstack([
-                touch_index,                          #[0]
-                end_effector_position_max,          #[0:3]
-                end_effector_orientation_max,       #[3:6]
-                gripper_angle_max,                  #[6:8]
-                prev_position_action_max,           #[8:11]
-                prev_orientation_action_max,        #[11:14]
-                obj_position_max,                   #[14:17]
-                obj_orientation_max,                #[17:20]
-                dest_max,                           #[20:23]
-                reach_position_max,                 #[23:26]
-                reach_orientation_max])             #[26:29]
-        else:
+        reach_orientation_max = [1]*3
+        if self.ctrl_type == 'torque':
+            if kwargs.get('prev_action', False):
+                obs_max = np.hstack([
+                    touch_index,                          #[0]
+                    end_effector_position_max,          #[0:3]
+                    end_effector_orientation_max,       #[3:6]
+                    gripper_angle_max,                  #[6:8]
+                    prev_position_action_max,           #[8:11]
+                    prev_orientation_action_max,        #[11:14]
+                    obj_position_max,                   #[14:17]
+                    obj_orientation_max,                #[17:20]
+                    dest_max,                           #[20:23]
+                    reach_position_max,                 #[23:26]
+                    reach_orientation_max])             #[26:29]
+            else:
+                obs_max = np.hstack([
+                    touch_index,                        #[0]
+                    end_effector_position_max,          #[1:4]
+                    end_effector_orientation_max,       #[4:7]
+                    gripper_angle_max,                  #[7:8]
+                    obj_position_max,                   #[8:11]
+                    obj_orientation_max,                #[11:14]
+                    dest_max,                           #[14:17]
+                    reach_position_max,                 #[17:20]
+                    reach_orientation_max])             #[20:23]
+        elif self.ctrl_type == 'velocity':
             obs_max = np.hstack([
                 touch_index,                        #[0]
+                joint_pos_max,
+                joint_vel_max,
                 end_effector_position_max,          #[1:4]
                 end_effector_orientation_max,       #[4:7]
                 gripper_angle_max,                  #[7:8]
                 obj_position_max,                   #[8:11]
                 obj_orientation_max,                #[11:14]
+                obj_dist_max,
                 dest_max,                           #[14:17]
                 reach_position_max,                 #[17:20]
                 reach_orientation_max])             #[20:23]
@@ -88,8 +107,8 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
         # 10: max open, 0: max closed
         # incremental angle
         # takes 2 seconds to fully stretch/grasp the gripper
-        self.gripper_action_space_max = 0.5
-        self.gripper_action_space_min = -0.5
+        self.gripper_action_space_max = 1
+        self.gripper_action_space_min = -1
         if kwargs.get('task', None) == 'reaching':
             pose_act = np.array([self.pose_action_space_max]*6)             # x,y,z,r,p,y
             self.act_max = pose_act
@@ -132,15 +151,15 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
         action = np.clip(action, self.act_min, self.act_max)
         self.prev_action = action
         self.take_action(action)
-        for _ in range(self.num_step_pass):
+        for _ in range(self.skip_frames):
             self._step_simulation()
 
         obs = self.make_observation()
         reward_val = self._get_reward()
         done, additional_reward, self.wb = self.terminal_inspection()
         total_reward = reward_val + additional_reward
-        if self.current_steps % 10 == 0:
-            self.logging(obs, self.prev_obs, action, self.wb, total_reward) if log else None
+        # if self.current_steps % 10 == 0:
+        #     self.logging(obs, self.prev_obs, action, self.wb, total_reward) if log else None
         self.prev_obs = obs
         if np.any(np.isnan(obs)) or np.any(np.isnan(total_reward)):
             print("WARNING: NAN in obs, resetting.")

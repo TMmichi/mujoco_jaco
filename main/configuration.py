@@ -30,7 +30,7 @@ layer_structure_list = [[256, 256, 128, 128, 128, 64, 64], \
                         [512, 256, 256, 512], [256, 256, 128, 128], [128, 64, 64, 32], [64, 64, 32, 32], \
                         [512, 256, 256], [256, 256, 128], [128, 128, 128], \
                         [256, 256], [128, 128], [64, 64]]
-layer_structure = layer_structure_list[-1]
+layer_structure = layer_structure_list[-4]
 layers = {"policy": layer_structure, "value": layer_structure}
 
 model_configuration['learning_starts'] = 100

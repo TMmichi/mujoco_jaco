@@ -149,32 +149,33 @@
                                         <geom name="thumb_proximal" type="mesh" mesh="finger_proximal" euler="0 -1.5707 0" friction="1 0.5 0.01" solimp="0.95 0.95 0.01 0.5 6" solref="0.01 1" condim="6" margin="0.0"/>
                                         <!-- <joint name="joint_thumb" pos="0 0 0" axis="1 0 0" ref="1.1" limited="true" range="-0.2 1.1" solimplimit="0.95 0.95 0.01" solreflimit="0.01 1" stiffness="5" springref="0.0" damping="0.35"/>                                         -->
                                         <!-- <joint name="joint_thumb" pos="0 0 0" axis="1 0 0" ref="1.1" limited="true" range="0.35 1.1" solimplimit="0.95 0.95 0.01" solreflimit="0.01 1" stiffness="5" springref="0.0" damping="0.35"/> -->
-                                        <joint name="joint_thumb" pos="0 0 0" axis="1 0 0" ref="1.1" limited="true" range="0 1.51" damping="0.15"/>
+                                        <joint name="joint_thumb" pos="0 0 0" axis="1 0 0" limited="true" range="0 0.6981"/>
                                         <body name="thumb_outer_proximal_plane" pos="0 -0.021 0.022" euler="1.49 0 0">
                                             <geom name="thumb_outer_proximal_plane" type="box"  size="0.01 0.02 0.0005" rgba="0 1 0 0.5" />
                                             <site name="13_touch" type="box" pos="0 0 0.0010 " size="0.01 0.02 0.0005" rgba="0 0 1 0.5"/>
                                         </body>
-                                        <body name="thumb_proximal_plane" pos="0 0.0035 0.032">
+                                        <body name="thumb_proximal_plane" pos="0 0.0045 0.032">
                                             <geom name="thumb_proximal_plane" type="box" euler="1.44 0 0" size="0.01 0.02 0.0005" rgba="0 1 0 0.5" />
                                             <site name="1_touch" type="box" pos="0 0.0010 0.0" size="0.01 0.02 0.0005" euler="1.44 0 0" rgba="0 0 1 0.5"/>
                                         </body>
-                                        <body name="thumb_proximal_plane2" pos="0 0.0035 0.013">
+                                        <body name="thumb_proximal_plane2" pos="0 0.0045 0.013">
                                             <geom name="thumb_proximal_plane2" type="box" euler="1.7453 0 0" size="0.01 0.02 0.0005" rgba="0 1 0 0.5" />
                                             <site name="2_touch" type="box" pos="0 0.0010 0.0" size="0.01 0.02 0.0005" euler="1.7453 0 0" rgba="0 0 1 0.5"/>
                                         </body>
                                         <body name="thumb_distal" pos="0 -0.0035 0.044">
                                             <geom name="thumb_distal" type="mesh" mesh="finger_distal" euler="0 -1.5707 0" friction="1 0.5 0.01" solimp="0.95 0.95 0.01 0.5 6" solref="0.01 1" condim="6" margin="0.0"/>
+                                            <joint name="joint_thumb_distal" pos="0 0 0" axis="-1 0 0" ref="-0.5" limited="true" range="0 2" damping="0.1" />
                                             <!-- <joint name="joint_thumb_distal" pos="0 0 0" axis="-1 0 0" ref="-0.5" limited="true" range="-0.4 0.4" stiffness="5" springref="-0.4" damping="0.5" solimplimit="0.95 0.95 0.01" solreflimit="0.01 1"/> -->
                                             <!-- <joint name="joint_thumb_distal" pos="0 0 0" axis="-1 0 0" limited="true" range="0 0.6981"/> -->
                                             <body name="thumb_outer_distal_plane" pos="0 -0.011 0.02" euler="1.42 0 0">
                                                 <geom name="thumb_outer_distal_plane" type="box"  size="0.01 0.022 0.0005" rgba="0 1 0 0.5" />
                                                 <site name="14_touch" type="box" pos="0 0 0.0010 " size="0.01 0.022 0.0005" rgba="0 0 1 0.5"/>
                                             </body>                                            
-                                            <body name="thumb_distal_plane" pos="0 -0.0025 0.035">
+                                            <body name="thumb_distal_plane" pos="0 -0.0025 0.037">
                                                 <geom name="thumb_distal_plane" type="box" euler="1.8325 0 0" size="0.01 0.008 0.0005" rgba="0 1 0 0.5" />
                                                 <site name="3_touch" type="box" pos="0 0.001 0.0" size="0.01 0.008 0.0005" euler="1.8325 0 0" rgba="0 0 1 0.5"/>
                                             </body>
-                                            <body name="thumb_distal_plane2" pos="0 0.0025 0.016">
+                                            <body name="thumb_distal_plane2" pos="0 0.0055 0.016">
                                                 <geom name="thumb_distal_plane2" type="box" euler="1.9 0 0" size="0.01 0.008 0.0005" rgba="0 1 0 0.5" />
                                                 <site name="4_touch" type="box" pos="0 0.001 0.0" size="0.01 0.008 0.0005" euler="1.9 0 0" rgba="0 0 1 0.5"/>
                                             </body>
@@ -185,32 +186,33 @@
                                         <geom name="index_proximal" type="mesh" mesh="finger_proximal" quat="5.63312174e-04  7.06824957e-01 -5.62863772e-04  7.07388045e-01" friction="1 0.5 0.01" solimp="0.95 0.95 0.01 0.5 6" solref="0.01 1" condim="6" margin="0.0"/>
                                         <!-- <joint name="joint_index" pos="0 0 0" axis="-1 0 0" ref="1.1" limited="true" range="-0.2 1.1" solimplimit="0.95 0.95 0.01" solreflimit="0.01 1" stiffness="5" springref="0.0" damping="0.35"/> -->
                                         <!-- <joint name="joint_index" pos="0 0 0" axis="-1 0 0" ref="1.1" limited="true" range="0.35 1.1" solimplimit="0.95 0.95 0.01" solreflimit="0.01 1" stiffness="5" springref="0.0" damping="0.35"/> -->
-                                        <joint name="joint_index" pos="0 0 0" axis="-1 0 0" ref="1.1" limited="true" range="0 1.51" damping="0.15"/>
+                                        <joint name="joint_index" pos="0 0 0" axis="-1 0 0" limited="true" range="0 0.6981"/>
                                         <body name="index_outer_proximal_plane" pos="0 0.021 0.022" euler="1.59 0 0">
                                             <geom name="index_outer_proximal_plane" type="box"  size="0.01 0.02 0.0005" rgba="0 1 0 0.5" />
                                             <site name="15_touch" type="box" pos="0 0 -0.0010" size="0.01 0.02 0.0005" rgba="0 0 1 0.5"/>
                                         </body>
-                                        <body name="index_proximal_plane" pos="0 -0.0025 0.032">
+                                        <body name="index_proximal_plane" pos="0 -0.0035 0.032">
                                             <geom name="index_proximal_plane" type="box" euler="1.7 0 0" size="0.01 0.02 0.0005" rgba="0 1 0 0.5" />
                                             <site name="5_touch" type="box" pos="0 -0.001 0.0" size="0.01 0.02 0.0005" euler="1.7 0 0" rgba="0 0 1 0.5"/>
                                         </body>
-                                        <body name="index_proximal_plane2" pos="0 -0.0025 0.013">
+                                        <body name="index_proximal_plane2" pos="0 -0.0035 0.013">
                                             <geom name="index_proximal_plane2" type="box" euler="1.3963 0 0" size="0.01 0.02 0.0005" rgba="0 1 0 0.5" />
                                             <site name="6_touch" type="box" pos="0 -0.001 0.0" size="0.01 0.02 0.0005" euler="1.3963 0 0" rgba="0 0 1 0.5"/>
                                         </body>
                                         <body name="index_distal" pos="0 0.003 0.044">
                                             <geom name="index_distal" type="mesh" mesh="finger_distal" quat="5.63312174e-04  7.06824957e-01 -5.62863772e-04  7.07388045e-01" friction="1 0.5 0.01" solimp="0.95 0.95 0.01 0.5 6" solref="0.01 1" condim="6" margin="0.0"/>
+                                            <joint name="joint_index_distal" pos="0 0 0" axis="1 0 0" ref="-0.5" limited="true" range="0 2" damping="0.1" />
                                             <!-- <joint name="joint_index_distal" pos="0 0 0" axis="1 0 0" ref="-0.5" limited="true" range="-0.4 0.4" stiffness="5" springref="-0.4" damping="0.5" solimplimit="0.95 0.95 0.01" solreflimit="0.01 1"/> -->
                                             <!-- <joint name="joint_index_distal" pos="0 0 0" axis="1 0 0" limited="true" range="0 0.6981"/> -->
                                             <body name="index_outer_distal_plane" pos="0 0.012 0.02" euler="1.715 0 0">
                                                 <geom name="index_outer_distal_plane" type="box"  size="0.01 0.022 0.0005" rgba="0 1 0 0.5" />
                                                 <site name="16_touch" type="box" pos="0 0 -0.0010 " size="0.01 0.022 0.0005" rgba="0 0 1 0.5"/>
                                             </body> 
-                                            <body name="index_distal_plane" pos="0 0.0025 0.035">
+                                            <body name="index_distal_plane" pos="0 0.0025 0.037">
                                                 <geom name="index_distal_plane" type="box" euler="1.309 0 0" size="0.01 0.008 0.0005" rgba="0 1 0 0.5" />
                                                 <site name="7_touch" type="box" pos="0 -0.001 0.0" size="0.01 0.008 0.0005" euler="1.309 0 0" rgba="0 0 1 0.5"/>
                                             </body>
-                                            <body name="index_distal_plane2" pos="0 -0.0035 0.016">
+                                            <body name="index_distal_plane2" pos="0 -0.0045 0.016">
                                                 <geom name="index_distal_plane2" type="box" euler="1.309 0 0" size="0.01 0.008 0.0005" rgba="0 1 0 0.5" />
                                                 <site name="8_touch" type="box" pos="0 -0.001 0.0" size="0.01 0.008 0.0005" euler="1.309 0 0" rgba="0 0 1 0.5"/>
                                             </body>
@@ -221,32 +223,33 @@
                                         <geom name="pinky_proximal" type="mesh" mesh="finger_proximal" quat="5.63312174e-04  7.06824957e-01 -5.62863772e-04  7.07388045e-01" friction="1 0.5 0.01" solimp="0.95 0.95 0.01 0.5 6" solref="0.01 1" condim="6" margin="0.0"/>
                                         <!-- <joint name="joint_pinky" pos="0 0 0" axis="-1 0 0" ref="1.1" limited="true" range="-0.2 1.1" solimplimit="0.95 0.95 0.01" solreflimit="0.01 1" stiffness="5" springref="0.0" damping="0.35"/> -->
                                         <!-- <joint name="joint_pinky" pos="0 0 0" axis="-1 0 0" ref="1.1" limited="true" range="0.35 1.1" solimplimit="0.95 0.95 0.01" solreflimit="0.01 1" stiffness="5" springref="0.0" damping="0.35"/> -->
-                                        <joint name="joint_pinky" pos="0 0 0" axis="-1 0 0" ref="1.1" limited="true" range="0 1.51" damping="0.15"/>
+                                        <joint name="joint_pinky" pos="0 0 0" axis="-1 0 0" limited="true" range="0 0.6981"/>
                                         <body name="pinky_outer_proximal_plane" pos="0 0.021 0.022" euler="1.59 0 0">
                                             <geom name="pinky_outer_proximal_plane" type="box"  size="0.01 0.02 0.0005" rgba="0 1 0 0.5" />
                                             <site name="17_touch" type="box" pos="0 0 -0.0010" size="0.01 0.02 0.0005" rgba="0 0 1 0.5"/>
                                         </body>
-                                        <body name="pinky_proximal_plane" pos="0 -0.003 0.032">
+                                        <body name="pinky_proximal_plane" pos="0 -0.0035 0.032">
                                             <geom name="pinky_proximal_plane" type="box" euler="1.7 0 0" size="0.01 0.02 0.0005" rgba="0 1 0 0.5" />
                                             <site name="9_touch" type="box" pos="0 -0.001 0.0" size="0.01 0.02 0.0005" euler="1.7 0 0" rgba="0 0 1 0.5"/>
                                         </body>
-                                        <body name="pinky_proximal_plane2" pos="0 -0.0025 0.013">
+                                        <body name="pinky_proximal_plane2" pos="0 -0.0035 0.013">
                                             <geom name="pinky_proximal_plane2" type="box" euler="1.3963 0 0" size="0.01 0.02 0.0005" rgba="0 1 0 0.5" />
                                             <site name="10_touch" type="box" pos="0 -0.001 0.0" size="0.01 0.02 0.0005" euler="1.3963 0 0" rgba="0 0 1 0.5"/>
                                         </body>
                                         <body name="pinky_distal" pos="0 0.003 0.044">
                                             <geom name="pinky_distal" type="mesh" mesh="finger_distal" quat="5.63312174e-04  7.06824957e-01 -5.62863772e-04  7.07388045e-01" friction="1 0.5 0.01" solimp="0.95 0.95 0.01 0.5 6" solref="0.01 1" condim="6" margin="0.0"/>
+                                            <joint name="joint_pinky_distal" pos="0 0 0" axis="1 0 0" ref="-0.5" limited="true" range="0 2" damping="0.1" />
                                             <!-- <joint name="joint_pinky_distal" pos="0 0 0" axis="1 0 0" ref="0.2" limited="true" range="-0.4 0.4" stiffness="5" springref="0.4" damping="0.5" solimplimit="0.95 0.95 0.01" solreflimit="0.01 1"/> -->
                                             <!-- <joint name="joint_pinky_distal" pos="0 0 0" axis="1 0 0" limited="true" range="0 0.6981"/> -->
                                             <body name="pink_outer_distal_plane" pos="0 0.012 0.02" euler="1.715 0 0">
                                                 <geom name="pink_outer_distal_plane" type="box"  size="0.01 0.022 0.0005" rgba="0 1 0 0.5" />
                                                 <site name="18_touch" type="box" pos="0 0 -0.0010 " size="0.01 0.022 0.0005" rgba="0 0 1 0.5"/>
                                             </body> 
-                                            <body name="pinky_distal_plane" pos="0 0.0025 0.035">
+                                            <body name="pinky_distal_plane" pos="0 0.0025 0.037">
                                                 <geom name="pinky_distal_plane" type="box" euler="1.309 0 0" size="0.01 0.008 0.0005" rgba="0 1 0 0.5" />
                                                 <site name="11_touch" type="box" pos="0 -0.0008 0.0" size="0.01 0.008 0.0005" euler="1.309 0 0" rgba="0 0 1 0.5"/>
                                             </body>
-                                            <body name="pinky_distal_plane2" pos="0 -0.0035 0.016">
+                                            <body name="pinky_distal_plane2" pos="0 -0.0045 0.016">
                                                 <geom name="pinky_distal_plane2" type="box" euler="1.309 0 0" size="0.01 0.008 0.0005" rgba="0 1 0 0.5" />
                                                 <site name="12_touch" type="box" pos="0 -0.001 0.0" size="0.01 0.008 0.0005" euler="1.309 0 0" rgba="0 0 1 0.5"/>
                                             </body>
@@ -299,7 +302,7 @@
             <geom type="cylinder" size=".010 .08" density="0.02" pos="0 0 0" euler='0 -1.570796326794896 0' rgba="0 0 0.5 1"></geom> -->
             
             <!-- Box object -->
-            <geom type="box" size=".025 0.025 0.025" density="50" solimp="0.998 0.998 0.001" friction="0.95 0.3 0.1" solref="0.001 1" pos="0 0 0" rgba="0 0 0.5 0.8"></geom>
+            <geom type="box" size=".02 0.02 0.02" density="10" pos="0 0 0" rgba="0 0 0.5 0.8"></geom>
 
             <!-- Cylinder object -->
             <!-- <geom type="cylinder" size=".015 .07" density="1" pos="0 0 0" rgba="0 0 0.5 1"></geom>
@@ -326,15 +329,30 @@
         <connect name="const5" body1="B20_0" body2="Holder_up" anchor="0 0 0"/>
     </equality>
 -->
-
-    
     <tendon>
-        <fixed name='finger'>
-            <joint joint='joint_thumb' coef='1'/>
-            <joint joint='joint_index' coef='1'/>
-            <joint joint='joint_pinky' coef='1'/>
-        </fixed>
-    </tendon>
+		<!--Middlefinger tendons-->
+		<fixed name="thumb_cpl" range="-5 5" stiffness="3.0" springlength="0.2" frictionloss="0.4">
+			<joint joint="joint_thumb"  coef="0.4"/>
+			<joint joint="joint_thumb_distal"  coef="-0.4"/>
+		</fixed>
+		<!--finger2 tendons-->
+        <fixed name="index_12_cpl" range="-5 5" stiffness="3.0" springlength="0.2" frictionloss="0.4">
+			<joint joint="joint_index"  coef="0.4"/>
+			<joint joint="joint_index_distal"  coef="-0.4"/>
+		</fixed>
+		<!--Finger1 tendons-->
+        <fixed name="pinky_12_cpl" range="-5 5" stiffness="3.0" springlength="0.2" frictionloss="0.4">
+			<joint joint="joint_pinky"  coef="0.4"/>
+			<joint joint="joint_pinky_distal"  coef="-0.4"/>
+		</fixed>
+	</tendon>
+
+    <equality>
+		<!-- GRIPPER Couplings -->
+		<tendon name="thumb_cpl" 	tendon1="thumb_cpl"/>
+        <tendon name="index_12_cpl" 	tendon1="index_12_cpl"/>
+        <tendon name="pinky_12_cpl" 	tendon1="pinky_12_cpl"/>
+	</equality>
 
     <actuator>
         <motor name="joint0_motor" joint="joint0" forcelimited="true" forcerange="-30 30"/>
