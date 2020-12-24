@@ -72,7 +72,7 @@ class RL_controller:
         args.batches_per_episodes = self.batches_per_episodes
         self.num_episodes = 20000
         self.args = args
-        self.trial = 10
+        self.trial = 13
 
 
     def train_from_scratch(self):
@@ -87,9 +87,9 @@ class RL_controller:
         print(model_dir)
 
         self.args.log_dir = model_dir
-        # self.args.robot_file = "jaco2_curtain_torque"
-        self.args.robot_file = "jaco2_curtain_velocity"
-        self.args.controller = False
+        self.args.robot_file = "jaco2_curtain_torque"
+        # self.args.robot_file = "jaco2_curtain_velocity"
+        self.args.controller = True
         self.args.n_robots = 1
         self.args.prev_action = False
         env = JacoMujocoEnv(**vars(self.args))
@@ -179,19 +179,29 @@ class RL_controller:
 
         self.args.log_dir = model_dir
         self.args.robot_file = "jaco2_curtain_torque"
+        self.args.controller = True
         self.args.n_robots = 1
-        self.args.prev_action = True
+        self.args.prev_action = False
         env = JacoMujocoEnv(**vars(self.args))
         
         net_arch = {'pi': model_configuration['layers']['policy'], 'vf': model_configuration['layers']['value']}
         if self.args.task is 'reaching':
-            obs_relativity = {'subtract':{'ref':[18,19,20],'tar':[1,2,3]}}
-            obs_index = [1,2,3,4,5,6, 18,19,20]
+            if self.args.controller:
+                obs_relativity = {'subtract':{'ref':[18,19,20],'tar':[1,2,3]}}
+                obs_index = [1,2,3,4,5,6, 18,19,20]
+            else:
+                obs_relativity = {'subtract':{'ref':[30,31,32,33,34,35],'tar':[13,14,15,16,17,18]}}
+                obs_index = [1,2,3,4,5,6, 7,8,9,10,11,12, 13,14,15,16,17,18, 30,31,32,33,34,35]
         elif self.args.task in ['grasping','carrying']:
             # obs_relativity = {'subtract':{'ref':[9,10,11],'tar':[1,2,3]}, 'leave':[2]}
             # obs_relativity = {'subtract':{'ref':[9,10,11],'tar':[1,2]}, 'leave':[0,1,2]}
-            obs_relativity = {}
-            obs_index = [0, 1,2,3,4,5,6, 7,8,  9,10,11]
+            if self.args.controller:
+                obs_relativity = {}
+                # obs_index = [0, 1,2,3,4,5,6, 7,8,  9,10,11]
+                obs_index = [0, 1,2,3,4,5,6, 7, 8,9,10]
+            else:
+                obs_relativity = {}
+                obs_index = [0, 1,2,3,4,5,6, 7,8,9,10,11,12, 13,14,15,16,17,18, 19, 20,21,22, 26]
         policy_kwargs = {'net_arch': [net_arch], 'obs_relativity':obs_relativity, 'obs_index':obs_index}
         policy_kwargs.update(model_configuration['policy_kwargs'])
         model_dict = {'gamma': 0.99, 'tensorboard_log': model_dir, 'policy_kwargs': policy_kwargs, 'verbose': 1}
@@ -471,10 +481,10 @@ class RL_controller:
 
 if __name__ == "__main__":
     controller = RL_controller()
-    controller.train_from_scratch()
+    # controller.train_from_scratch()
     # controller.train_from_expert()
     # controller.train_from_scratch_2()
-    # controller.train_from_scratch_3()
+    controller.train_from_scratch_3()
     # controller.train_continue()
     # controller.train_from_expert()
     # controller.generate_traj()
