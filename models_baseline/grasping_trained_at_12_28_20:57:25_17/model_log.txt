@@ -1,0 +1,7 @@
+Layers:
+	policy:	[128, 128, 128]
+	value:	[128, 128, 128]
+
+gripper angle observation changed to -1 ~ 1 from -0.143 ~ 1
+human trajectory 6 (more closing actions)
+closing actions leads to hugher reward, so gripper moretends to close its gripper a lot
