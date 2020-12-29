@@ -268,7 +268,7 @@ class JacoMujocoEnvUtil:
                         self.interface.sim.data.qvel[self.interface.joint_vel_addrs],
                         self.gripper_pose[i][:3],
                         self.gripper_pose[i][3:]/np.pi,
-                        [(self.gripper_angle_1-0.65)/0.35],
+                        [(self.gripper_angle_1-0.8)/0.2],
                         self.__get_property('object_body','pose')[0][:3],
                         self.__get_property('object_body','pose')[0][3:]/np.pi,
                         obj_diff,
@@ -358,7 +358,7 @@ class JacoMujocoEnvUtil:
                 reward = dist_coef * np.exp(-1/dist_th * obj_diff)/2                            
                 # angle reward
                 # reward += angle_coef * np.exp(-1/angle_th * angle_diff)/2
-                # reward += angle_coef * np.exp(-1/angle_th * angle_diff)/2 / (obj_diff*15+1)
+                reward += angle_coef * np.exp(-1/angle_th * angle_diff)/2 / (obj_diff*15+1)
                 # gripper in-touch reward
                 if self.touch_index == 1:
                     reward += grasp_coef * grasp_value * 0.3
@@ -466,7 +466,7 @@ class JacoMujocoEnvUtil:
                         return False, 0, wb
                 elif self.task == 'grasping':
                     # Too Far
-                    if obj_diff > 0.5:
+                    if obj_diff > 0.2:
                         print("\033[91m \nGripper too far away from the object \033[0m")
                         return True, -20, wb
                     # Grasped
@@ -515,7 +515,7 @@ class JacoMujocoEnvUtil:
             elif len(a) == 7:
                 prev1 = self.gripper_angle_1
                 self.gripper_angle_1 += a[6]/10
-                self.gripper_angle_1 = max(min(self.gripper_angle_1,1),0.3)
+                self.gripper_angle_1 = max(min(self.gripper_angle_1,1),0.6)
                 self.gripper_angle_1_array = np.linspace(prev1, self.gripper_angle_1, self.skip_frames)
             elif len(a) == 6:
                 self.gripper_angle_1 = 0.5

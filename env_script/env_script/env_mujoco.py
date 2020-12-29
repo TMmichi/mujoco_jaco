@@ -19,9 +19,10 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
         ## Env Steps
         self.current_steps = 0
         self.max_steps = 2500
-        if kwargs.get('task', None) in ['reaching','grasping', 'carrying', 'releasing', 'pushing']:
+        self.task = kwargs.get('task', None)
+        if self.task in ['reaching','grasping', 'carrying', 'releasing', 'pushing']:
             self.task_max_steps = 500
-        elif kwargs.get('task', None) in ['picking', 'placing']:
+        elif self.task in ['picking', 'placing']:
             self.task_max_steps = 1200
         else:
             self.task_max_steps = 2500
@@ -109,11 +110,11 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
         # takes 2 seconds to fully stretch/grasp the gripper
         self.gripper_action_space_max = 1
         self.gripper_action_space_min = -1
-        if kwargs.get('task', None) == 'reaching':
+        if self.task == 'reaching':
             pose_act = np.array([self.pose_action_space_max]*6)             # x,y,z,r,p,y
             self.act_max = pose_act
             self.act_min = -pose_act
-        elif kwargs.get('task', None) in ['grasping', 'carrying']:
+        elif self.task in ['grasping', 'carrying']:
             pose_act = np.array([self.pose_action_space_max]*6)             # x,y,z,r,p,y
             gripper_act_max = np.array([self.gripper_action_space_max])     # g
             gripper_act_min = np.array([self.gripper_action_space_min])
@@ -158,8 +159,8 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
         reward_val = self._get_reward()
         done, additional_reward, self.wb = self.terminal_inspection()
         total_reward = reward_val + additional_reward
-        # if self.current_steps % 10 == 0:
-        #     self.logging(obs, self.prev_obs, action, self.wb, total_reward) if log else None
+        if self.current_steps % 10 == 0:
+            self.logging(obs, self.prev_obs, action, self.wb, total_reward) if log else None
         self.prev_obs = obs
         if np.any(np.isnan(obs)) or np.any(np.isnan(total_reward)):
             print("WARNING: NAN in obs, resetting.")
@@ -179,7 +180,7 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
         write_str += "\t| Obs:" 
         write_log = write_str
         write_str += str(int(obs[0]))
-        for i in range(1,8):
+        for i in range(1,1+self.get_num_action()):
             write_str += self._colored_string(obs[i],prev_obs[i],action[i-1])
             write_log += ", {0: 2.3f}".format(obs[i])
         write_str += "\t| wb = {0: 2.3f} | \033[92mReward:\t{1:1.5f}\033[0m".format(wb,reward)
