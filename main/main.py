@@ -76,7 +76,7 @@ class RL_controller:
         args.batches_per_episodes = self.batches_per_episodes
         self.num_episodes = 20000
         self.args = args
-        self.trial = 19
+        self.trial = 20
 
 
     def train_from_scratch(self):
@@ -88,7 +88,7 @@ class RL_controller:
             + "_" + str(time.localtime().tm_hour) + ":" + str(time.localtime().tm_min) + ":" + str(time.localtime().tm_sec)
         model_dir = self.model_path + prefix + "_" + str(self.trial)
         os.makedirs(model_dir, exist_ok=True)
-        print(model_dir)
+        print("\033[92m"+model_dir+"\033[0m")
 
         self.args.log_dir = model_dir
         self.args.robot_file = "jaco2_curtain_torque"
@@ -139,7 +139,7 @@ class RL_controller:
             + "_" + str(time.localtime().tm_hour) + ":" + str(time.localtime().tm_min) + ":" + str(time.localtime().tm_sec)
         model_dir = self.model_path + prefix + "_" + str(self.trial)
         os.makedirs(model_dir, exist_ok=True)
-        print(model_dir)
+        print("\033[92m"+model_dir+"\033[0m")
 
         self.args.log_dir = model_dir
         self.args.robot_file = "jaco2_curtain_torque"
@@ -174,12 +174,12 @@ class RL_controller:
         print("Training from scratch called")
         self.args.train_log = False
         task_list = ['reaching', 'grasping', 'picking', 'carrying', 'releasing', 'placing', 'pushing']
-        self.args.task = task_list[1]
+        self.args.task = task_list[0]
         prefix = self.args.task+"_trained_at_" + str(time.localtime().tm_mon) + "_" + str(time.localtime().tm_mday)\
             + "_" + str(time.localtime().tm_hour) + ":" + str(time.localtime().tm_min) + ":" + str(time.localtime().tm_sec)
         model_dir = self.model_path + prefix + "_" + str(self.trial)
         os.makedirs(model_dir, exist_ok=True)
-        print(model_dir)
+        print("\033[92m"+model_dir+"\033[0m")
 
         self.args.log_dir = model_dir
         self.args.robot_file = "jaco2_curtain_torque"
@@ -192,8 +192,9 @@ class RL_controller:
         net_arch = {'pi': model_configuration['layers']['policy'], 'vf': model_configuration['layers']['value']}
         if self.args.task is 'reaching':
             if self.args.controller:
-                obs_relativity = {'subtract':{'ref':[17,18,19],'tar':[1,2,3]}, 'leave':[1,2,3]}
-                obs_index = [1,2,3,4,5,6, 17,18,19]
+                # obs_relativity = {'subtract':{'ref':[17,18,19],'tar':[1,2,3]}, 'leave':[1,2,3]}
+                obs_relativity = {}
+                obs_index = [1,2,3,4,5,6, 17,18,19,20,21,22]
             else:
                 obs_relativity = {'subtract':{'ref':[30,31,32,33,34,35],'tar':[13,14,15,16,17,18]}}
                 obs_index = [1,2,3,4,5,6, 7,8,9,10,11,12, 13,14,15,16,17,18, 30,31,32,33,34,35]
@@ -229,7 +230,7 @@ class RL_controller:
         model_dir = self.model_path + 'grasping_trained_at_12_28_17:26:27_15'
         policy_dir = model_dir + '/policy_4720000.zip'
         sub_dir = '/continue1'
-        print(model_dir + sub_dir)
+        print("\033[92m"+model_dir + sub_dir+"\033[0m")
         
         # buffer = self.create_buffer('trajectory_expert5')
         buffer = None
@@ -258,7 +259,7 @@ class RL_controller:
         prefix = self.args.task+"_trained_from_expert_at_" + str(time.localtime().tm_mon) + "_" + str(time.localtime().tm_mday)\
             + "_" + str(time.localtime().tm_hour) + ":" + str(time.localtime().tm_min) + ":" + str(time.localtime().tm_sec)
         model_dir = self.model_path + prefix + "_" + str(self.trial)
-        print(model_dir)
+        print("\033[92m"+model_dir+"\033[0m")
 
         # self._open_connection()
         self.args.robot_file = "jaco2_curtain_torque"
@@ -392,7 +393,7 @@ class RL_controller:
         model_dir = self.model_path + prefix
         self.args.log_dir = model_dir
         os.makedirs(model_dir, exist_ok=True)
-        print(model_dir)
+        print("\033[92m"+model_dir+"\033[0m")
 
         composite_primitive_name='pick'
         model = SAC_MULTI(policy=MlpPolicy_sac, env=None, _init_setup_model=False, composite_primitive_name=composite_primitive_name)
@@ -415,7 +416,7 @@ class RL_controller:
                                         load_value=True)
 
         prim_name = 'grasping'
-        policy_zip_path = self.model_path+"test2"+"/policy.zip"
+        policy_zip_path = self.model_path+"grasping_trained_at_12_28_17:26:27_15"+"/policy_4700000.zip"
         model.construct_primitive_info(name=prim_name, freeze=True, level=1,
                                         obs_range=None, obs_index=[0, 1, 2, 3, 4, 5], 
                                         act_range=None, act_index=[0, 1, 2, 3, 4, 5], act_scale=1,
@@ -481,7 +482,7 @@ class RL_controller:
         # prefix = self.args.task + '_trained_at_12_11_23:51:36/policy_5750.zip'
         # prefix = self.args.task + '_trained_at_12_11_23:52:28/policy_2500.zip'
         # prefix = self.args.task + '_trained_at_12_11_22:1:19/policy_7600.zip'
-        prefix = self.args.task + '_trained_at_12_28_17:26:27_15/policy_4700000.zip'
+        prefix = self.args.task + '_trained_at_12_28_17:26:27_15/continue1/policy_2340000.zip'
         
         model_dir = self.model_path + prefix
         test_iter = 100
@@ -514,8 +515,8 @@ if __name__ == "__main__":
     controller = RL_controller()
     # controller.train_from_scratch()
     # controller.train_from_scratch_2()
-    # controller.train_from_scratch_3()
-    controller.train_continue()
+    controller.train_from_scratch_3()
+    # controller.train_continue()
     # controller.train_from_expert()
     # controller.train_HPC()
     # controller.generate_traj()

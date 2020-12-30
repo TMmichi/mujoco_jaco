@@ -125,7 +125,7 @@ class JacoMujocoEnvUtil:
         self.action_in = False
         self.gripper_angle_1 = 0.5
         self.gripper_angle_2 = 0.5
-        self.curr_action = np.zeros((6))
+        # self.curr_action = np.zeros((6))
         self.prev_action = np.zeros((6))
         # self.interface.viewer._paused = True
         init_angle = self._create_init_angle()
@@ -233,7 +233,6 @@ class JacoMujocoEnvUtil:
                 xyz = self.interface.get_xyz('object_body' ) - self.gripper_pose[0][:3]
                 obj_diff = np.linalg.norm(xyz)
                 if self.controller:
-                    # Observation dimensions: 1, 6, 2, 6, 6, 3, 6
                     if self.obs_prev_action:
                         observation.append(np.hstack([
                             self.touch_index,
@@ -248,6 +247,9 @@ class JacoMujocoEnvUtil:
                             self.reaching_goal[i][3:]/np.pi
                         ]))
                     else:
+                        # Observation dimensions: 
+                        # touchidx     proprio          object       destination        reaching
+                        #    0,    1,2,3,4,5,6, 7,  8,9,10,11,12,13,  14,15,16,     17,18,19,20,21,22
                         observation.append(np.hstack([
                             self.touch_index,
                             self.gripper_pose[i][:3],
@@ -300,6 +302,12 @@ class JacoMujocoEnvUtil:
     def _get_reward(self):
         if self.reward_method is None:
             if self.task == 'reaching':
+                dist_coef = 5
+                dist_th = 0.3
+                angle_coef = 2
+                angle_th = np.pi/6
+                scale_coef = 0.05
+
                 dist_diff = np.linalg.norm(self.gripper_pose[0][:3] - self.reaching_goal[0][:3])
                 angle_diff = []
                 for a_robot, a_target in zip(self.gripper_pose[0][3:], self.reaching_goal[0][3:]):
@@ -312,24 +320,24 @@ class JacoMujocoEnvUtil:
                         else:
                             angle_diff.append(val)
                 ang_diff = np.linalg.norm(angle_diff)
-                dist_coef = 2
-                ang_coef = 5
-                scale_coef = 0.05
-                if dist_diff < 0.3:
-                    reward = np.exp(-dist_coef * dist_diff)/2 + np.exp(-ang_coef * ang_diff)/2
-                else:
-                    reward = np.exp(-dist_coef * dist_diff)/2
-                wb_th = 0.2
+
+                reward = dist_coef*np.exp(-1/dist_th*dist_diff)/2
+                reward += angle_coef*np.exp(-1/angle_th*ang_diff)/(2*(dist_diff*15+1))
+
+                # Negative Rewards
+                # Gripper too close to the robot base
+                wb_th = 0.15
                 wb = np.linalg.norm(self.__get_property('EE', 'position')[0] - self.base_position[0])
                 if wb < wb_th:
                     reward -= (wb_th - wb)
+                # Gripper too low
                 z_th = 0.1
                 z = self.gripper_pose[0][2]
                 if z < z_th:
                     reward -= (z_th - z)
-                reward -= np.linalg.norm(self.curr_action - self.prev_action) * 0.1     # action regularizer
-                self.curr_action = np.copy(self.prev_action)
+                # self.curr_action = np.copy(self.prev_action)
                 return scale_coef * reward
+
             elif self.task == 'grasping':
                 dist_coef = 5
                 dist_th = 0.2
@@ -342,7 +350,6 @@ class JacoMujocoEnvUtil:
                 
                 roll_e,pitch_e,yaw_e = self.__get_property('EE','pose')[0][3:]
                 ee_vec = self._get_rotation(roll_e, pitch_e, yaw_e, [0,0,-1], True)
-
                 xyz = self.interface.get_xyz('object_body' ) - self.gripper_pose[0][:3]
                 obj_diff = np.linalg.norm(xyz)
                 xyz /= obj_diff
@@ -355,7 +362,7 @@ class JacoMujocoEnvUtil:
                 angle_diff = np.linalg.norm(ee_vec - target_vec)
 
                 # distance reward
-                reward = dist_coef * np.exp(-1/dist_th * obj_diff)/2                            
+                reward = dist_coef * np.exp(-1/dist_th * obj_diff)/2
                 # angle reward
                 # reward += angle_coef * np.exp(-1/angle_th * angle_diff)/2
                 reward += angle_coef * np.exp(-1/angle_th * angle_diff)/2 / (obj_diff*15+1)
@@ -371,6 +378,7 @@ class JacoMujocoEnvUtil:
                 # pick up reward
                 reward +=  height_coef * (self.interface.get_xyz('object_body')[2] - self.object_z)
                 return reward * scale_coef
+
             elif self.task == 'picking':
                 return 0
             elif self.task == 'carrying':
@@ -470,7 +478,7 @@ class JacoMujocoEnvUtil:
                         print("\033[91m \nGripper too far away from the object \033[0m")
                         return True, -20, wb
                     # Grasped
-                    if (self.interface.get_xyz('object_body')[2] > self.object_z + 0.05) and self.touch_index in [1,3]:
+                    if (self.interface.get_xyz('object_body')[2] > self.object_z + 0.07) and self.touch_index in [1,3]:
                         print("\033[92m Grasping Succeeded \033[0m")
                         return True, 200 - (self.num_episodes*0.1), wb
                     # Dropped
@@ -495,7 +503,7 @@ class JacoMujocoEnvUtil:
         self.action_in = True
         self.gripper_iter = 0
         self.__get_gripper_pose()
-        self.curr_action = np.array(a)
+        # self.curr_action = np.array(a)
         if np.any(np.isnan(np.array(a))):
             print("WARNING, nan in action", a)
         if self.controller:
