@@ -76,7 +76,7 @@ class RL_controller:
         args.batches_per_episodes = self.batches_per_episodes
         self.num_episodes = 20000
         self.args = args
-        self.trial = 20
+        self.trial = 0
 
 
     def train_from_scratch(self):
@@ -173,10 +173,12 @@ class RL_controller:
     def train_from_scratch_3(self):
         print("Training from scratch called")
         self.args.train_log = False
+        self.args.visualize = False
         task_list = ['reaching', 'grasping', 'picking', 'carrying', 'releasing', 'placing', 'pushing']
-        self.args.task = task_list[0]
+        self.args.task = task_list[1]
         prefix = self.args.task+"_trained_at_" + str(time.localtime().tm_mon) + "_" + str(time.localtime().tm_mday)\
             + "_" + str(time.localtime().tm_hour) + ":" + str(time.localtime().tm_min) + ":" + str(time.localtime().tm_sec)
+        # prefix="comparison_observation_range_sym_discard"
         model_dir = self.model_path + prefix + "_" + str(self.trial)
         os.makedirs(model_dir, exist_ok=True)
         print("\033[92m"+model_dir+"\033[0m")
@@ -368,7 +370,7 @@ class RL_controller:
 
     def create_buffer(self, name):
         traj_dict = np.load(self.model_path+'trajectories/'+self.args.task+"_"+name+".npz", allow_pickle=True)
-        buffer = ReplayBuffer(50000)
+        buffer = ReplayBuffer(50000, discard=False)
         buff_arry = []
         print("episodes: ", len(traj_dict['actions']))
         for i in range(len(traj_dict['actions'])):

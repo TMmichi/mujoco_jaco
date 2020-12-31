@@ -210,11 +210,11 @@ class JacoMujocoEnvUtil:
             xyz = reach_goal_pos - self.base_position[i]
             xyz /= np.linalg.norm(xyz)
             x,y,z = xyz
-
             alpha = -np.arcsin(y / np.sqrt(y**2+z**2)) * np.sign(x)
             beta = np.arccos(x / np.linalg.norm([x,y,z])) * np.sign(x)
             gamma = uniform(-0.1, 0.1)
             reach_goal_ori = np.array([alpha, beta, gamma], dtype=np.float16)
+
             reach_goal.append(np.hstack([reach_goal_pos, reach_goal_ori]))
             obj_goal_pos = [uniform(-0.1,0.1), 0.65+uniform(-0.08,0.02), self.object_z]
             # obj_goal_pos = [0.2, 0.67, self.object_z]
@@ -228,7 +228,7 @@ class JacoMujocoEnvUtil:
             self.__get_gripper_pose()
             self.touch_index = self._get_touch()
             # print(self.touch_index)
-            observation = []
+            observation = []``
             for i in range(self.n_robots):
                 xyz = self.interface.get_xyz('object_body' ) - self.gripper_pose[0][:3]
                 obj_diff = np.linalg.norm(xyz)
@@ -553,7 +553,6 @@ class JacoMujocoEnvUtil:
             elif len(a) == 6:
                 self.target_signal = a[:6]/0.8
                 
-
     def __get_property(self, subject, prop):
         out = []
         for i in range(self.n_robots):
