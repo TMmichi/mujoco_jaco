@@ -178,7 +178,7 @@ class RL_controller:
         self.args.task = task_list[1]
         prefix = self.args.task+"_trained_at_" + str(time.localtime().tm_mon) + "_" + str(time.localtime().tm_mday)\
             + "_" + str(time.localtime().tm_hour) + ":" + str(time.localtime().tm_min) + ":" + str(time.localtime().tm_sec)
-        # prefix="comparison_observation_range_sym_discard"
+        prefix="comparison_observation_range_asym_nobuffer"
         model_dir = self.model_path + prefix + "_" + str(self.trial)
         os.makedirs(model_dir, exist_ok=True)
         print("\033[92m"+model_dir+"\033[0m")
@@ -201,7 +201,7 @@ class RL_controller:
                 obs_relativity = {'subtract':{'ref':[30,31,32,33,34,35],'tar':[13,14,15,16,17,18]}}
                 obs_index = [1,2,3,4,5,6, 7,8,9,10,11,12, 13,14,15,16,17,18, 30,31,32,33,34,35]
         elif self.args.task in ['grasping','carrying']:
-            buffer = self.create_buffer('trajectory_expert5_mod')
+            # buffer = self.create_buffer('trajectory_expert5_mod')
             # obs_relativity = {'subtract':{'ref':[9,10,11],'tar':[1,2,3]}, 'leave':[2]}
             # obs_relativity = {'subtract':{'ref':[9,10,11],'tar':[1,2]}, 'leave':[0,1,2]}
             if self.args.controller:
@@ -370,7 +370,7 @@ class RL_controller:
 
     def create_buffer(self, name):
         traj_dict = np.load(self.model_path+'trajectories/'+self.args.task+"_"+name+".npz", allow_pickle=True)
-        buffer = ReplayBuffer(50000, discard=False)
+        buffer = ReplayBuffer(50000, discard=True)
         buff_arry = []
         print("episodes: ", len(traj_dict['actions']))
         for i in range(len(traj_dict['actions'])):
@@ -484,7 +484,8 @@ class RL_controller:
         # prefix = self.args.task + '_trained_at_12_11_23:51:36/policy_5750.zip'
         # prefix = self.args.task + '_trained_at_12_11_23:52:28/policy_2500.zip'
         # prefix = self.args.task + '_trained_at_12_11_22:1:19/policy_7600.zip'
-        prefix = self.args.task + '_trained_at_12_28_17:26:27_15/continue1/policy_2340000.zip'
+        # prefix = self.args.task + '_trained_at_12_28_17:26:27_15/continue1/policy_2340000.zip'
+        prefix = 'comparison_observation_range_sym_discard_0/policy_7010000.zip'
         
         model_dir = self.model_path + prefix
         test_iter = 100
@@ -517,9 +518,9 @@ if __name__ == "__main__":
     controller = RL_controller()
     # controller.train_from_scratch()
     # controller.train_from_scratch_2()
-    controller.train_from_scratch_3()
+    # controller.train_from_scratch_3()
     # controller.train_continue()
     # controller.train_from_expert()
     # controller.train_HPC()
     # controller.generate_traj()
-    # controller.test()
+    controller.test()

@@ -228,7 +228,7 @@ class JacoMujocoEnvUtil:
             self.__get_gripper_pose()
             self.touch_index = self._get_touch()
             # print(self.touch_index)
-            observation = []``
+            observation = []
             for i in range(self.n_robots):
                 xyz = self.interface.get_xyz('object_body' ) - self.gripper_pose[0][:3]
                 obj_diff = np.linalg.norm(xyz)
@@ -254,7 +254,8 @@ class JacoMujocoEnvUtil:
                             self.touch_index,
                             self.gripper_pose[i][:3],
                             self.gripper_pose[i][3:]/np.pi,
-                            [(self.gripper_angle_1-0.65)/0.35],
+                            # [(self.gripper_angle_1-0.65)/0.35],
+                            [(self.gripper_angle_1-0.8)/0.2],
                             self.__get_property('object_body','pose')[0][:3],
                             self.__get_property('object_body','pose')[0][3:]/np.pi,
                             self.dest_goal[i], 
@@ -467,7 +468,7 @@ class JacoMujocoEnvUtil:
                             else:
                                 angle_diff.append(val)
                     ang_diff = np.linalg.norm(angle_diff)
-                    if dist_diff < 0.05 and ang_diff < np.pi/6: 
+                    if dist_diff < 0.05 and ang_diff < np.pi/3: 
                         print("\033[92m Target Reached \033[0m")
                         return True, 200 - (self.num_episodes*0.1), wb
                     else:

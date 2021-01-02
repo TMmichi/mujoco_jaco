@@ -194,11 +194,11 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
             return "\t\033[91m{0:2.3f}\033[0m".format(obs_val)
 
     def terminal_inspection(self):
-        # TODO: terminal state definition
         self.current_steps += 1
         if self.current_steps < self.task_max_steps:
             return self._get_terminal_inspection()
         else:
+            print("\033[91m \nTime Out \033[0m")
             return True, 0, 0
 
     def make_observation(self):
