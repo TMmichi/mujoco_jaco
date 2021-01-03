@@ -76,7 +76,7 @@ class RL_controller:
         args.batches_per_episodes = self.batches_per_episodes
         self.num_episodes = 20000
         self.args = args
-        self.trial = 0
+        self.trial = 22
 
 
     def train_from_scratch(self):
@@ -175,10 +175,10 @@ class RL_controller:
         self.args.train_log = False
         self.args.visualize = False
         task_list = ['reaching', 'grasping', 'picking', 'carrying', 'releasing', 'placing', 'pushing']
-        self.args.task = task_list[1]
+        self.args.task = task_list[0]
         prefix = self.args.task+"_trained_at_" + str(time.localtime().tm_mon) + "_" + str(time.localtime().tm_mday)\
             + "_" + str(time.localtime().tm_hour) + ":" + str(time.localtime().tm_min) + ":" + str(time.localtime().tm_sec)
-        prefix="comparison_observation_range_asym_nobuffer"
+        # prefix="comparison_observation_range_sym_nobuffer"
         model_dir = self.model_path + prefix + "_" + str(self.trial)
         os.makedirs(model_dir, exist_ok=True)
         print("\033[92m"+model_dir+"\033[0m")
@@ -323,8 +323,8 @@ class RL_controller:
         if sys.platform in ['linux', 'linux2']:
             event = spacenav.poll()
             if type(event) is spacenav.MotionEvent:
-                action = np.array([event.x, event.z, event.y, event.rx, -event.ry, event.rz, self.g_angle])/350*1.5
-                # action = np.array([event.x, event.z, event.y, event.rx, -event.ry, event.rz])/350*1.5
+                # action = np.array([event.x, event.z, event.y, event.rx, -event.ry, event.rz, self.g_angle])/350*1.5
+                action = np.array([event.x, event.z, event.y, event.rx, -event.ry, event.rz])/350*1.5
             elif type(event) is spacenav.ButtonEvent:
                 if self.g_changed is not None:
                     self.g_changed = not self.g_changed
@@ -336,8 +336,8 @@ class RL_controller:
                     action = [0,0,0,0,0,0,0]
                 self.pressed[event.button] = event.pressed
             else:
-                action = [0,0,0,0,0,0,0]
-                # action = [0,0,0,0,0,0]
+                # action = [0,0,0,0,0,0,0]
+                action = [0,0,0,0,0,0]
             if self.pressed[0]:
                 self.g_angle = 0.5
             elif self.pressed[1]:
@@ -345,7 +345,7 @@ class RL_controller:
             else:
                 self.g_angle = 0
             
-            action[6] = self.g_angle
+            # action[6] = self.g_angle
             spacenav.remove_events(1)
             if self.g_changed is not None and not self.g_changed:
                 # print("Removed")
@@ -360,12 +360,12 @@ class RL_controller:
         print("Trajectory Generating")
         self.args.train_log = False
         task_list = ['reaching', 'grasping', 'picking', 'carrying', 'releasing', 'placing', 'pushing']
-        self.args.task = task_list[1]
+        self.args.task = task_list[0]
 
         self._open_connection()
         self.args.robot_file = "jaco2_curtain_torque"
         env = JacoMujocoEnv(**vars(self.args))
-        traj_dict = generate_expert_traj(self._expert_3d, self.model_path+'/trajectories/'+self.args.task+'_trajectory_expert6', env, n_episodes=100)
+        traj_dict = generate_expert_traj(self._expert_3d, self.model_path+'/trajectories/'+self.args.task+'_trajectory_expert1', env, n_episodes=100)
         self._close_connection()
 
     def create_buffer(self, name):
@@ -484,8 +484,9 @@ class RL_controller:
         # prefix = self.args.task + '_trained_at_12_11_23:51:36/policy_5750.zip'
         # prefix = self.args.task + '_trained_at_12_11_23:52:28/policy_2500.zip'
         # prefix = self.args.task + '_trained_at_12_11_22:1:19/policy_7600.zip'
-        # prefix = self.args.task + '_trained_at_12_28_17:26:27_15/continue1/policy_2340000.zip'
-        prefix = 'comparison_observation_range_sym_discard_0/policy_7010000.zip'
+        # prefix = self.args.task + '_trained_at_12_28_17:26:27_15/continue1/policy_2330000.zip'
+        # prefix = 'comparison_observation_range_sym_discard_0/policy_7010000.zip'
+        prefix = 'comparison_observation_range_sym_discard_0/policy_8070000.zip'
         
         model_dir = self.model_path + prefix
         test_iter = 100
@@ -500,7 +501,7 @@ class RL_controller:
             while not done:
                 iter += 1
                 # print('obs: ',obs)
-                action, _ = self.model.predict(obs)
+                action, _ = self.model.predict(obs, deterministic=False)
                 obs, reward, done, _ = env.step(action, log=False)
                 # print('gripper action: ', action)
                 print('reward: {0:2.3f}'.format(reward), 'wb: {0:2.3f}'.format(env.get_wb()), end='\n')
