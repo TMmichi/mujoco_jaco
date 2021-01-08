@@ -255,8 +255,8 @@ class JacoMujocoEnvUtil:
                             self.touch_index,
                             self.gripper_pose[i][:3],
                             self.gripper_pose[i][3:]/np.pi,
-                            [(self.gripper_angle_1-0.65)/0.35],
-                            # [(self.gripper_angle_1-0.8)/0.2],
+                            # [(self.gripper_angle_1-0.65)/0.35],
+                            [(self.gripper_angle_1-0.8)/0.2],
                             self.__get_property('object_body','pose')[0][:3],
                             self.__get_property('object_body','pose')[0][3:]/np.pi,
                             self.dest_goal[i], 
@@ -305,7 +305,7 @@ class JacoMujocoEnvUtil:
         if self.reward_method is None:
             if self.task == 'reaching':
                 dist_coef = 5
-                dist_th = 0.3
+                dist_th = 1
                 angle_coef = 2
                 angle_th = np.pi/6
                 scale_coef = 0.05
@@ -320,6 +320,7 @@ class JacoMujocoEnvUtil:
                 angle_diff = grip-tar
                 ang_diff = np.linalg.norm(angle_diff)
 
+                # Exponential reward
                 reward = dist_coef*np.exp(-1/dist_th*dist_diff)/2
                 reward += angle_coef*np.exp(-1/angle_th*ang_diff)/(2*(dist_diff*15+1))
 
@@ -447,7 +448,7 @@ class JacoMujocoEnvUtil:
         wb = np.linalg.norm(self.__get_property('EE', 'position')[0] - self.base_position[0])
         if pi - 0.1 < self.interface.get_feedback()['q'][2] < pi + 0.1:
             print("\033[91m \nUn wanted joint angle - possible singular state \033[0m")
-            return True, -5, wb
+            return True, -20, wb
         else:
             # OB termination
             if abs(relx) >= 1 or abs(rely) >= 1 or abs(relz) >= 1 or wb > 0.9:

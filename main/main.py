@@ -76,7 +76,7 @@ class RL_controller:
         args.batches_per_episodes = self.batches_per_episodes
         self.num_episodes = 20000
         self.args = args
-        self.trial = 22
+        self.trial = 25
 
 
     def train_from_scratch(self):
@@ -476,17 +476,19 @@ class RL_controller:
         self.args.prev_action = False
 
         task_list = ['reaching', 'grasping', 'picking', 'carrying', 'releasing', 'placing', 'pushing']
-        self.args.task = task_list[1]
+        self.args.task = task_list[0]
         env = JacoMujocoEnv(**vars(self.args))
-        # prefix = self.args.task + '_trained_at_11_27_18:25:54/policy_9999105.zip'
-        # prefix = self.args.task + '_trained_at_12_10_15:30:18/policy_1210000.zip'
-        # prefix = self.args.task + '_trained_at_11_27_18:25:9/policy_4029185.zip'
-        # prefix = self.args.task + '_trained_at_12_11_23:51:36/policy_5750.zip'
-        # prefix = self.args.task + '_trained_at_12_11_23:52:28/policy_2500.zip'
-        # prefix = self.args.task + '_trained_at_12_11_22:1:19/policy_7600.zip'
+        # Grasping
         # prefix = self.args.task + '_trained_at_12_28_17:26:27_15/continue1/policy_2330000.zip'
         # prefix = 'comparison_observation_range_sym_discard_0/policy_7010000.zip'
-        prefix = 'comparison_observation_range_sym_discard_0/policy_8070000.zip'
+        # prefix = 'comparison_observation_range_sym_discard_0/policy_8070000.zip'
+        # prefix = 'comparison_observation_range_sym_nobuffer_2/policy_4330000.zip'
+        # Reaching
+        # prefix = self.args.task + '_trained_at_11_27_18:25:54/policy_9999105.zip'
+        # prefix = self.args.task + '_trained_at_1_2_20:34:52_22/policy.zip'
+        # prefix = self.args.task + '_trained_at_1_3_17:15:43_23/policy.zip'
+        # prefix = self.args.task + '_trained_at_1_4_23:29:45_24/policy.zip'
+        prefix = self.args.task + '_trained_at_1_4_23:30:10_25/policy.zip'
         
         model_dir = self.model_path + prefix
         test_iter = 100
@@ -501,7 +503,7 @@ class RL_controller:
             while not done:
                 iter += 1
                 # print('obs: ',obs)
-                action, _ = self.model.predict(obs, deterministic=False)
+                action, _ = self.model.predict(obs, deterministic=True)
                 obs, reward, done, _ = env.step(action, log=False)
                 # print('gripper action: ', action)
                 print('reward: {0:2.3f}'.format(reward), 'wb: {0:2.3f}'.format(env.get_wb()), end='\n')
