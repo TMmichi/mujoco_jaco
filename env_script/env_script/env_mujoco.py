@@ -21,6 +21,7 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
         self.max_steps = 2500
         self.task = kwargs.get('task', None)
         if self.task in ['reaching','grasping', 'carrying', 'releasing', 'pushing']:
+            # self.task_max_steps = 500
             self.task_max_steps = 500
         elif self.task in ['picking', 'placing']:
             self.task_max_steps = 1200

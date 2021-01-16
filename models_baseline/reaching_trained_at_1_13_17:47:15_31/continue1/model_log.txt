@@ -1,0 +1,8 @@
+Layers:
+	policy:	[128, 128, 128]
+	value:	[128, 128, 128]
+
+Reaching only at 1,2 quadrant
+obs relativity ON
+
+episode length error fixed from 10000 to 500 and continues training

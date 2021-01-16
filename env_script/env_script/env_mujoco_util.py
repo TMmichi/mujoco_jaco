@@ -53,6 +53,7 @@ class JacoMujocoEnvUtil:
         self.task = kwargs.get('task', None)
         self.obs_prev_action = kwargs.get('prev_action', False)
         self.num_episodes = 0
+        self.goal_buffer = kwargs.get('init_buffer', None)
 
         ### ------------  STATE GENERATION  ------------ ###
         self.package_path = str(Path(__file__).resolve().parent.parent)
@@ -181,13 +182,40 @@ class JacoMujocoEnvUtil:
             self.interface.set_mocap_orientation("target_reach", transformations.quaternion_from_euler(
                 self.reaching_goal[0][3], self.reaching_goal[0][4], self.reaching_goal[0][5], axes="rxyz"))
             self.target_pos = np.reshape(np.hstack([self.reaching_goal]),(-1))
+            # self._test()
         obs = self._get_observation()
         return obs[0]
     
+    def _test(self):
+        while True:
+            self._step_simulation()
+            self.__get_gripper_pose()
+            dist_diff = np.linalg.norm(self.gripper_pose[0][:3] - self.reaching_goal[0][:3])
+            grip = transformations.unit_vector(
+                transformations.quaternion_from_euler(
+                    self.gripper_pose[0][3], self.gripper_pose[0][4], self.gripper_pose[0][5], axes="rxyz"))
+            tar = transformations.unit_vector(
+                transformations.quaternion_from_euler(
+                    self.reaching_goal[0][3], self.reaching_goal[0][4], self.reaching_goal[0][5], axes="rxyz"))
+            grip_euler = transformations.euler_from_quaternion(grip,'rxyz')
+            tar_euler = transformations.euler_from_quaternion(tar,'rxyz')
+            angle_diff = grip-tar
+            # ang_diff = np.linalg.norm(angle_diff)
+            ang_diff = np.linalg.norm(np.array(grip_euler) - np.array(tar_euler))
+            if ang_diff > np.pi:
+                ang_diff = 2*np.pi - ang_diff
+            # print(grip, tar)
+            # print(grip_euler, tar_euler)
+            print(ang_diff)
+            if dist_diff < 0.05 and ang_diff < np.pi/6:
+                print("\033[92m Target Reached \033[0m")
+                break
+                
+    
     def _create_init_angle(self):
         if self.task in ['reaching', 'picking']:
-            random_init_angle = [uniform_np(-pi/2, pi/2), 3.75, uniform_np(
-                    1.5, 2.5), uniform_np(0.8, 2.3), uniform_np(0.8, 2.3), uniform_np(0.8, 2.3)]
+            random_init_angle = [uniform_np(0.5, 2.7), uniform_np(3.8,4), uniform_np(
+                    1, 1.7), uniform_np(1.8, 2.5), uniform_np(1, 2.5), uniform_np(0.8, 2.3)]
             random_init_angle *= self.n_robots
         elif self.task in ['carrying', 'grasping']:
             angle0 = np.random.choice([uniform_np(3*pi/8,pi/2), uniform_np(pi/2,5*pi/8)])
@@ -205,15 +233,22 @@ class JacoMujocoEnvUtil:
         obj_goal = []
         dest_goal = []
         for i in range(self.n_robots):
-            reach_goal_pos = np.array([uniform(0.3, 0.42) * sample([-1, 1], 1)[0]
-                          for _ in range(2)] + [uniform(0.3, 0.5)])
-            xyz = reach_goal_pos - self.base_position[i]
-            xyz /= np.linalg.norm(xyz)
-            x,y,z = xyz
-            alpha = -np.arcsin(y / np.sqrt(y**2+z**2)) * np.sign(x)
-            beta = np.arccos(x / np.linalg.norm([x,y,z])) * np.sign(x)
-            gamma = uniform(-0.1, 0.1)
-            reach_goal_ori = np.array([alpha, beta, gamma], dtype=np.float16)
+            if self.goal_buffer is None:
+                print("sample goal from None")
+                reach_goal_pos = np.array([uniform(0.3, 0.42) * sample([-1, 1], 1)[0]
+                            for _ in range(2)] + [uniform(0.3, 0.5)])
+                xyz = reach_goal_pos - self.base_position[i]
+                xyz /= np.linalg.norm(xyz)
+                x,y,z = xyz
+                alpha = -np.arcsin(y / np.sqrt(y**2+z**2)) * np.sign(x)
+                beta = np.arccos(x / np.linalg.norm([x,y,z])) * np.sign(x)
+                gamma = uniform(-0.1, 0.1)
+                reach_goal_ori = np.array([alpha, beta, gamma], dtype=np.float16)
+            else:
+                print("sample goal from buffer")
+                random_idx = np.random.randint(0,len(self.goal_buffer)-1)
+                reach_goal_pos = self.goal_buffer[random_idx][1:4]
+                reach_goal_ori = self.goal_buffer[random_idx][4:7]
 
             reach_goal.append(np.hstack([reach_goal_pos, reach_goal_ori]))
             obj_goal_pos = [uniform(-0.1,0.1), 0.65+uniform(-0.08,0.02), self.object_z]
@@ -228,7 +263,6 @@ class JacoMujocoEnvUtil:
         if self.state_gen == None:
             self.__get_gripper_pose()
             self.touch_index = self._get_touch()
-            # print(self.touch_index)
             observation = []
             for i in range(self.n_robots):
                 xyz = self.interface.get_xyz('object_body' ) - self.gripper_pose[0][:3]
@@ -317,9 +351,14 @@ class JacoMujocoEnvUtil:
                 tar = transformations.unit_vector(
                     transformations.quaternion_from_euler(
                         self.reaching_goal[0][3], self.reaching_goal[0][4], self.reaching_goal[0][5], axes="rxyz"))
-                angle_diff = grip-tar
-                ang_diff = np.linalg.norm(angle_diff)
-
+                # angle_diff = grip-tar
+                # ang_diff = np.linalg.norm(angle_diff)
+                grip_euler = transformations.euler_from_quaternion(grip,'rxyz')
+                tar_euler = transformations.euler_from_quaternion(tar,'rxyz')
+                ang_diff = np.linalg.norm(np.array(grip_euler) - np.array(tar_euler))
+                if ang_diff > np.pi:
+                    ang_diff = 2*np.pi - ang_diff
+                
                 # Exponential reward
                 reward = dist_coef*np.exp(-1/dist_th*dist_diff)/2
                 reward += angle_coef*np.exp(-1/angle_th*ang_diff)/(2*(dist_diff*15+1))
@@ -462,8 +501,13 @@ class JacoMujocoEnvUtil:
                     tar = transformations.unit_vector(
                         transformations.quaternion_from_euler(
                             self.reaching_goal[0][3], self.reaching_goal[0][4], self.reaching_goal[0][5], axes="rxyz"))
-                    angle_diff = grip-tar
-                    ang_diff = np.linalg.norm(angle_diff)
+                    # angle_diff = grip-tar
+                    # ang_diff = np.linalg.norm(angle_diff)
+                    grip_euler = transformations.euler_from_quaternion(grip,'rxyz')
+                    tar_euler = transformations.euler_from_quaternion(tar,'rxyz')
+                    ang_diff = np.linalg.norm(np.array(grip_euler) - np.array(tar_euler))
+                    if ang_diff > np.pi:
+                        ang_diff = 2*np.pi - ang_diff
                     if dist_diff < 0.05 and ang_diff < np.pi/6: 
                         print("\033[92m Target Reached \033[0m")
                         return True, 200 - (self.num_episodes*0.1), wb
@@ -508,7 +552,13 @@ class JacoMujocoEnvUtil:
             # Action: Gripper Pose Increments (m,rad)
             # Action scaled to 0.01m, 0.05 rad
             # self.target_pos = self.gripper_pose[0] + np.hstack([a[:3]/100, a[3:6]/20])
+            # print("action: ",a)
+            # print("current pos: ",self.gripper_pose[0])
             self.target_pos = self.gripper_pose[0] + np.hstack([a[:3]/25, a[3:6]/5])
+            # print("xyz",self.target_pos[:3])
+            # print("rpy",self.target_pos[3:6])
+            if abs(self.target_pos[5]) > pi:
+                self.target_pos[5] += -np.sign(self.target_pos[5])*2*pi
             # print(self.target_pos[3:], self.gripper_pose[0][3:])
             if len(a) == 8:
                 prev1 = self.gripper_angle_1

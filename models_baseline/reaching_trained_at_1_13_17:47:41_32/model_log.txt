@@ -1,0 +1,6 @@
+Layers:
+	policy:	[128, 128, 128]
+	value:	[128, 128, 128]
+
+Reaching only at 1,2 quadrant
+obs relativity ON
