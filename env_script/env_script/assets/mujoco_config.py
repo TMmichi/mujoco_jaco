@@ -55,7 +55,7 @@ class MujocoConfig:
         else:
             self.xml_dir = "%s" % (folder)
             self.xml_file = os.path.join(self.xml_dir, xml_file)
-        print(self.xml_file)
+        print('Loaded mujoco XML file: ',self.xml_file)
         self.N_ROBOTS = n_robots
         self.N_GRIPPEPR_JOINTS = 0
 

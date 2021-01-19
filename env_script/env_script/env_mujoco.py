@@ -24,7 +24,7 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
             # self.task_max_steps = 500
             self.task_max_steps = 500
         elif self.task in ['picking', 'placing']:
-            self.task_max_steps = 1200
+            self.task_max_steps = 1000
         else:
             self.task_max_steps = 2500
         self.skip_frames = 50  #0.05s per step
@@ -111,16 +111,17 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
         # takes 2 seconds to fully stretch/grasp the gripper
         self.gripper_action_space_max = 1
         self.gripper_action_space_min = -1
-        if self.task == 'reaching':
+        if self.task in ['reaching','pushing']:
             pose_act = np.array([self.pose_action_space_max]*6)             # x,y,z,r,p,y
             self.act_max = pose_act
             self.act_min = -pose_act
-        elif self.task in ['grasping', 'carrying']:
+        elif self.task in ['grasping', 'carrying', 'picking', 'releasing', 'placing', 'pickAndplace']:
             pose_act = np.array([self.pose_action_space_max]*6)             # x,y,z,r,p,y
             gripper_act_max = np.array([self.gripper_action_space_max])     # g
             gripper_act_min = np.array([self.gripper_action_space_min])
             self.act_max = np.hstack([pose_act, gripper_act_max])
             self.act_min = np.hstack([-pose_act, gripper_act_min])
+
         self.action_space = spaces.Box(self.act_min, self.act_max, dtype=np.float32)
         self.wb = 0
         self.seed()

@@ -48,7 +48,7 @@ class RL_controller:
 
         self.sess_SRL = tf_util.single_threaded_session()
         args.sess = self.sess_SRL
-        args.visualize = True
+        args.visualize = False
 
         # State Generation Module defined here
         # self.stateGen = State_generator(**vars(args))
@@ -398,10 +398,16 @@ class RL_controller:
     def train_HPC(self):
         task_list = ['picking', 'placing', 'pickAndplace']
         composite_primitive_name = self.args.task = task_list[0]
-        model = SAC_MULTI(policy=MlpPolicy_sac, env=None, _init_setup_model=False, composite_primitive_name=composite_primitive_name)
+        self.model = SAC_MULTI(policy=MlpPolicy_sac, env=None, _init_setup_model=False, composite_primitive_name=composite_primitive_name)
 
         self.args.train_log = False
+        self.args.robot_file = "jaco2_curtain_torque"
+        self.args.controller = True
+        self.args.n_robots = 1
+        self.args.prev_action = False
+        self.args.subgoal_obs = True
         env = JacoMujocoEnv(**vars(self.args))
+
         prefix = composite_primitive_name + "_trained_at_" + str(time.localtime().tm_year) + "_" + str(time.localtime().tm_mon) + "_" + str(
                 time.localtime().tm_mday) + "_" + str(time.localtime().tm_hour) + ":" + str(time.localtime().tm_min)
         model_dir = self.model_path + prefix + "_" + str(self.trial)
@@ -409,49 +415,54 @@ class RL_controller:
         os.makedirs(model_dir, exist_ok=True)
         print("\033[92m"+model_dir+"\033[0m")
 
-        
-        model.construct_primitive_info(name='aux1', freeze=False, level=0,
-                                        obs_range=[-1, 1], obs_index=[0, 1,2,3,4,5,6, 7, 8,9,10, 17,18,19,20,21,22], 
-                                        act_range=[-1, 1], act_index=[0,1,2,3,4,5, 6], act_scale=0.1,
-                                        obs_relativity=None,
+        obs_min = [-3, -1,-1,-1,-1,-1,-1, -1, -1,-1,-1, -1,-1,-1,-1,-1,-1]
+        obs_max = [ 3,  1, 1, 1, 1, 1, 1,  1,  1, 1, 1,  1, 1, 1, 1, 1, 1]
+        act_min = [-1,-1,-1,-1,-1,-1, -1]
+        act_max = [ 1, 1, 1, 1, 1, 1,  1]
+        obs_idx = [0, 1,2,3,4,5,6, 7, 8,9,10, 17,18,19,20,21,22]
+        act_idx = [0,1,2,3,4,5, 6]
+        self.model.construct_primitive_info(name='aux1', freeze=False, level=0,
+                                        obs_range={'min': obs_min, 'max': obs_max}, obs_index=obs_idx, 
+                                        act_range={'min': act_min, 'max': act_max}, act_index=act_idx, act_scale=0.1,
+                                        obs_relativity={},
                                         layer_structure={'policy':[128, 128, 128]})
 
         # Pretrained primitives
         prim_name = 'reaching'
         policy_zip_path = self.model_path+prim_name+"_trained_at_1_13_17:47:15_31/continue1/policy_3860000.zip"
-        model.construct_primitive_info(name=prim_name, freeze=True, level=1,
+        self.model.construct_primitive_info(name=prim_name, freeze=True, level=1,
                                         obs_range=None, obs_index=[1,2,3,4,5,6, 17,18,19,20,21,22],
                                         act_range=None, act_index=[0,1,2,3,4,5], act_scale=1,
                                         obs_relativity={'subtract':{'ref':[17,18,19,20,21,22],'tar':[1,2,3,4,5,6]}},
                                         layer_structure=None,
                                         loaded_policy=SAC_MULTI._load_from_file(policy_zip_path),
-                                        load_value=True)
+                                        load_value=False)
 
         prim_name = 'grasping'
         policy_zip_path = self.model_path+prim_name+"_trained_at_12_28_17:26:27_15/continue1/policy_2330000.zip"
-        model.construct_primitive_info(name=prim_name, freeze=True, level=1,
+        self.model.construct_primitive_info(name=prim_name, freeze=True, level=1,
                                         obs_range=None, obs_index=[0, 1,2,3,4,5,6, 7, 8,9,10], 
                                         act_range=None, act_index=[0,1,2,3,4,5, 6], act_scale=1,
                                         obs_relativity={},
                                         layer_structure=None,
                                         loaded_policy=SAC_MULTI._load_from_file(policy_zip_path), 
-                                        load_value=True)
+                                        load_value=False)
         
         # Weight definition  
         number_of_primitives = 3
-        total_obs_dim = env.get_num_observation()
-        model.construct_primitive_info(name='weight', freeze=False, level=1,
-                                        obs_range=0, obs_index=list(range(total_obs_dim)),
+        self.model.construct_primitive_info(name='weight', freeze=False, level=1,
+                                        obs_range=0, obs_index=obs_idx,
                                         act_range=0, act_index=list(range(number_of_primitives)), act_scale=None,
-                                        obs_relativity=None,
-                                        layer_structure={'policy':[256, 256, 256],'value':[256, 256, 256]})
+                                        obs_relativity={},
+                                        layer_structure={'policy':[256, 256, 256],'value':[256, 256, 256]},
+                                        subgoal={'level1_reaching/level0':[17,18,19,20,21,22]})
 
         self.num_timesteps = self.steps_per_batch * self.batches_per_episodes * self.num_episodes 
-        model = SAC_MULTI.pretrainer_load(model=model, policy=MlpPolicy_sac, env=env, **model_configuration)
+        self.model.pretrainer_load(model=self.model, policy=MlpPolicy_sac, env=env, **model_configuration)
         print("\033[91mTraining Starts\033[0m")
-        self.trainer.learn(total_timesteps=self.num_timesteps)
+        self.model.learn(total_timesteps=self.num_timesteps, save_interval=10000, save_path=model_dir)
         print("\033[91mTrain Finished\033[0m")
-        self.trainer.save(model_dir+"/policy")
+        self.model.save(model_dir+"/policy")
 
     def _write_log(self, model_dir, info):
         model_log = open(model_dir+"/model_log.txt", 'w')
@@ -486,12 +497,12 @@ class RL_controller:
         self.args.prev_action = False
 
         task_list = ['reaching', 'grasping', 'picking', 'carrying', 'releasing', 'placing', 'pushing']
-        self.args.task = task_list[0]
-        traj_dict = np.load(self.model_path+'trajectories/'+self.args.task+".npz", allow_pickle=True)
-        self.args.init_buffer = np.array(traj_dict['obs'])
+        self.args.task = task_list[1]
+        # traj_dict = np.load(self.model_path+'trajectories/'+self.args.task+".npz", allow_pickle=True)
+        # self.args.init_buffer = np.array(traj_dict['obs'])
         env = JacoMujocoEnv(**vars(self.args))
         # Grasping
-        # prefix = self.args.task + '_trained_at_12_28_17:26:27_15/continue1/policy_2330000.zip'
+        prefix = self.args.task + '_trained_at_12_28_17:26:27_15/continue1/policy_2330000.zip'
         # prefix = 'comparison_observation_range_sym_discard_0/policy_7010000.zip'
         # prefix = 'comparison_observation_range_sym_discard_0/policy_8070000.zip'
         # prefix = 'comparison_observation_range_sym_nobuffer_2/policy_4330000.zip'
@@ -505,7 +516,7 @@ class RL_controller:
         # prefix = self.args.task + '_trained_at_1_8_16:1:46_26/policy.zip'
         # prefix = self.args.task + '_trained_at_1_8_16:2:2_27/policy_7420000.zip'
         # prefix = self.args.task + '_trained_at_1_13_17:47:41_32/policy_6750000.zip'
-        prefix = self.args.task + '_trained_at_1_13_17:47:15_31/continue1/policy_3860000.zip'
+        # prefix = self.args.task + '_trained_at_1_13_17:47:15_31/continue1/policy_3860000.zip'
         
         model_dir = self.model_path + prefix
         test_iter = 100

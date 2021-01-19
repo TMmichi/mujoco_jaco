@@ -275,14 +275,14 @@
             <geom type="box" size=".027 0.027 0.03" density="30" solimp="0.998 0.998 0.001" friction="0.95 0.3 0.1" solref="0.001 1" pos="0 0 0" rgba="0 0 0.5 0.8"></geom>
         </body>
 
-        <!-- <body name="object_holder" pos="0 0.6 0">
+        <body name="object_holder" pos="0 0.6 0">
             <geom type="box" size=".15 .15 .1" density="100" pos="0 0 .07" rgba=".5 .5 .5 1"></geom>
         </body>
 
         <body name="object_dest" pos="0.6 0.3 0">
             <geom name="dest_dum" type="sphere" pos="0 0 0.3" size="0.05" rgba="0 0 0.9 0.4" contype="8" conaffinity="8"/>
             <geom type="box" size=".15 .15 .175" density="100" pos="0 0 .07" rgba="0 .5 0 1"></geom>
-        </body> -->
+        </body>
 
         <body name="target_dummy" pos="0 0 0" mocap="true">
             <geom name="target_dummy" type="sphere" size="0.01" rgba=".9 0 0 .1" contype="4" conaffinity="4"/>

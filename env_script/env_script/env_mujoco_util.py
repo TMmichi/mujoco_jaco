@@ -54,6 +54,8 @@ class JacoMujocoEnvUtil:
         self.obs_prev_action = kwargs.get('prev_action', False)
         self.num_episodes = 0
         self.goal_buffer = kwargs.get('init_buffer', None)
+        self.subgoal_obs = kwargs.get('subgoal_obs', False)
+        print('subgoal observation: ', self.subgoal_obs)
 
         ### ------------  STATE GENERATION  ------------ ###
         self.package_path = str(Path(__file__).resolve().parent.parent)
@@ -297,6 +299,19 @@ class JacoMujocoEnvUtil:
                             self.reaching_goal[i][:3],
                             self.reaching_goal[i][3:]/np.pi
                         ]))
+                    if self.subgoal_obs:
+                        observation.append(np.hstack([
+                            self.touch_index,
+                            self.gripper_pose[i][:3],
+                            self.gripper_pose[i][3:]/np.pi,
+                            # [(self.gripper_angle_1-0.65)/0.35],
+                            [(self.gripper_angle_1-0.8)/0.2],
+                            self.__get_property('object_body','pose')[0][:3],
+                            self.__get_property('object_body','pose')[0][3:]/np.pi,
+                            self.dest_goal[i], 
+                            self.gripper_pose[i][:3],
+                            self.gripper_pose[i][3:]/np.pi,
+                        ]))
                 else:
                     # print('pos: ',self.interface.sim.data.qpos[self.interface.joint_pos_addrs])
                     # print('vel: ',self.interface.sim.data.qvel[self.interface.joint_vel_addrs])
@@ -531,7 +546,18 @@ class JacoMujocoEnvUtil:
                     else:
                         return False, 0, wb
                 elif self.task == 'picking':
-                    return True, 0, wb
+                    # Grasped
+                    if (self.interface.get_xyz('object_body')[2] > self.object_z + 0.07) and self.touch_index in [1,3]:
+                    # if (self.interface.get_xyz('object_body')[2] > self.object_z + 0.12) and self.touch_index in [1,3]:
+                        print("\033[92m Grasping Succeeded \033[0m")
+                        return True, 200 - (self.num_episodes*0.1), wb
+                    # Dropped
+                    elif self.interface.get_xyz('object_body')[2] < 0.1:
+                        print("\033[91m Dropped \033[0m")
+                        return True, -20, wb
+                    # Else
+                    else:
+                        return False, 0, wb
                 elif self.task == 'carrying':
                     return True, 0, wb
                 elif self.task == 'releasing':
