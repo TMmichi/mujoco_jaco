@@ -150,10 +150,10 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
     def get_action_bound(self):
         return self.pose_action_space_max
 
-    def step(self, action, log=True):
+    def step(self, action, weight=None, subgoal=None, log=True):
         action = np.clip(action, self.act_min, self.act_max)
         self.prev_action = action
-        self.take_action(action)
+        self.take_action(action, weight, subgoal)
         for _ in range(self.skip_frames):
             self._step_simulation()
 
@@ -210,9 +210,8 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
                 self.state_shape, obs.shape[0])
         return obs
 
-    def take_action(self, a):
-        self._take_action(a)
-        return 0
+    def take_action(self, a, weight=None, subgoal=None):
+        self._take_action(a, weight, subgoal)
 
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)

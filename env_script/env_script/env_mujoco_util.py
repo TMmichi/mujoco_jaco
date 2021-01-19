@@ -270,35 +270,6 @@ class JacoMujocoEnvUtil:
                 xyz = self.interface.get_xyz('object_body' ) - self.gripper_pose[0][:3]
                 obj_diff = np.linalg.norm(xyz)
                 if self.controller:
-                    if self.obs_prev_action:
-                        observation.append(np.hstack([
-                            self.touch_index,
-                            self.gripper_pose[i][:3],
-                            self.gripper_pose[i][3:]/np.pi,
-                            [(self.gripper_angle_1-0.65)/0.35], 
-                            self.prev_action[:6],
-                            self.__get_property('object_body','pose')[0][:3],
-                            self.__get_property('object_body','pose')[0][3:]/np.pi,
-                            self.dest_goal[i], 
-                            self.reaching_goal[i][:3],
-                            self.reaching_goal[i][3:]/np.pi
-                        ]))
-                    else:
-                        # Observation dimensions: 
-                        # touchidx     proprio          object       destination        reaching
-                        #    0,    1,2,3,4,5,6, 7,  8,9,10,11,12,13,  14,15,16,     17,18,19,20,21,22
-                        observation.append(np.hstack([
-                            self.touch_index,
-                            self.gripper_pose[i][:3],
-                            self.gripper_pose[i][3:]/np.pi,
-                            # [(self.gripper_angle_1-0.65)/0.35],
-                            [(self.gripper_angle_1-0.8)/0.2],
-                            self.__get_property('object_body','pose')[0][:3],
-                            self.__get_property('object_body','pose')[0][3:]/np.pi,
-                            self.dest_goal[i], 
-                            self.reaching_goal[i][:3],
-                            self.reaching_goal[i][3:]/np.pi
-                        ]))
                     if self.subgoal_obs:
                         observation.append(np.hstack([
                             self.touch_index,
@@ -312,6 +283,36 @@ class JacoMujocoEnvUtil:
                             self.gripper_pose[i][:3],
                             self.gripper_pose[i][3:]/np.pi,
                         ]))
+                    else:
+                        if self.obs_prev_action:
+                            observation.append(np.hstack([
+                                self.touch_index,
+                                self.gripper_pose[i][:3],
+                                self.gripper_pose[i][3:]/np.pi,
+                                [(self.gripper_angle_1-0.65)/0.35], 
+                                self.prev_action[:6],
+                                self.__get_property('object_body','pose')[0][:3],
+                                self.__get_property('object_body','pose')[0][3:]/np.pi,
+                                self.dest_goal[i], 
+                                self.reaching_goal[i][:3],
+                                self.reaching_goal[i][3:]/np.pi
+                            ]))
+                        else:
+                            # Observation dimensions: 
+                            # touchidx     proprio          object       destination        reaching
+                            #    0,    1,2,3,4,5,6, 7,  8,9,10,11,12,13,  14,15,16,     17,18,19,20,21,22
+                            observation.append(np.hstack([
+                                self.touch_index,
+                                self.gripper_pose[i][:3],
+                                self.gripper_pose[i][3:]/np.pi,
+                                # [(self.gripper_angle_1-0.65)/0.35],
+                                [(self.gripper_angle_1-0.8)/0.2],
+                                self.__get_property('object_body','pose')[0][:3],
+                                self.__get_property('object_body','pose')[0][3:]/np.pi,
+                                self.dest_goal[i], 
+                                self.reaching_goal[i][:3],
+                                self.reaching_goal[i][3:]/np.pi
+                            ]))
                 else:
                     # print('pos: ',self.interface.sim.data.qpos[self.interface.joint_pos_addrs])
                     # print('vel: ',self.interface.sim.data.qvel[self.interface.joint_vel_addrs])
@@ -548,8 +549,7 @@ class JacoMujocoEnvUtil:
                 elif self.task == 'picking':
                     # Grasped
                     if (self.interface.get_xyz('object_body')[2] > self.object_z + 0.07) and self.touch_index in [1,3]:
-                    # if (self.interface.get_xyz('object_body')[2] > self.object_z + 0.12) and self.touch_index in [1,3]:
-                        print("\033[92m Grasping Succeeded \033[0m")
+                        print("\033[92m Picking Succeeded \033[0m")
                         return True, 200 - (self.num_episodes*0.1), wb
                     # Dropped
                     elif self.interface.get_xyz('object_body')[2] < 0.1:
@@ -567,10 +567,23 @@ class JacoMujocoEnvUtil:
                 elif self.task == 'pushing':
                     return True, 0, wb
 
-    def _take_action(self, a):
+    def _take_action(self, a, weight=None, subgoal=None):
         self.action_in = True
         self.gripper_iter = 0
         self.__get_gripper_pose()
+        if weight is not None:
+            weight_reach = weight['level1_picking/weight'][0][1]
+            weight_grasp = weight['level1_picking/weight'][0][2]
+            weight_aux = weight['level1_picking/weight'][0][0]
+            subgoal_reach = subgoal['level1_reaching/level0'][0] + self.target_pos
+            # print('weight_reach: {0:2.3f}'.format(weight_reach),', subgoal: ', subgoal_reach)
+            self.interface.set_mocap_xyz("weight_reach", [-0.18,0.1,-0.1 + weight_reach*0.1])
+            self.interface.set_mocap_xyz("weight_grasp", [-0.14,0.1,-0.1 + weight_grasp*0.1])
+            self.interface.set_mocap_xyz("weight_aux", [-0.1,0.1,-0.1 + weight_aux*0.1])
+            self.interface.set_mocap_xyz("subgoal_reach", subgoal_reach[:3])
+            self.interface.set_mocap_orientation("subgoal_reach", transformations.quaternion_from_euler(
+                subgoal_reach[3], subgoal_reach[4], subgoal_reach[5], axes="rxyz"))
+
         # self.curr_action = np.array(a)
         if np.any(np.isnan(np.array(a))):
             print("WARNING, nan in action", a)
@@ -578,14 +591,9 @@ class JacoMujocoEnvUtil:
             # Action: Gripper Pose Increments (m,rad)
             # Action scaled to 0.01m, 0.05 rad
             # self.target_pos = self.gripper_pose[0] + np.hstack([a[:3]/100, a[3:6]/20])
-            # print("action: ",a)
-            # print("current pos: ",self.gripper_pose[0])
             self.target_pos = self.gripper_pose[0] + np.hstack([a[:3]/25, a[3:6]/5])
-            # print("xyz",self.target_pos[:3])
-            # print("rpy",self.target_pos[3:6])
             if abs(self.target_pos[5]) > pi:
                 self.target_pos[5] += -np.sign(self.target_pos[5])*2*pi
-            # print(self.target_pos[3:], self.gripper_pose[0][3:])
             if len(a) == 8:
                 prev1 = self.gripper_angle_1
                 prev2 = self.gripper_angle_2
