@@ -48,7 +48,7 @@ class RL_controller:
 
         self.sess_SRL = tf_util.single_threaded_session()
         args.sess = self.sess_SRL
-        args.visualize = False
+        args.visualize = True
 
         # State Generation Module defined here
         # self.stateGen = State_generator(**vars(args))
@@ -76,7 +76,7 @@ class RL_controller:
         args.batches_per_episodes = self.batches_per_episodes
         self.num_episodes = 20000
         self.args = args
-        self.trial = 36
+        self.trial = 37
 
 
     def train_from_scratch(self):
@@ -497,12 +497,12 @@ class RL_controller:
         self.args.prev_action = False
 
         task_list = ['reaching', 'grasping', 'picking', 'carrying', 'releasing', 'placing', 'pushing']
-        self.args.task = task_list[1]
+        self.args.task = task_list[2]
         # traj_dict = np.load(self.model_path+'trajectories/'+self.args.task+".npz", allow_pickle=True)
         # self.args.init_buffer = np.array(traj_dict['obs'])
         env = JacoMujocoEnv(**vars(self.args))
         # Grasping
-        prefix = self.args.task + '_trained_at_12_28_17:26:27_15/continue1/policy_2330000.zip'
+        # prefix = self.args.task + '_trained_at_12_28_17:26:27_15/continue1/policy_2330000.zip'
         # prefix = 'comparison_observation_range_sym_discard_0/policy_7010000.zip'
         # prefix = 'comparison_observation_range_sym_discard_0/policy_8070000.zip'
         # prefix = 'comparison_observation_range_sym_nobuffer_2/policy_4330000.zip'
@@ -517,12 +517,24 @@ class RL_controller:
         # prefix = self.args.task + '_trained_at_1_8_16:2:2_27/policy_7420000.zip'
         # prefix = self.args.task + '_trained_at_1_13_17:47:41_32/policy_6750000.zip'
         # prefix = self.args.task + '_trained_at_1_13_17:47:15_31/continue1/policy_3860000.zip'
-        
+        # Picking
+        prefix = self.args.task + '_trained_at_2021_1_19_14:17_36/policy_20000.zip'
         model_dir = self.model_path + prefix
         test_iter = 100
-        # self.model = SAC_MULTI.pretrainer_load(model_dir, MlpPolicy_sac, env)
+        self.model = SAC_MULTI(policy=MlpPolicy_sac, env=None, _init_setup_model=False, composite_primitive_name='picking')
+        obs_idx = [0, 1,2,3,4,5,6, 7, 8,9,10, 17,18,19,20,21,22]
+        act_idx = [0,1,2,3,4,5, 6]
+        self.model.construct_primitive_info(name=None, freeze=True, level=1,
+                                            obs_range=None, obs_index=obs_idx,
+                                            act_range=None, act_index=act_idx, act_scale=1,
+                                            obs_relativity={},
+                                            layer_structure=None,
+                                            loaded_policy=SAC_MULTI._load_from_file(model_dir), 
+                                            load_value=True)
+        
+        SAC_MULTI.pretrainer_load(self.model, MlpPolicy_sac, env)
         # self.model = PPO1.load(model_dir)
-        self.model = SAC_MULTI.load(model_dir, MlpPolicy_sac, env)
+        # self.model = SAC_MULTI.load(model_dir, MlpPolicy_sac, env)
         for _ in range(test_iter):
             accum = 0
             iter = 0
