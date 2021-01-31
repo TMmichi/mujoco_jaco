@@ -55,6 +55,8 @@ class JacoMujocoEnvUtil:
         self.num_episodes = 0
         self.goal_buffer = kwargs.get('init_buffer', None)
         self.subgoal_obs = kwargs.get('subgoal_obs', False)
+        self.rulebased_subgoal = kwargs.get('rulebased_subgoal',False)
+        self.auxiliary = kwargs.get('auxiliary', False)
         print('subgoal observation: ', self.subgoal_obs)
 
         ### ------------  STATE GENERATION  ------------ ###
@@ -73,7 +75,7 @@ class JacoMujocoEnvUtil:
             # self.ctr = OSC(self.jaco, kp=50, ko=180, kv=20, vmax=[0.2, 0.5236], ctrlr_dof=ctrl_dof)
             # self.ctr = OSC(self.jaco, kp=50, ko=180, kv=20, vmax=[0.3, 0.7854], ctrlr_dof=ctrl_dof)
             self.ctr = OSC(self.jaco, kp=50, ko=180, kv=20, vmax=[0.4, 1.0472], ctrlr_dof=ctrl_dof)
-            self.target_pos = self._reset()
+            self.target_pos = self._reset()[1:7]
         else:
             _ = self._reset()
 
@@ -134,6 +136,7 @@ class JacoMujocoEnvUtil:
         init_angle = self._create_init_angle()
         self.interface.set_joint_state(init_angle, [0]*6*self.n_robots)
         self.reaching_goal, self.obj_goal, self.dest_goal = self.__sample_goal()
+        print('sampled obj_goal: ', self.obj_goal)
         
         if self.task in ['carrying', 'releasing', 'placing']:
             pos = self.__get_property('EE_obj', 'pose')[0]
@@ -313,6 +316,20 @@ class JacoMujocoEnvUtil:
                                 self.reaching_goal[i][:3],
                                 self.reaching_goal[i][3:]/np.pi
                             ]))
+                    if self.rulebased_subgoal:
+                        pos, ori = self._get_rulebased_subgoal()
+                        observation.append(np.hstack([
+                            self.touch_index,
+                            self.gripper_pose[i][:3],
+                            self.gripper_pose[i][3:]/np.pi,
+                            # [(self.gripper_angle_1-0.65)/0.35],
+                            [(self.gripper_angle_1-0.8)/0.2],
+                            self.__get_property('object_body','pose')[0][:3],
+                            self.__get_property('object_body','pose')[0][3:]/np.pi,
+                            self.dest_goal[i], 
+                            pos,
+                            ori/np.pi,
+                        ]))
                 else:
                     # print('pos: ',self.interface.sim.data.qpos[self.interface.joint_pos_addrs])
                     # print('vel: ',self.interface.sim.data.qvel[self.interface.joint_vel_addrs])
@@ -336,6 +353,30 @@ class JacoMujocoEnvUtil:
             observation = self.state_gen.generate(data)
         return np.array(observation, dtype=np.float32)
     
+    def _get_rulebased_subgoal(self):
+        # NOTE: rulebased subgoal
+        # location: 0.15(m) away from the obj_goal with a direction of a vector from obj_goal to EE
+        # orientation: direction of a vector from subgoal location to the obj_goal
+        D = self.gripper_pose[0][:3] - self.obj_goal[0]
+        subgoal_pos = D/np.linalg.norm(D) * 0.12 + self.obj_goal[0]
+        # subgoal_pos = np.copy(self.obj_goal[0])
+        # print('gripper_pose: ', self.gripper_pose[0][:3])
+        # print('obj_goal: ',self.obj_goal[0][:3])
+        # print('subgoal_pos at rulebased: ', subgoal_pos)
+        xyz = np.copy(-D)
+        obj_diff = np.linalg.norm(xyz)
+        xyz /= obj_diff
+        x,y,z = xyz
+        quatpi = np.sqrt(2)/2
+        quat_vec = np.array([quatpi, quatpi*x, quatpi*y, quatpi*z])
+        quat_dummy = np.array([np.sqrt(3)/2,0.5*x,0.5*y,0.5*z])
+        rpy_vec = np.array(transformations.euler_from_quaternion(quat_vec, 'rxyz'))
+        # rpy_dummy = np.array(transformations.euler_from_quaternion(quat_dummy, 'rxyz'))
+        # rpy_real = np.cross(rpy_vec, rpy_dummy)
+        subgoal_ori = rpy_vec
+
+        return subgoal_pos, subgoal_ori
+
     def _get_camera(self):
         self.interface.offscreen.render(width=640, height=480, camera_id=0)
         image, depth = self.interface.offscreen.read_pixels(width=640, height=480, depth=True)
@@ -442,7 +483,7 @@ class JacoMujocoEnvUtil:
                 grasp_coef = 5
                 grasp_value = 0.5
                 height_coef = 100
-                scale_coef = 0.05
+                scale_coef = 0.01
                 
                 roll_e,pitch_e,yaw_e = self.__get_property('EE','pose')[0][3:]
                 ee_vec = self._get_rotation(roll_e, pitch_e, yaw_e, [0,0,-1], True)
@@ -474,6 +515,7 @@ class JacoMujocoEnvUtil:
                 # pick up reward
                 reward +=  height_coef * (self.interface.get_xyz('object_body')[2] - self.object_z)
                 return reward * scale_coef
+
             elif self.task == 'carrying':
                 return 0
             elif self.task == 'releasing':
@@ -562,7 +604,7 @@ class JacoMujocoEnvUtil:
                     ang_diff = np.linalg.norm(np.array(grip_euler) - np.array(tar_euler))
                     if ang_diff > np.pi:
                         ang_diff = 2*np.pi - ang_diff
-                    if dist_diff < 0.05 and ang_diff < np.pi/6: 
+                    if dist_diff < 0.025 and ang_diff < np.pi/6: 
                         print("\033[92m Target Reached \033[0m")
                         return True, 200 - (self.num_episodes*0.1), wb
                     else:
@@ -610,14 +652,24 @@ class JacoMujocoEnvUtil:
         self.gripper_iter = 0
         self.__get_gripper_pose()
         if weight is not None:
-            weight_reach = weight['level1_picking/weight'][0][1]
-            weight_grasp = weight['level1_picking/weight'][0][2]
-            weight_aux = weight['level1_picking/weight'][0][0]
-            subgoal_reach = subgoal['level1_reaching/level0'][0] + self.target_pos
+            if self.auxiliary:
+                weight_aux = weight['level1_picking/weight'][0][0]
+                weight_reach = weight['level1_picking/weight'][0][1]
+                weight_grasp = weight['level1_picking/weight'][0][2]
+            else:
+                weight_reach = weight['level1_picking/weight'][0][0]
+                weight_grasp = weight['level1_picking/weight'][0][1]
+            if self.rulebased_subgoal:
+                subpos, subori = self._get_rulebased_subgoal()
+                subgoal_reach = np.append(subpos, subori)
+            else:
+                subgoal_reach = subgoal['level1_reaching/level0'][0] + self.target_pos
+            # print('subgoal: ',subgoal['level1_reaching/level0'][0])
             # print('weight_reach: {0:2.3f}'.format(weight_reach),', subgoal: ', subgoal_reach)
             self.interface.set_mocap_xyz("weight_reach", [-0.18,0.1,-0.1 + weight_reach*0.1])
             self.interface.set_mocap_xyz("weight_grasp", [-0.14,0.1,-0.1 + weight_grasp*0.1])
-            self.interface.set_mocap_xyz("weight_aux", [-0.1,0.1,-0.1 + weight_aux*0.1])
+            if self.auxiliary:
+                self.interface.set_mocap_xyz("weight_aux", [-0.1,0.1,-0.1 + weight_aux*0.1])
             self.interface.set_mocap_xyz("subgoal_reach", subgoal_reach[:3])
             self.interface.set_mocap_orientation("subgoal_reach", transformations.quaternion_from_euler(
                 subgoal_reach[3], subgoal_reach[4], subgoal_reach[5], axes="rxyz"))

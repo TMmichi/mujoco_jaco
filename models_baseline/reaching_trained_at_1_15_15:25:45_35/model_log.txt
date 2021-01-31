@@ -3,3 +3,5 @@ Layers:
 	value:	[128, 128, 128]
 
 same with 34, but no obs relativity
+
+FAILED

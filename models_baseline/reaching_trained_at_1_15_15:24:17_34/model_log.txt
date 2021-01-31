@@ -3,3 +3,5 @@ Layers:
 	value:	[128, 128, 128]
 
 episode length error -> fixed from 10000 to 500
+
+MINOR FAILURE

@@ -67,7 +67,7 @@
         </body>
 
         <body name="subgoal_reach" pos="0 0 -0.15" mocap="true">
-            <geom type="box" size=".01 .02 .03" rgba=".3 .3 .3 .5" contype="8" conaffinity="8"/>
+            <geom type="box" size=".01 .02 .03" rgba=".7 .3 .7 .5" contype="8" conaffinity="8"/>
         </body>
         <body name="weight_reach" pos="-0.18 0.1 -0.1" mocap="true">
             <geom type="box" size=".02 .02 .1" rgba=".7 .3 .1 1" contype="8" conaffinity="8"/>

@@ -39,7 +39,7 @@ model_configuration['batch_size'] = 1000
 model_configuration['buffer_size'] = 50000
 model_configuration['gamma'] = 0.99
 # model_configuration['learning_rate'] = 0.0003
-model_configuration['learning_rate'] = 1e-4
+model_configuration['learning_rate'] = 1e-5
 model_configuration['ent_coef'] = 'auto'
 # model_configuration['ent_coef'] = 0.0001
 model_configuration['train_freq'] = 1
@@ -55,23 +55,19 @@ pretrain_configuration['n_epochs'] = 1000000
 pretrain_configuration['learning_rate'] = 5e-5
 pretrain_configuration['val_interval'] = 100
 #####################################################################################################
-info['non_lin'] = 'dist - coef: 5, th: 0.2\n\
-                   \t\tangle - coef: 2, th: pi/6\n\
-                   \t\theight - coef: 100\n\
-                   \t\tgrasp - coef: 5, value: 0.5\n\
-                   \t\tscale - coef: 0.05\n\
-                   \t\tAdded hand collision cost\n\
-                   \t\tobs z added'
-# info['Additional Info']= \
-#             'Reset from random initial pos\n\
-#             \t\tAgent roates a bit less\n\
-#             \t\tTarget also moves (randomly)\n\
-#             \t\tInitial pose a bit inward\n\
-#             \t\tweights no biases\n\
-#             \t\tBeta pre-training with all params\n\
-#             \t\tPre-train with more expert data\n\
-#             \t\tLearning rate with e decay'
-
+# info['non_lin'] = 'dist - coef: 5, th: 0.2\n\
+#                    \t\tangle - coef: 2, th: pi/6\n\
+#                    \t\theight - coef: 100\n\
+#                    \t\tgrasp - coef: 5, value: 0.5\n\
+#                    \t\tscale - coef: 0.05\n\
+#                    \t\tAdded hand collision cost\n\
+#                    \t\tobs z added'
+info['Additional Info'] = \
+            'Subgoal bounded\n\
+            \t\tSquashing function applied\n\
+            \t\tNo Aux\n\
+            \t\tScale coef from to 0.01 from 0.05\n\
+            \t\tEntropy from the total distribution'
 
 
 
@@ -86,7 +82,6 @@ info['non_lin'] = 'dist - coef: 5, th: 0.2\n\
 
 
 #####################################################################################################
-info['action'] = action_option[2]
 info['total_time_steps'] = total_time_step
 info['layers'] = layers
 info['batch_size'] = model_configuration['batch_size']
@@ -98,10 +93,10 @@ info['train_freq'] = model_configuration['train_freq']
 info['verbose'] = model_configuration['verbose']
 info['box_dist'] = model_configuration['box_dist']
 
-info['n_robots'] = 1
-info['n_target'] = 1
-info['tolerance'] = 0.1
-info['episode_length'] = 2000
-info['reward_method'] = reward_option[2]
-info['observation_method'] = observation_option[0]
+# info['n_robots'] = 1
+# info['n_target'] = 1
+# info['tolerance'] = 0.1
+# info['episode_length'] = 2000
+# info['reward_method'] = reward_option[2]
+# info['observation_method'] = observation_option[0]
 #####################################################################################################
