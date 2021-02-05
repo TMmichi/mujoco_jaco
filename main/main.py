@@ -79,7 +79,7 @@ class RL_controller:
         self.trial = 0 #37
 
 
-    def train_from_scratch(self):
+    def train_from_scratch_PPO1(self):
         print("Training from scratch called")
         self.args.train_log = False
         task_list = ['reaching', 'grasping', 'picking', 'carrying', 'releasing', 'placing', 'pushing']
@@ -130,7 +130,7 @@ class RL_controller:
         print("\033[91mTrain Finished\033[0m")
         self.trainer.save(model_dir+"/policy")
 
-    def train_from_scratch_2(self):
+    def train_from_scratch_PPO2(self):
         print("Training from scratch called")
         self.args.train_log = False
         task_list = ['reaching', 'grasping', 'picking', 'carrying', 'releasing', 'placing', 'pushing']
@@ -170,7 +170,7 @@ class RL_controller:
         print("\033[91mTrain Finished\033[0m")
         self.trainer.save(model_dir+"/policy")
     
-    def train_from_scratch_3(self):
+    def train_from_scratch_SAC(self):
         print("Training from scratch called")
         self.args.train_log = False
         self.args.visualize = False
@@ -592,9 +592,9 @@ class RL_controller:
 
 if __name__ == "__main__":
     controller = RL_controller()
-    # controller.train_from_scratch()
-    # controller.train_from_scratch_2()
-    # controller.train_from_scratch_3()
+    # controller.train_from_scratch_PPO1()
+    # controller.train_from_scratch_PPO2()
+    # controller.train_from_scratch_SAC()
     # controller.train_continue()
     # controller.train_from_expert()
     controller.train_HPC()
