@@ -281,42 +281,13 @@ class JacoMujocoEnvUtil:
                             # [(self.gripper_angle_1-0.65)/0.35],
                             [(self.gripper_angle_1-0.8)/0.2],
                             self.__get_property('object_body','pose')[0][:3],
-                            self.__get_property('object_body','pose')[0][3:]/np.pi,
+                            # self.__get_property('object_body','pose')[0][3:]/np.pi,
+                            [0,0,0],
                             self.dest_goal[i], 
                             self.gripper_pose[i][:3],
                             self.gripper_pose[i][3:]/np.pi,
                         ]))
-                    else:
-                        if self.obs_prev_action:
-                            observation.append(np.hstack([
-                                self.touch_index,
-                                self.gripper_pose[i][:3],
-                                self.gripper_pose[i][3:]/np.pi,
-                                [(self.gripper_angle_1-0.65)/0.35], 
-                                self.prev_action[:6],
-                                self.__get_property('object_body','pose')[0][:3],
-                                self.__get_property('object_body','pose')[0][3:]/np.pi,
-                                self.dest_goal[i], 
-                                self.reaching_goal[i][:3],
-                                self.reaching_goal[i][3:]/np.pi
-                            ]))
-                        else:
-                            # Observation dimensions: 
-                            # touchidx     proprio          object       destination        reaching
-                            #    0,    1,2,3,4,5,6, 7,  8,9,10,11,12,13,  14,15,16,     17,18,19,20,21,22
-                            observation.append(np.hstack([
-                                self.touch_index,
-                                self.gripper_pose[i][:3],
-                                self.gripper_pose[i][3:]/np.pi,
-                                # [(self.gripper_angle_1-0.65)/0.35],
-                                [(self.gripper_angle_1-0.8)/0.2],
-                                self.__get_property('object_body','pose')[0][:3],
-                                self.__get_property('object_body','pose')[0][3:]/np.pi,
-                                self.dest_goal[i], 
-                                self.reaching_goal[i][:3],
-                                self.reaching_goal[i][3:]/np.pi
-                            ]))
-                    if self.rulebased_subgoal:
+                    elif self.rulebased_subgoal:
                         pos, ori = self._get_rulebased_subgoal()
                         observation.append(np.hstack([
                             self.touch_index,
@@ -325,11 +296,30 @@ class JacoMujocoEnvUtil:
                             # [(self.gripper_angle_1-0.65)/0.35],
                             [(self.gripper_angle_1-0.8)/0.2],
                             self.__get_property('object_body','pose')[0][:3],
-                            self.__get_property('object_body','pose')[0][3:]/np.pi,
+                            # self.__get_property('object_body','pose')[0][3:]/np.pi,
+                            [0,0,0],
                             self.dest_goal[i], 
                             pos,
                             ori/np.pi,
                         ]))
+                    else:
+                        # Observation dimensions: 
+                        # touchidx     proprio          object       destination        reaching
+                        #    0,    1,2,3,4,5,6, 7,  8,9,10,11,12,13,  14,15,16,     17,18,19,20,21,22
+                        observation.append(np.hstack([
+                            self.touch_index,
+                            self.gripper_pose[i][:3],
+                            self.gripper_pose[i][3:]/np.pi,
+                            # [(self.gripper_angle_1-0.65)/0.35],
+                            [(self.gripper_angle_1-0.8)/0.2],
+                            self.__get_property('object_body','pose')[0][:3],
+                            # self.__get_property('object_body','pose')[0][3:]/np.pi,
+                            [0,0,0],
+                            self.dest_goal[i], 
+                            self.reaching_goal[i][:3],
+                            self.reaching_goal[i][3:]/np.pi
+                        ]))
+                    
                 else:
                     # print('pos: ',self.interface.sim.data.qpos[self.interface.joint_pos_addrs])
                     # print('vel: ',self.interface.sim.data.qvel[self.interface.joint_vel_addrs])
@@ -371,9 +361,10 @@ class JacoMujocoEnvUtil:
         quat_vec = np.array([quatpi, quatpi*x, quatpi*y, quatpi*z])
         quat_dummy = np.array([np.sqrt(3)/2,0.5*x,0.5*y,0.5*z])
         rpy_vec = np.array(transformations.euler_from_quaternion(quat_vec, 'rxyz'))
-        # rpy_dummy = np.array(transformations.euler_from_quaternion(quat_dummy, 'rxyz'))
-        # rpy_real = np.cross(rpy_vec, rpy_dummy)
-        subgoal_ori = rpy_vec
+        rpy_dummy = np.array(transformations.euler_from_quaternion(quat_dummy, 'rxyz'))
+        rpy_real = np.cross(rpy_vec, rpy_dummy)
+        rpy_real[0] -= pi/2
+        subgoal_ori = rpy_real
 
         return subgoal_pos, subgoal_ori
 
@@ -673,6 +664,12 @@ class JacoMujocoEnvUtil:
             self.interface.set_mocap_xyz("subgoal_reach", subgoal_reach[:3])
             self.interface.set_mocap_orientation("subgoal_reach", transformations.quaternion_from_euler(
                 subgoal_reach[3], subgoal_reach[4], subgoal_reach[5], axes="rxyz"))
+
+        # subpos, subori = self._get_rulebased_subgoal()
+        # subgoal_reach = np.append(subpos, subori)
+        # self.interface.set_mocap_xyz("subgoal_reach", subgoal_reach[:3])
+        # self.interface.set_mocap_orientation("subgoal_reach", transformations.quaternion_from_euler(
+        #     subgoal_reach[3], subgoal_reach[4], subgoal_reach[5], axes="rxyz"))
 
         # self.curr_action = np.array(a)
         if np.any(np.isnan(np.array(a))):

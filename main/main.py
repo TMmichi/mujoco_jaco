@@ -76,7 +76,7 @@ class RL_controller:
         args.batches_per_episodes = self.batches_per_episodes
         self.num_episodes = 20000
         self.args = args
-        self.trial = 0 #37
+        self.trial = 41
 
 
     def train_from_scratch_PPO1(self):
@@ -175,7 +175,7 @@ class RL_controller:
         self.args.train_log = False
         self.args.visualize = False
         task_list = ['reaching', 'grasping', 'carrying', 'releasing', 'pushing']
-        self.args.task = task_list[0]
+        self.args.task = task_list[1]
         prefix = self.args.task+"_trained_at_" + str(time.localtime().tm_mon) + "_" + str(time.localtime().tm_mday)\
             + "_" + str(time.localtime().tm_hour) + ":" + str(time.localtime().tm_min) + ":" + str(time.localtime().tm_sec)
         # prefix="comparison_observation_range_sym_nobuffer"
@@ -203,7 +203,7 @@ class RL_controller:
                 obs_relativity = {'subtract':{'ref':[30,31,32,33,34,35],'tar':[13,14,15,16,17,18]}}
                 obs_index = [1,2,3,4,5,6, 7,8,9,10,11,12, 13,14,15,16,17,18, 30,31,32,33,34,35]
         elif self.args.task in ['grasping','carrying']:
-            # buffer = self.create_buffer('trajectory_expert5_mod')
+            buffer = self.create_buffer('trajectory_expert5_mod')
             # obs_relativity = {'subtract':{'ref':[9,10,11],'tar':[1,2,3]}, 'leave':[2]}
             # obs_relativity = {'subtract':{'ref':[9,10,11],'tar':[1,2]}, 'leave':[0,1,2]}
             if self.args.controller:
@@ -405,7 +405,6 @@ class RL_controller:
         self.args.robot_file = "jaco2_curtain_torque"
         self.args.controller = True
         self.args.n_robots = 1
-        self.args.prev_action = False
         self.args.subgoal_obs = False
         self.args.rulebased_subgoal = True
         self.args.auxiliary = False
@@ -439,7 +438,7 @@ class RL_controller:
 
         # Pretrained primitives
         prim_name = 'reaching'
-        policy_zip_path = self.model_path+prim_name+"_trained_at_1_13_17:47:15_31/continue1/policy_3860000.zip"
+        policy_zip_path = self.model_path+prim_name+'_trained_at_1_13_17:47:15_31/continue1/continue4/policy_3580000.zip'
         self.model.construct_primitive_info(name=prim_name, freeze=True, level=1,
                                         obs_range=None, obs_index=[1,2,3,4,5,6, 17,18,19,20,21,22],
                                         act_range=None, act_index=[0,1,2,3,4,5], act_scale=1,
@@ -449,7 +448,8 @@ class RL_controller:
                                         load_value=False)
 
         prim_name = 'grasping'
-        policy_zip_path = self.model_path+prim_name+"_trained_at_12_28_17:26:27_15/continue1/policy_2330000.zip"
+        # policy_zip_path = self.model_path+prim_name+"_trained_at_12_28_17:26:27_15/continue1/policy_2330000.zip"
+        policy_zip_path = self.model_path+'comparison_observation_range_sym_discard_0/policy_8070000.zip'
         self.model.construct_primitive_info(name=prim_name, freeze=True, level=1,
                                         obs_range=None, obs_index=[0, 1,2,3,4,5,6, 7, 8,9,10], 
                                         act_range=None, act_index=[0,1,2,3,4,5, 6], act_scale=1,
@@ -511,10 +511,10 @@ class RL_controller:
         self.args.visualize = True
         self.args.robot_file = "jaco2_curtain_torque"
         self.args.n_robots = 1
-        self.args.prev_action = False
 
         task_list = ['reaching', 'grasping', 'picking', 'carrying', 'releasing', 'placing', 'pushing']
         self.args.subgoal_obs = False
+        self.args.rulebased_subgoal = False
         self.args.task = task_list[0]
         traj_dict = np.load(self.model_path+'trajectories/'+self.args.task+"2.npz", allow_pickle=True)
         self.args.init_buffer = np.array(traj_dict['obs'])
@@ -540,7 +540,7 @@ class RL_controller:
         # prefix = self.args.task + '_trained_at_1_13_17:47:41_32/policy_6750000.zip'
         prefix = self.args.task + '_trained_at_1_13_17:47:15_31/continue1/policy_3860000.zip'
         # prefix = self.args.task + '_trained_at_1_13_17:47:15_31/continue1/policy_4300000.zip'
-        # prefix = self.args.task + '_trained_at_1_13_17:47:15_31/continue1/continue4/policy_220000.zip'
+        # prefix = self.args.task + '_trained_at_1_13_17:47:15_31/continue1/continue4/policy_3580000.zip'
 
         ##### Picking
         # prefix = self.args.task + '_trained_at_2021_1_20_12:5_39/policy_8990000.zip'
@@ -597,6 +597,6 @@ if __name__ == "__main__":
     # controller.train_from_scratch_SAC()
     # controller.train_continue()
     # controller.train_from_expert()
-    controller.train_HPC()
+    # controller.train_HPC()
     # controller.generate_traj()
-    # controller.test()
+    controller.test()
