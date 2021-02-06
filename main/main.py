@@ -76,7 +76,7 @@ class RL_controller:
         args.batches_per_episodes = self.batches_per_episodes
         self.num_episodes = 20000
         self.args = args
-        self.trial = 41
+        self.trial = 0 #43
 
 
     def train_from_scratch(self):
@@ -438,7 +438,8 @@ class RL_controller:
 
         # Pretrained primitives
         prim_name = 'reaching'
-        policy_zip_path = self.model_path+prim_name+'_trained_at_1_13_17:47:15_31/continue1/continue4/policy_3580000.zip'
+        # policy_zip_path = self.model_path+prim_name+'_trained_at_1_13_17:47:15_31/continue1/continue4/policy_3580000.zip'
+        policy_zip_path = self.model_path+prim_name+'_trained_at_1_13_17:47:15_31/continue1/policy_3860000.zip'
         self.model.construct_primitive_info(name=prim_name, freeze=True, level=1,
                                         obs_range=None, obs_index=[1,2,3,4,5,6, 17,18,19,20,21,22],
                                         act_range=None, act_index=[0,1,2,3,4,5], act_scale=1,
@@ -473,7 +474,7 @@ class RL_controller:
 
         self.num_timesteps = self.steps_per_batch * self.batches_per_episodes * self.num_episodes 
         model_dict = {'gamma': 0.99, 'tensorboard_log': model_dir,'verbose': 1, \
-            'learning_rate':_lr_scheduler, 'learning_starts':1, 'batch_size': 1} #, 'batch_size': 1
+            'learning_rate':_lr_scheduler, 'learning_starts':5000, 'ent_coef': 0.1} #, 'batch_size': 1
         self.model.pretrainer_load(model=self.model, policy=MlpPolicy_sac, env=env, **model_dict)
         self._write_log(model_dir, info)
         print("\033[91mTraining Starts\033[0m")
@@ -597,6 +598,6 @@ if __name__ == "__main__":
     # controller.train_from_scratch_3()
     # controller.train_continue()
     # controller.train_from_expert()
-    # controller.train_HPC()
+    controller.train_HPC()
     # controller.generate_traj()
-    controller.test()
+    # controller.test()

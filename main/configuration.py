@@ -63,12 +63,13 @@ pretrain_configuration['val_interval'] = 100
 #                    \t\tAdded hand collision cost\n\
 #                    \t\tobs z added'
 info['Additional Info'] = \
-            'non_log to False from True'
-            # 'Subgoal bounded\n\
-            # \t\tSquashing function applied\n\
-            # \t\tNo Aux\n\
-            # \t\tScale coef from to 0.01 from 0.05\n\
-            # \t\tEntropy from the total distribution'
+            'Subgoal bounded\n\
+            \t\tSquashing function applied\n\
+            \t\tNo Aux\n\
+            \t\tScale coef from to 0.01 from 0.05\n\
+            \t\tEntropy from the total distribution\n\
+            \t\tEntropy coef fixed to 0.1'
+            # 'non_log to False from True'
 
 
 

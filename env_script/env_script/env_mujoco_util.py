@@ -349,6 +349,8 @@ class JacoMujocoEnvUtil:
         # orientation: direction of a vector from subgoal location to the obj_goal
         D = self.gripper_pose[0][:3] - self.obj_goal[0]
         subgoal_pos = D/np.linalg.norm(D) * 0.12 + self.obj_goal[0]
+        if subgoal_pos[2] < self.object_z:
+            subgoal_pos[2] = self.object_z
         # subgoal_pos = np.copy(self.obj_goal[0])
         # print('gripper_pose: ', self.gripper_pose[0][:3])
         # print('obj_goal: ',self.obj_goal[0][:3])
