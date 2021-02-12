@@ -408,6 +408,7 @@ class RL_controller:
         self.args.subgoal_obs = False
         self.args.rulebased_subgoal = True
         self.args.auxiliary = False
+        
         env = JacoMujocoEnv(**vars(self.args))
         
 
@@ -474,7 +475,7 @@ class RL_controller:
 
         self.num_timesteps = self.steps_per_batch * self.batches_per_episodes * self.num_episodes 
         model_dict = {'gamma': 0.99, 'tensorboard_log': model_dir,'verbose': 1, \
-            'learning_rate':_lr_scheduler, 'learning_starts':5000, 'ent_coef': 0.1} #, 'batch_size': 1
+            'learning_rate':_lr_scheduler, 'learning_starts':100, 'ent_coef': 0.1} #, 'batch_size': 1
         self.model.pretrainer_load(model=self.model, policy=MlpPolicy_sac, env=env, **model_dict)
         self._write_log(model_dir, info)
         print("\033[91mTraining Starts\033[0m")
@@ -516,16 +517,17 @@ class RL_controller:
         task_list = ['reaching', 'grasping', 'picking', 'carrying', 'releasing', 'placing', 'pushing']
         self.args.subgoal_obs = False
         self.args.rulebased_subgoal = False
-        self.args.task = task_list[0]
-        traj_dict = np.load(self.model_path+'trajectories/'+self.args.task+"2.npz", allow_pickle=True)
-        self.args.init_buffer = np.array(traj_dict['obs'])
+        self.args.task = task_list[1]
+        if self.args.task == 'reaching':
+            traj_dict = np.load(self.model_path+'trajectories/'+self.args.task+"2.npz", allow_pickle=True)
+            self.args.init_buffer = np.array(traj_dict['obs'])
         env = JacoMujocoEnv(**vars(self.args))
 
         ##### Grasping
         # Upper grasp
         # prefix = self.args.task + '_trained_at_12_28_17:26:27_15/continue1/policy_2330000.zip'
         # Side grasp (better)
-        # prefix = 'comparison_observation_range_sym_discard_0/policy_8070000.zip'
+        prefix = 'comparison_observation_range_sym_discard_0/policy_8070000.zip'
         # Side grasp
         # prefix = 'comparison_observation_range_sym_nobuffer_2/policy_4330000.zip'
 
@@ -539,7 +541,7 @@ class RL_controller:
         # prefix = self.args.task + '_trained_at_1_8_16:1:46_26/policy.zip'
         # prefix = self.args.task + '_trained_at_1_8_16:2:2_27/policy_7420000.zip'
         # prefix = self.args.task + '_trained_at_1_13_17:47:41_32/policy_6750000.zip'
-        prefix = self.args.task + '_trained_at_1_13_17:47:15_31/continue1/policy_3860000.zip'
+        # prefix = self.args.task + '_trained_at_1_13_17:47:15_31/continue1/policy_3860000.zip'
         # prefix = self.args.task + '_trained_at_1_13_17:47:15_31/continue1/policy_4300000.zip'
         # prefix = self.args.task + '_trained_at_1_13_17:47:15_31/continue1/continue4/policy_3580000.zip'
 
