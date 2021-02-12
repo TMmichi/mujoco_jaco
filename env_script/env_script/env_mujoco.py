@@ -146,6 +146,8 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
         obs = self.make_observation()
         reward_val = self._get_reward()
         done, additional_reward, self.wb = self.terminal_inspection()
+        if weight is not None:
+            additional_reward -= weight['level1_picking/weight'][0][0] * 10
         total_reward = reward_val + additional_reward
         if self.current_steps % 10 == 0:
             self.logging(obs, self.prev_obs, action, self.wb, total_reward) if log else None
