@@ -76,7 +76,7 @@ class RL_controller:
         args.batches_per_episodes = self.batches_per_episodes
         self.num_episodes = 20000
         self.args = args
-        self.trial = 0 #43
+        self.trial = 42
 
 
     def train_from_scratch_PPO1(self):
@@ -418,7 +418,7 @@ class RL_controller:
         else:
             prefix = composite_primitive_name + "_noaux_trained_at_" + str(time.localtime().tm_year) + "_" + str(time.localtime().tm_mon) + "_" + str(
                     time.localtime().tm_mday) + "_" + str(time.localtime().tm_hour) + ":" + str(time.localtime().tm_min)
-        prefix = 'HPCtest'
+        #prefix = 'HPCtest'
         model_dir = self.model_path + prefix + "_" + str(self.trial)
         self.args.log_dir = model_dir
         os.makedirs(model_dir, exist_ok=True)
@@ -475,7 +475,7 @@ class RL_controller:
 
         self.num_timesteps = self.steps_per_batch * self.batches_per_episodes * self.num_episodes 
         model_dict = {'gamma': 0.99, 'tensorboard_log': model_dir,'verbose': 1, \
-            'learning_rate':_lr_scheduler, 'learning_starts':100, 'ent_coef': 0.1} #, 'batch_size': 1
+            'learning_rate':_lr_scheduler, 'learning_starts':100, 'ent_coef': 0} #, 'batch_size': 1
         self.model.pretrainer_load(model=self.model, policy=MlpPolicy_sac, env=env, **model_dict)
         self._write_log(model_dir, info)
         print("\033[91mTraining Starts\033[0m")
@@ -516,7 +516,7 @@ class RL_controller:
 
         task_list = ['reaching', 'grasping', 'picking', 'carrying', 'releasing', 'placing', 'pushing']
         self.args.subgoal_obs = False
-        self.args.rulebased_subgoal = False
+        self.args.rulebased_subgoal = True
         self.args.task = task_list[1]
         if self.args.task == 'reaching':
             traj_dict = np.load(self.model_path+'trajectories/'+self.args.task+"2.npz", allow_pickle=True)
@@ -547,6 +547,7 @@ class RL_controller:
 
         ##### Picking
         # prefix = self.args.task + '_trained_at_2021_1_20_12:5_39/policy_8990000.zip'
+        # prefix = 'HPCtest_0/policy_2710000.zip'
 
 
         model_dir = self.model_path + prefix
@@ -579,7 +580,7 @@ class RL_controller:
                     action, subgoal, weight = self.model.predict_subgoal(obs, deterministic=True)
                     obs, reward, done, _ = env.step(action, log=False, weight=weight, subgoal=subgoal)
                 else:
-                    action, _ = self.model.predict(obs, deterministic=False)
+                    action, _ = self.model.predict(obs, deterministic=True)
                     obs, reward, done, _ = env.step(action, log=False)
                 # print('gripper action: ', action)
                 print('reward: {0:2.3f}'.format(reward), 'wb: {0:2.3f}'.format(env.get_wb()), end='\n')
@@ -595,11 +596,11 @@ class RL_controller:
 
 if __name__ == "__main__":
     controller = RL_controller()
-    # controller.train_from_scratch_PPO1()
+    # controller.train_from_scratch_PPO1()  
     # controller.train_from_scratch_PPO2()
     # controller.train_from_scratch_SAC()
     # controller.train_continue()
     # controller.train_from_expert()
-    controller.train_HPC()
+    # controller.train_HPC()
     # controller.generate_traj()
-    # controller.test()
+    controller.test()
