@@ -12,7 +12,6 @@ from env_script.env_mujoco_util import JacoMujocoEnvUtil
 
 class JacoMujocoEnv(JacoMujocoEnvUtil):
     def __init__(self, **kwargs):
-        #self.debug = kwargs['debug']
         super().__init__(**kwargs)
 
         ### ------------  RL SETUP  ------------ ###
@@ -111,13 +110,10 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
         self.action_space = spaces.Box(self.act_min, self.act_max, dtype=np.float32)
         self.wb = 0
         self.seed()
+        self.metadata = None
 
         ### ------------  LOGGING  ------------ ###
         self.log_save = False
-        # if kwargs['train_log']:
-        #     log_dir = kwargs['log_dir']
-        #     self.log_save = True
-        #     self.joint_angle_log = open(log_dir+"/training_log.txt", 'w')
 
 
     def reset(self):

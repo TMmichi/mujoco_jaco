@@ -19,7 +19,9 @@ from stable_baselines.ppo1 import PPO1
 from stable_baselines.common.policies import MlpPolicy
 from stable_baselines.sac import SAC
 from stable_baselines.sac_multi import SAC_MULTI
-from stable_baselines.sac_multi.policies import MlpPolicy as MlpPolicy_sac
+from stable_baselines.sac_multi.policies import MlpPolicy as MlpPolicy_hpcsac
+from stable_baselines.hpcppo import HPCPPO
+from stable_baselines.hpcppo.policies import MlpPolicy as MlpPolicy_hpcppo
 from stable_baselines.gail import generate_expert_traj, ExpertDataset
 from stable_baselines.common.buffers import ReplayBuffer
 from stable_baselines.common.vec_env import SubprocVecEnv
@@ -121,7 +123,6 @@ class RL_controller:
         model_dict = {'gamma': 0.99, 'clip_param': 0.02,
                       'tensorboard_log': model_dir, 'policy_kwargs': policy_kwargs, 'verbose':1}
         self.trainer = PPO1(MlpPolicy, env, **model_dict)
-        #self.trainer = SAC_MULTI(MlpPolicy_sac, env, **model_configuration)
         
         self._write_log(model_dir, info)
         print("\033[91mTraining Starts\033[0m")
@@ -220,7 +221,7 @@ class RL_controller:
         policy_kwargs.update(model_configuration['policy_kwargs'])
         model_dict = {'gamma': 0.99, 'tensorboard_log': model_dir, 'policy_kwargs': policy_kwargs, 'verbose': 1, \
                       'replay_buffer': buffer, 'learning_rate':_lr_scheduler}
-        self.trainer = SAC_MULTI(MlpPolicy_sac, env, **model_dict)
+        self.trainer = SAC_MULTI(MlpPolicy_hpcsac, env, **model_dict)
         
         self._write_log(model_dir, info)
         print("\033[91mTraining Starts\033[0m")
@@ -253,7 +254,7 @@ class RL_controller:
         os.makedirs(model_dir+sub_dir, exist_ok=True)
         # net_arch = {'pi': [128,128], 'vf': [64, 64]}
         # policy_kwargs = {'net_arch': [net_arch]}
-        self.trainer = SAC_MULTI.load(policy_dir, policy=MlpPolicy_sac, env=env, replay_buffer=buffer, tensorboard_log=model_dir+sub_dir, \
+        self.trainer = SAC_MULTI.load(policy_dir, policy=MlpPolicy_hpcsac, env=env, replay_buffer=buffer, tensorboard_log=model_dir+sub_dir, \
                                     learning_rate=_lr_scheduler, learning_starts=0)
         # self.trainer = PPO1.load(policy_dir, env=env, tensorboard_log=model_dir+sub_dir, policy_kwargs=policy_kwargs, exact_match=True, only={'value':True})
         # self.trainer = PPO1.load(policy_dir, env=env, tensorboard_log=model_dir+sub_dir)
@@ -398,10 +399,12 @@ class RL_controller:
     def train_HPC(self):
         task_list = ['picking', 'placing', 'pickAndplace']
         composite_primitive_name = self.args.task = task_list[0]
-        self.model = SAC_MULTI(policy=MlpPolicy_sac, env=None, _init_setup_model=False, composite_primitive_name=composite_primitive_name)
+
+        # self.model = SAC_MULTI(policy=MlpPolicy_hpcsac, env=None, _init_setup_model=False, composite_primitive_name=composite_primitive_name)
+        self.model = HPCPPO(policy=MlpPolicy_hpcppo, env=None, _init_setup_model=False, composite_primitive_name=composite_primitive_name)
 
         self.args.train_log = False
-        self.args.visualize = True
+        self.args.visualize = False
         self.args.robot_file = "jaco2_curtain_torque"
         self.args.controller = True
         self.args.n_robots = 1
@@ -409,7 +412,12 @@ class RL_controller:
         self.args.rulebased_subgoal = True
         self.args.auxiliary = False
         
-        env = JacoMujocoEnv(**vars(self.args))
+        env_list = []
+        for i in range(4):
+            env_list.append(JacoMujocoEnv)
+        env = DummyVecEnv(env_list, dict(**vars(self.args)))
+        env = VecNormalize(env)
+        # env = JacoMujocoEnv(**vars(self.args))
         
 
         if self.args.auxiliary:
@@ -418,7 +426,7 @@ class RL_controller:
         else:
             prefix = composite_primitive_name + "_noaux_trained_at_" + str(time.localtime().tm_year) + "_" + str(time.localtime().tm_mon) + "_" + str(
                     time.localtime().tm_mday) + "_" + str(time.localtime().tm_hour) + ":" + str(time.localtime().tm_min)
-        #prefix = 'HPCtest'
+        prefix = 'HPCtest'
         model_dir = self.model_path + prefix + "_" + str(self.trial)
         self.args.log_dir = model_dir
         os.makedirs(model_dir, exist_ok=True)
@@ -476,7 +484,7 @@ class RL_controller:
         self.num_timesteps = self.steps_per_batch * self.batches_per_episodes * self.num_episodes 
         model_dict = {'gamma': 0.99, 'tensorboard_log': model_dir,'verbose': 1, \
             'learning_rate':_lr_scheduler, 'learning_starts':100, 'ent_coef': 0} #, 'batch_size': 1
-        self.model.pretrainer_load(model=self.model, policy=MlpPolicy_sac, env=env, **model_dict)
+        self.model.pretrainer_load(model=self.model, policy=MlpPolicy_hpcsac, env=env, **model_dict)
         self._write_log(model_dir, info)
         print("\033[91mTraining Starts\033[0m")
         self.model.learn(total_timesteps=self.num_timesteps, save_interval=10000, save_path=model_dir)
@@ -553,7 +561,7 @@ class RL_controller:
         model_dir = self.model_path + prefix
         test_iter = 100
         if self.args.task in ['picking','placing','pickAndplace']:
-            self.model = SAC_MULTI(policy=MlpPolicy_sac, env=None, _init_setup_model=False, composite_primitive_name='picking')
+            self.model = SAC_MULTI(policy=MlpPolicy_hpcsac, env=None, _init_setup_model=False, composite_primitive_name='picking')
             obs_idx = [0, 1,2,3,4,5,6, 7, 8,9,10, 17,18,19,20,21,22]
             act_idx = [0,1,2,3,4,5, 6]
             self.model.construct_primitive_info(name=None, freeze=True, level=1,
@@ -564,10 +572,10 @@ class RL_controller:
                                                 loaded_policy=SAC_MULTI._load_from_file(model_dir), 
                                                 load_value=True)
             
-            SAC_MULTI.pretrainer_load(self.model, MlpPolicy_sac, env)
+            SAC_MULTI.pretrainer_load(self.model, MlpPolicy_hpcsac, env)
         else:
             # self.model = PPO1.load(model_dir)
-            self.model = SAC_MULTI.load(model_dir, MlpPolicy_sac, env)
+            self.model = SAC_MULTI.load(model_dir, MlpPolicy_hpcsac, env)
         for _ in range(test_iter):
             accum = 0
             iter = 0
@@ -601,6 +609,6 @@ if __name__ == "__main__":
     # controller.train_from_scratch_SAC()
     # controller.train_continue()
     # controller.train_from_expert()
-    # controller.train_HPC()
+    controller.train_HPC()
     # controller.generate_traj()
-    controller.test()
+    # controller.test()
