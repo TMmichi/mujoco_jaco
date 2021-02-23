@@ -413,10 +413,11 @@ class RL_controller:
         self.args.auxiliary = False
         
         env_list = []
-        for i in range(4):
+        for i in range(1):
             env_list.append(JacoMujocoEnv)
         env = DummyVecEnv(env_list, dict(**vars(self.args)))
         env = VecNormalize(env)
+        
         # env = JacoMujocoEnv(**vars(self.args))
         
 
@@ -484,7 +485,8 @@ class RL_controller:
         self.num_timesteps = self.steps_per_batch * self.batches_per_episodes * self.num_episodes 
         model_dict = {'gamma': 0.99, 'tensorboard_log': model_dir,'verbose': 1, \
             'learning_rate':_lr_scheduler, 'learning_starts':100, 'ent_coef': 0} #, 'batch_size': 1
-        self.model.pretrainer_load(model=self.model, policy=MlpPolicy_hpcsac, env=env, **model_dict)
+        # self.model.pretrainer_load(model=self.model, policy=MlpPolicy_hpcsac, env=env, **model_dict)
+        self.model.pretrainer_load(model=self.model, policy=MlpPolicy_hpcppo, env=env, **model_dict)
         self._write_log(model_dir, info)
         print("\033[91mTraining Starts\033[0m")
         self.model.learn(total_timesteps=self.num_timesteps, save_interval=10000, save_path=model_dir)
