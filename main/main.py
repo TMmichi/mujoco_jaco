@@ -13,9 +13,8 @@ except Exception:
 import numpy as np
 
 import stable_baselines.common.tf_util as tf_util
-from stable_baselines.trpo_mpi import TRPO
-from stable_baselines.ppo2 import PPO2
 from stable_baselines.ppo1 import PPO1
+from stable_baselines.ppo2 import PPO2
 from stable_baselines.common.policies import MlpPolicy
 from stable_baselines.sac import SAC
 from stable_baselines.sac_multi import SAC_MULTI
@@ -24,10 +23,8 @@ from stable_baselines.hpcppo import HPCPPO
 from stable_baselines.hpcppo.policies import MlpPolicy as MlpPolicy_hpcppo
 from stable_baselines.gail import generate_expert_traj, ExpertDataset
 from stable_baselines.common.buffers import ReplayBuffer
-from stable_baselines.common.vec_env import SubprocVecEnv
 from stable_baselines.common.vec_env.dummy_vec_env import DummyVecEnv
 from stable_baselines.common.vec_env.vec_normalize import VecNormalize
-from stable_baselines.common import set_global_seeds
 
 from env_script.env_mujoco import JacoMujocoEnv
 from state_gen.state_generator import State_generator
@@ -134,10 +131,12 @@ class RL_controller:
     def train_from_scratch_PPO2(self):
         print("Training from scratch called")
         self.args.train_log = False
+        self.args.visualize = False
         task_list = ['reaching', 'grasping', 'picking', 'carrying', 'releasing', 'placing', 'pushing']
         self.args.task = task_list[1]
         prefix = self.args.task+"_trained_at_" + str(time.localtime().tm_mon) + "_" + str(time.localtime().tm_mday)\
             + "_" + str(time.localtime().tm_hour) + ":" + str(time.localtime().tm_min) + ":" + str(time.localtime().tm_sec)
+        prefix = 'test'
         model_dir = self.model_path + prefix + "_" + str(self.trial)
         os.makedirs(model_dir, exist_ok=True)
         print("\033[92m"+model_dir+"\033[0m")
@@ -149,7 +148,7 @@ class RL_controller:
         env_list = []
         for i in range(4):
             env_list.append(JacoMujocoEnv)
-        env = DummyVecEnv(env_list)
+        env = DummyVecEnv(env_list, dict(**vars(self.args)))
         env = VecNormalize(env)
         
         net_arch = {'pi': model_configuration['layers']['policy'], 'vf': model_configuration['layers']['value']}
@@ -399,12 +398,18 @@ class RL_controller:
     def train_HPC(self):
         task_list = ['picking', 'placing', 'pickAndplace']
         composite_primitive_name = self.args.task = task_list[0]
+        algo_list = ['sac','ppo']
+        algo = algo_list[1]
 
-        # self.model = SAC_MULTI(policy=MlpPolicy_hpcsac, env=None, _init_setup_model=False, composite_primitive_name=composite_primitive_name)
-        self.model = HPCPPO(policy=MlpPolicy_hpcppo, env=None, _init_setup_model=False, composite_primitive_name=composite_primitive_name)
+        if algo == 'sac':
+            policy = MlpPolicy_hpcsac
+            self.model = SAC_MULTI(policy=policy, env=None, _init_setup_model=False, composite_primitive_name=composite_primitive_name)
+        elif algo == 'ppo':
+            policy = MlpPolicy_hpcppo
+            self.model = HPCPPO(policy=policy, env=None, _init_setup_model=False, composite_primitive_name=composite_primitive_name)
 
         self.args.train_log = False
-        self.args.visualize = False
+        self.args.visualize = True
         self.args.robot_file = "jaco2_curtain_torque"
         self.args.controller = True
         self.args.n_robots = 1
@@ -425,9 +430,9 @@ class RL_controller:
             prefix = composite_primitive_name + "_trained_at_" + str(time.localtime().tm_year) + "_" + str(time.localtime().tm_mon) + "_" + str(
                     time.localtime().tm_mday) + "_" + str(time.localtime().tm_hour) + ":" + str(time.localtime().tm_min)
         else:
-            prefix = composite_primitive_name + "_noaux_trained_at_" + str(time.localtime().tm_year) + "_" + str(time.localtime().tm_mon) + "_" + str(
+            prefix = composite_primitive_name +'_'+algo+"_noaux_trained_at_" + str(time.localtime().tm_year) + "_" + str(time.localtime().tm_mon) + "_" + str(
                     time.localtime().tm_mday) + "_" + str(time.localtime().tm_hour) + ":" + str(time.localtime().tm_min)
-        prefix = 'HPCtest'
+        # prefix = 'HPCtest'
         model_dir = self.model_path + prefix + "_" + str(self.trial)
         self.args.log_dir = model_dir
         os.makedirs(model_dir, exist_ok=True)
@@ -485,11 +490,13 @@ class RL_controller:
         self.num_timesteps = self.steps_per_batch * self.batches_per_episodes * self.num_episodes 
         model_dict = {'gamma': 0.99, 'tensorboard_log': model_dir,'verbose': 1, \
             'learning_rate':_lr_scheduler, 'learning_starts':100, 'ent_coef': 0} #, 'batch_size': 1
-        # self.model.pretrainer_load(model=self.model, policy=MlpPolicy_hpcsac, env=env, **model_dict)
-        self.model.pretrainer_load(model=self.model, policy=MlpPolicy_hpcppo, env=env, **model_dict)
+        if algo == 'sac':
+            self.model.pretrainer_load(model=self.model, policy=policy, env=env, **model_dict)
+        elif algo == 'ppo':
+            self.model.pretrainer_load(model=self.model, policy=policy, env=env, **model_dict)
         self._write_log(model_dir, info)
         print("\033[91mTraining Starts\033[0m")
-        self.model.learn(total_timesteps=self.num_timesteps, save_interval=10000, save_path=model_dir)
+        self.model.learn(total_timesteps=self.num_timesteps, save_interval=100, save_path=model_dir)
         print("\033[91mTrain Finished\033[0m")
         self.model.save(model_dir+"/policy")
 
@@ -527,11 +534,17 @@ class RL_controller:
         task_list = ['reaching', 'grasping', 'picking', 'carrying', 'releasing', 'placing', 'pushing']
         self.args.subgoal_obs = False
         self.args.rulebased_subgoal = True
-        self.args.task = task_list[1]
+        self.args.task = task_list[2]
         if self.args.task == 'reaching':
             traj_dict = np.load(self.model_path+'trajectories/'+self.args.task+"2.npz", allow_pickle=True)
             self.args.init_buffer = np.array(traj_dict['obs'])
-        env = JacoMujocoEnv(**vars(self.args))
+        
+        # env = JacoMujocoEnv(**vars(self.args))
+        env_list = []
+        for i in range(2):
+            env_list.append(JacoMujocoEnv)
+        env = DummyVecEnv(env_list, dict(**vars(self.args)))
+        env = VecNormalize(env)
 
         ##### Grasping
         # Upper grasp
@@ -558,12 +571,14 @@ class RL_controller:
         ##### Picking
         # prefix = self.args.task + '_trained_at_2021_1_20_12:5_39/policy_8990000.zip'
         # prefix = 'HPCtest_0/policy_2710000.zip'
+        prefix = self.args.task + '_ppo_noaux_trained_at_2021_2_25_15:29_42/policy_50689.zip'
 
 
         model_dir = self.model_path + prefix
         test_iter = 100
         if self.args.task in ['picking','placing','pickAndplace']:
-            self.model = SAC_MULTI(policy=MlpPolicy_hpcsac, env=None, _init_setup_model=False, composite_primitive_name='picking')
+            # self.model = SAC_MULTI(policy=MlpPolicy_hpcsac, env=None, _init_setup_model=False, composite_primitive_name='picking')
+            self.model = HPCPPO(policy=MlpPolicy_hpcppo, env=None, _init_setup_model=False, composite_primitive_name='picking')
             obs_idx = [0, 1,2,3,4,5,6, 7, 8,9,10, 17,18,19,20,21,22]
             act_idx = [0,1,2,3,4,5, 6]
             self.model.construct_primitive_info(name=None, freeze=True, level=1,
@@ -574,31 +589,26 @@ class RL_controller:
                                                 loaded_policy=SAC_MULTI._load_from_file(model_dir), 
                                                 load_value=True)
             
-            SAC_MULTI.pretrainer_load(self.model, MlpPolicy_hpcsac, env)
+            # SAC_MULTI.pretrainer_load(self.model, MlpPolicy_hpcsac, env)
+            HPCPPO.pretrainer_load(self.model, MlpPolicy_hpcsac, env)
         else:
             # self.model = PPO1.load(model_dir)
             self.model = SAC_MULTI.load(model_dir, MlpPolicy_hpcsac, env)
         for _ in range(test_iter):
-            accum = 0
             iter = 0
             obs = env.reset()
             done = False
             while not done:
                 iter += 1
-                # print('obs: ',obs)
                 if self.args.task in ['picking','placing','pickAndplace']:
                     action, subgoal, weight = self.model.predict_subgoal(obs, deterministic=True)
                     obs, reward, done, _ = env.step(action, log=False, weight=weight, subgoal=subgoal)
                 else:
                     action, _ = self.model.predict(obs, deterministic=True)
                     obs, reward, done, _ = env.step(action, log=False)
-                # print('gripper action: ', action)
-                print('reward: {0:2.3f}'.format(reward), 'wb: {0:2.3f}'.format(env.get_wb()), end='\n')
-                accum += reward
-                if iter % 20 == 0:
-                    print("accum reward: ", accum)
-                if done:
-                    print("Total Reward: ",accum)
+                done = True if done.any() == True else False
+                print('gripper action: ', action)
+                # print('reward: {0:2.3f}'.format(reward), end='\n')
 
     def generate(self):
         pass

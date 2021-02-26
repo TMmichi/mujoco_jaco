@@ -1,18 +1,16 @@
 #!/usr/bin/env python
 
-import os
-import sys
+import os, sys
 import time
 from pathlib import Path
 from math import pi
-from random import sample, randint, uniform
-
-import scipy.interpolate
+from random import sample, uniform
 
 import numpy as np
 import cv2
 from numpy.random import uniform as uniform_np
-from matplotlib import pyplot as plt
+# from matplotlib import pyplot as plt
+# import scipy.interpolate
 
 if __name__ != "__main__":
     from abr_control.controllers import OSC
@@ -124,6 +122,7 @@ class JacoMujocoEnvUtil:
         )
 
     def _reset(self, target_angle=None):
+        self.interface.sim.reset()
         self.num_episodes = 0
         self.gripper_iter = 0
         self.touch_index = 0
@@ -215,8 +214,7 @@ class JacoMujocoEnvUtil:
             if dist_diff < 0.05 and ang_diff < np.pi/6:
                 print("\033[92m Target Reached \033[0m")
                 break
-                
-    
+                 
     def _create_init_angle(self):
         if self.task in ['reaching', 'picking']:
             random_init_angle = [uniform_np(0.5, 2.7), uniform_np(3.8,4), uniform_np(
@@ -321,8 +319,6 @@ class JacoMujocoEnvUtil:
                         ]))
                     
                 else:
-                    # print('pos: ',self.interface.sim.data.qpos[self.interface.joint_pos_addrs])
-                    # print('vel: ',self.interface.sim.data.qvel[self.interface.joint_vel_addrs])
                     observation.append(np.hstack([
                         self.touch_index,
                         self.interface.sim.data.qpos[self.interface.joint_pos_addrs],
@@ -380,9 +376,6 @@ class JacoMujocoEnvUtil:
         #plt.imsave(self.package_path+"/test.jpg", image)
         #plt.imsave(self.package_path+"/test_depth.jpg", depth)
         return image, depth
-    
-    def _get_pressure(self):
-        pass
 
     def __get_gripper_pose(self):
         self.gripper_pose = self.__get_property('EE', 'pose')
@@ -647,18 +640,33 @@ class JacoMujocoEnvUtil:
         self.gripper_iter = 0
         self.__get_gripper_pose()
         if weight is not None:
-            if self.auxiliary:
-                weight_aux = weight['level1_picking/weight'][0][0]
-                weight_reach = weight['level1_picking/weight'][0][1]
-                weight_grasp = weight['level1_picking/weight'][0][2]
-            else:
-                weight_reach = weight['level1_picking/weight'][0][0]
-                weight_grasp = weight['level1_picking/weight'][0][1]
-            if self.rulebased_subgoal:
-                subpos, subori = self._get_rulebased_subgoal()
-                subgoal_reach = np.append(subpos, subori)
-            else:
-                subgoal_reach = subgoal['level1_reaching/level0'][0] + self.target_pos
+            if type(weight) == dict:
+                if self.auxiliary:
+                    weight_aux = weight['level1_picking/weight'][0][0]
+                    weight_reach = weight['level1_picking/weight'][0][1]
+                    weight_grasp = weight['level1_picking/weight'][0][2]
+                else:
+                    weight_reach = weight['level1_picking/weight'][0][0]
+                    weight_grasp = weight['level1_picking/weight'][0][1]
+                if self.rulebased_subgoal:
+                    subpos, subori = self._get_rulebased_subgoal()
+                    subgoal_reach = np.append(subpos, subori)
+                else:
+                    subgoal_reach = subgoal['level1_reaching/level0'][0] + self.target_pos
+            elif type(weight) == list:
+                if self.auxiliary:
+                    weight_aux = weight[0]
+                    weight_reach = weight[1]
+                    weight_grasp = weight[2]
+                else:
+                    weight_reach = weight[0]
+                    weight_grasp = weight[1]
+                if self.rulebased_subgoal:
+                    subpos, subori = self._get_rulebased_subgoal()
+                    subgoal_reach = np.append(subpos, subori)
+                else:
+                    subgoal_reach = subgoal + self.target_pos
+
             # print('subgoal: ',subgoal['level1_reaching/level0'][0])
             # print('weight_reach: {0:2.3f}'.format(weight_reach),', subgoal: ', subgoal_reach)
             self.interface.set_mocap_xyz("weight_reach", [-0.18,0.1,-0.1 + weight_reach*0.1])
