@@ -401,13 +401,6 @@ class RL_controller:
         algo_list = ['sac','ppo']
         algo = algo_list[1]
 
-        if algo == 'sac':
-            policy = MlpPolicy_hpcsac
-            self.model = SAC_MULTI(policy=policy, env=None, _init_setup_model=False, composite_primitive_name=composite_primitive_name)
-        elif algo == 'ppo':
-            policy = MlpPolicy_hpcppo
-            self.model = HPCPPO(policy=policy, env=None, _init_setup_model=False, composite_primitive_name=composite_primitive_name)
-
         self.args.train_log = False
         self.args.visualize = True
         self.args.robot_file = "jaco2_curtain_torque"
@@ -416,15 +409,20 @@ class RL_controller:
         self.args.subgoal_obs = False
         self.args.rulebased_subgoal = True
         self.args.auxiliary = False
-        
-        env_list = []
-        for i in range(1):
-            env_list.append(JacoMujocoEnv)
-        env = DummyVecEnv(env_list, dict(**vars(self.args)))
-        env = VecNormalize(env)
-        
-        # env = JacoMujocoEnv(**vars(self.args))
-        
+
+        if algo == 'sac':
+            env = JacoMujocoEnv(**vars(self.args))
+            policy = MlpPolicy_hpcsac
+            self.model = SAC_MULTI(policy=policy, env=None, _init_setup_model=False, composite_primitive_name=composite_primitive_name)
+        elif algo == 'ppo':
+            env_list = []
+            for i in range(1):
+                env_list.append(JacoMujocoEnv)
+            env = DummyVecEnv(env_list, dict(**vars(self.args)))
+            env = VecNormalize(env)
+            policy = MlpPolicy_hpcppo
+            self.model = HPCPPO(policy=policy, env=None, _init_setup_model=False, composite_primitive_name=composite_primitive_name)
+
 
         if self.args.auxiliary:
             prefix = composite_primitive_name + "_trained_at_" + str(time.localtime().tm_year) + "_" + str(time.localtime().tm_mon) + "_" + str(
@@ -541,7 +539,7 @@ class RL_controller:
         
         # env = JacoMujocoEnv(**vars(self.args))
         env_list = []
-        for i in range(2):
+        for i in range(1):
             env_list.append(JacoMujocoEnv)
         env = DummyVecEnv(env_list, dict(**vars(self.args)))
         env = VecNormalize(env)
@@ -550,7 +548,7 @@ class RL_controller:
         # Upper grasp
         # prefix = self.args.task + '_trained_at_12_28_17:26:27_15/continue1/policy_2330000.zip'
         # Side grasp (better)
-        prefix = 'comparison_observation_range_sym_discard_0/policy_8070000.zip'
+        # prefix = 'comparison_observation_range_sym_discard_0/policy_8070000.zip'
         # Side grasp
         # prefix = 'comparison_observation_range_sym_nobuffer_2/policy_4330000.zip'
 
@@ -571,7 +569,8 @@ class RL_controller:
         ##### Picking
         # prefix = self.args.task + '_trained_at_2021_1_20_12:5_39/policy_8990000.zip'
         # prefix = 'HPCtest_0/policy_2710000.zip'
-        prefix = self.args.task + '_ppo_noaux_trained_at_2021_2_25_15:29_42/policy_50689.zip'
+        # prefix = self.args.task + '_ppo_noaux_trained_at_2021_2_25_15:29_42/policy_50689.zip'
+        prefix = self.args.task + '_ppo_noaux_trained_at_2021_2_26_14:16_42/policy.zip'
 
 
         model_dir = self.model_path + prefix
@@ -621,6 +620,6 @@ if __name__ == "__main__":
     # controller.train_from_scratch_SAC()
     # controller.train_continue()
     # controller.train_from_expert()
-    controller.train_HPC()
+    # controller.train_HPC()
     # controller.generate_traj()
-    # controller.test()
+    controller.test()
