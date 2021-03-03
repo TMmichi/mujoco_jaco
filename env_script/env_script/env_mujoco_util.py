@@ -676,12 +676,13 @@ class JacoMujocoEnvUtil:
             self.interface.set_mocap_xyz("subgoal_reach", subgoal_reach[:3])
             self.interface.set_mocap_orientation("subgoal_reach", transformations.quaternion_from_euler(
                 subgoal_reach[3], subgoal_reach[4], subgoal_reach[5], axes="rxyz"))
-
-        # subpos, subori = self._get_rulebased_subgoal()
-        # subgoal_reach = np.append(subpos, subori)
-        # self.interface.set_mocap_xyz("subgoal_reach", subgoal_reach[:3])
-        # self.interface.set_mocap_orientation("subgoal_reach", transformations.quaternion_from_euler(
-        #     subgoal_reach[3], subgoal_reach[4], subgoal_reach[5], axes="rxyz"))
+            
+        if self.rulebased_subgoal:
+            subpos, subori = self._get_rulebased_subgoal()
+            subgoal_reach = np.append(subpos, subori)
+            self.interface.set_mocap_xyz("subgoal_reach", subgoal_reach[:3])
+            self.interface.set_mocap_orientation("subgoal_reach", transformations.quaternion_from_euler(
+                subgoal_reach[3], subgoal_reach[4], subgoal_reach[5], axes="rxyz"))
 
         # self.curr_action = np.array(a)
         if np.any(np.isnan(np.array(a))):
