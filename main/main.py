@@ -136,7 +136,7 @@ class RL_controller:
         self.args.task = task_list[1]
         prefix = self.args.task+"_trained_at_" + str(time.localtime().tm_mon) + "_" + str(time.localtime().tm_mday)\
             + "_" + str(time.localtime().tm_hour) + ":" + str(time.localtime().tm_min) + ":" + str(time.localtime().tm_sec)
-        prefix = 'test'
+        prefix = 'PPOtest'
         model_dir = self.model_path + prefix + "_" + str(self.trial)
         os.makedirs(model_dir, exist_ok=True)
         print("\033[92m"+model_dir+"\033[0m")
@@ -146,7 +146,7 @@ class RL_controller:
         self.args.n_robots = 1
         
         env_list = []
-        for i in range(4):
+        for i in range(1):
             env_list.append(JacoMujocoEnv)
         env = DummyVecEnv(env_list, dict(**vars(self.args)))
         env = VecNormalize(env)
@@ -486,7 +486,7 @@ class RL_controller:
                                         subgoal=subgoal_dict)
 
         self.num_timesteps = self.steps_per_batch * self.batches_per_episodes * self.num_episodes 
-        model_dict = {'gamma': 0.99, 'tensorboard_log': model_dir,'verbose': 1, \
+        model_dict = {'gamma': 0.99, 'tensorboard_log': model_dir,'verbose': 1, 'seed': 42, \
             'learning_rate':_lr_scheduler, 'learning_starts':100, 'ent_coef': 0, 'batch_size': 1} #
         if algo == 'sac':
             self.model.pretrainer_load(model=self.model, policy=policy, env=env, **model_dict)
@@ -530,7 +530,7 @@ class RL_controller:
         self.args.n_robots = 1
 
         task_list = ['reaching', 'grasping', 'picking', 'carrying', 'releasing', 'placing', 'pushing']
-        self.args.task = task_list[0]
+        self.args.task = task_list[1]
         algo_list = ['sac','ppo']
         algo = algo_list[0]
         self.args.subgoal_obs = False
@@ -553,7 +553,7 @@ class RL_controller:
         # Upper grasp
         # prefix = self.args.task + '_trained_at_12_28_17:26:27_15/continue1/policy_2330000.zip'
         # Side grasp (better)
-        # prefix = 'comparison_observation_range_sym_discard_0/policy_8070000.zip'
+        prefix = 'comparison_observation_range_sym_discard_0/policy_8070000.zip'
         # Side grasp
         # prefix = 'comparison_observation_range_sym_nobuffer_2/policy_4330000.zip'
 
@@ -567,7 +567,7 @@ class RL_controller:
         # prefix = self.args.task + '_trained_at_1_8_16:1:46_26/policy.zip'
         # prefix = self.args.task + '_trained_at_1_8_16:2:2_27/policy_7420000.zip'
         # prefix = self.args.task + '_trained_at_1_13_17:47:41_32/policy_6750000.zip'
-        prefix = self.args.task + '_trained_at_1_13_17:47:15_31/continue1/policy_3860000.zip'
+        # prefix = self.args.task + '_trained_at_1_13_17:47:15_31/continue1/policy_3860000.zip'
         # prefix = self.args.task + '_trained_at_1_13_17:47:15_31/continue1/policy_4300000.zip'
         # prefix = self.args.task + '_trained_at_1_13_17:47:15_31/continue1/continue4/policy_3580000.zip'
 
