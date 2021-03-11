@@ -27,6 +27,7 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
         else:
             self.task_max_steps = 2500
         self.skip_frames = 50  #0.05s per step
+        self.seed(kwargs.get('seed', None))
 
         ## Observations
         # Not touched, Inner touched, Outer touched, grasped
@@ -109,7 +110,6 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
 
         self.action_space = spaces.Box(self.act_min, self.act_max, dtype=np.float32)
         self.wb = 0
-        self.seed()
         self.metadata = None
 
         ### ------------  LOGGING  ------------ ###

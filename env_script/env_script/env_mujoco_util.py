@@ -4,11 +4,10 @@ import os, sys
 import time
 from pathlib import Path
 from math import pi
-from random import sample, uniform
 
 import numpy as np
 import cv2
-from numpy.random import uniform as uniform_np
+from numpy.random import uniform, choice
 # from matplotlib import pyplot as plt
 # import scipy.interpolate
 
@@ -22,6 +21,7 @@ if __name__ != "__main__":
 class JacoMujocoEnvUtil:
     def __init__(self, controller=True, **kwargs):
         ### ------------  MODEL CONFIGURATION  ------------ ###
+        self.seed(kwargs.get('seed', None))
         self.n_robots = kwargs.get('n_robots', 1)
         # robot_file = kwargs.get('robot_file', "jaco2_curtain_torque")
         robot_file = kwargs.get('robot_file', "jaco2_torque")
@@ -217,14 +217,13 @@ class JacoMujocoEnvUtil:
                  
     def _create_init_angle(self):
         if self.task in ['reaching', 'picking']:
-            random_init_angle = [uniform_np(0.5, 2.7), uniform_np(3.8,4), uniform_np(
-                    1, 1.7), uniform_np(1.8, 2.5), uniform_np(1, 2.5), uniform_np(0.8, 2.3)]
+            random_init_angle = [uniform(0.7, 2.5), uniform(3.8,4), uniform(
+                    1, 1.7), uniform(1.8, 2.5), uniform(1, 2.5), uniform(0.8, 2.3)]
             random_init_angle *= self.n_robots
         elif self.task in ['carrying', 'grasping']:
-            angle0 = np.random.choice([uniform_np(3*pi/8,pi/2), uniform_np(pi/2,5*pi/8)])
-            # angle0 = np.random.choice([uniform_np(-pi/8,pi/8)])
-            random_init_angle = [angle0, 3.85, uniform_np(
-                    1, 1.1), uniform_np(2, 2.1), uniform_np(0.8, 2.3), uniform_np(-1.2, -1.1)]
+            angle0 = np.random.choice([uniform(3*pi/8,pi/2), uniform(pi/2,5*pi/8)])
+            random_init_angle = [angle0, 3.85, uniform(
+                    1, 1.1), uniform(2, 2.1), uniform(0.8, 2.3), uniform(-1.2, -1.1)]
             random_init_angle *= self.n_robots
         elif self.task in ['releasing', 'placing', 'pushing']:
             # TODO: Find init angle close to the dest position
@@ -238,7 +237,7 @@ class JacoMujocoEnvUtil:
         for i in range(self.n_robots):
             if self.goal_buffer is None:
                 print("sample goal from None")
-                reach_goal_pos = np.array([uniform(0.3, 0.42) * sample([-1, 1], 1)[0]
+                reach_goal_pos = np.array([uniform(0.3, 0.42) * choice([-1, 1])
                             for _ in range(2)] + [uniform(0.3, 0.5)])
                 xyz = reach_goal_pos - self.base_position[i]
                 xyz /= np.linalg.norm(xyz)
@@ -344,7 +343,7 @@ class JacoMujocoEnvUtil:
         # location: 0.15(m) away from the obj_goal with a direction of a vector from obj_goal to EE
         # orientation: direction of a vector from subgoal location to the obj_goal
         D = self.gripper_pose[0][:3] - self.obj_goal[0]
-        subgoal_pos = D/np.linalg.norm(D) * 0.12 + self.obj_goal[0]
+        subgoal_pos = D/np.linalg.norm(D) * 0.12 + self.obj_goal[0] + np.array([(np.random.uniform()-0.5)/25 for _ in range(3)])
         if subgoal_pos[2] < self.object_z+0.1:
             subgoal_pos[2] = self.object_z+0.1
         if subgoal_pos[1] > self.__get_property('object_body','pose')[0][1]-0.15:
@@ -364,7 +363,7 @@ class JacoMujocoEnvUtil:
         rpy_dummy = np.array(transformations.euler_from_quaternion(quat_dummy, 'rxyz'))
         rpy_real = np.cross(rpy_vec, rpy_dummy)
         rpy_real[0] -= pi/2
-        subgoal_ori = rpy_real
+        subgoal_ori = rpy_real + np.array([(np.random.uniform()-0.5)/10 for _ in range(3)])
 
         return subgoal_pos, subgoal_ori
 
@@ -770,7 +769,8 @@ class JacoMujocoEnvUtil:
                     out.append(pose)
         return np.copy(out)
 
-
+    def seed(self, seed=None):
+        self.np_random, seed = seeding.np_random(seed)
 
 if __name__ == "__main__":
     sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../abr_control')))
@@ -828,7 +828,7 @@ if __name__ == "__main__":
             else:
                 #target_pos = interface.get_xyz('EE') + np.array([0.1, 0.1, 0.1])
                 target_pos = np.array([0.4, 0.4, 0.4])
-            rand_pos = np.array([uniform(0.3, 0.4) * sample([-1.2, 1.2], 1)[0] for i in range(2)] + [uniform(0.3, 0.5)])
+            rand_pos = np.array([uniform(0.3, 0.4) * choice([-1.2, 1.2]) for i in range(2)] + [uniform(0.3, 0.5)])
             x,y,z = rand_pos - interface.get_xyz('link1')
             alpha = -np.arcsin(y / np.sqrt(y**2+z**2)) * np.sign(x)
             beta = np.arccos(x / np.linalg.norm([x,y,z])) * np.sign(x)
