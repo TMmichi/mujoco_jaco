@@ -10,6 +10,7 @@ try:
 except Exception:
     pass
 
+import tensorflow as tf
 import numpy as np
 
 import stable_baselines.common.tf_util as tf_util
@@ -409,6 +410,7 @@ class RL_controller:
         self.args.subgoal_obs = False
         self.args.rulebased_subgoal = True
         self.args.auxiliary = False
+        self.args.seed = 42
 
         if algo == 'sac':
             env = JacoMujocoEnv(**vars(self.args))
@@ -430,7 +432,7 @@ class RL_controller:
         else:
             prefix = composite_primitive_name +'_'+algo+"_noaux_trained_at_" + str(time.localtime().tm_year) + "_" + str(time.localtime().tm_mon) + "_" + str(
                     time.localtime().tm_mday) + "_" + str(time.localtime().tm_hour) + ":" + str(time.localtime().tm_min)
-        # prefix = 'HPCtest'
+        prefix = 'HPCtest'
         model_dir = self.model_path + prefix + "_" + str(self.trial)
         self.args.log_dir = model_dir
         os.makedirs(model_dir, exist_ok=True)
@@ -486,8 +488,8 @@ class RL_controller:
                                         subgoal=subgoal_dict)
 
         self.num_timesteps = self.steps_per_batch * self.batches_per_episodes * self.num_episodes 
-        model_dict = {'gamma': 0.99, 'tensorboard_log': model_dir,'verbose': 1, 'seed': 42, \
-            'learning_rate':_lr_scheduler, 'learning_starts':100, 'ent_coef': 0, 'batch_size': 1} #
+        model_dict = {'gamma': 0.99, 'tensorboard_log': model_dir,'verbose': 1, 'seed': self.args.seed, \
+            'learning_rate':_lr_scheduler, 'learning_starts':100, 'ent_coef': 0.1, 'batch_size': 1, 'noptepochs': 4} #
         if algo == 'sac':
             self.model.pretrainer_load(model=self.model, policy=policy, env=env, **model_dict)
         elif algo == 'ppo':
