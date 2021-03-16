@@ -143,7 +143,7 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
         reward_val = self._get_reward()
         done, additional_reward, self.wb = self.terminal_inspection()
         # if weight is not None:
-        #     additional_reward -= weight['level1_picking/weight'][0][0] * 10
+        #     additional_reward -= weight[1] * 10
         total_reward = reward_val + additional_reward
         if self.current_steps % 10 == 0:
             self.logging(obs, self.prev_obs, action, self.wb, total_reward) if log else None
@@ -153,7 +153,6 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
             self.obs = self.reset()
             total_reward = 0
             done = True
-
         return obs, total_reward, done, {0: 0}
     
     def get_wb(self):
@@ -185,7 +184,7 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
             return self._get_terminal_inspection()
         else:
             print("\033[91m \nTime Out \033[0m")
-            return True, 0, 0
+            return True, -20, 0
 
     def make_observation(self):
         obs = self._get_observation()[0]
@@ -202,62 +201,3 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
     
     def close(self):
         pass
-
-
-if __name__ == "__main__":
-    env_test_class = JacoMujocoEnv()
-    env_test_class.make_observation()
-    obs = env_test_class.gripper_pose
-    print("First: \t\t", obs[:6])
-    itera = True
-    if itera:
-        for i in range(100):
-            iter = 0
-            if i % 4 == 0:
-                target_pos = env_test_class.obs[:6] + \
-                    np.array([0.02, 0.01, 0.01, 0.1, 0.1, 0.1])
-                env_test_class.take_action(np.array([2, 1, 1, 2, 2, 2]))
-            elif i % 4 == 1:
-                target_pos = env_test_class.obs[:6] + \
-                    np.array([-0.02, -0.01, -0.01, -0.1, -0.1, -0.1])
-                env_test_class.take_action(np.array([-2, -1, -1, -2, -2, -2]))
-            elif i % 4 == 2:
-                target_pos = env_test_class.obs[:6] + \
-                    np.array([0.02, -0.01, -0.01, 0.1, -0.1, -0.1])
-                env_test_class.take_action(np.array([2, -1, -1, 2, -2, -2]))
-            elif i % 4 == 3:
-                target_pos = env_test_class.obs[:6] + \
-                    np.array([-0.02, 0.01, 0.01, -0.1, 0.1, 0.1])
-                env_test_class.take_action(np.array([-2, 1, 1, -2, 2, 2]))
-            while True:
-                env_test_class._step_simulation()
-                env_test_class.make_observation()
-                pos = env_test_class.obs[:6]
-                if np.linalg.norm(pos[:3]-target_pos[:3]) < 0.003 and abs(pos[3]-target_pos[3]) < 0.01 and abs(pos[4]-target_pos[4]) < 0.01 and abs(pos[5]-target_pos[5] < 0.01):
-                    print("Reached Pose:\t", pos)
-                    print("Reached")
-                    break
-                if iter % 100 == 0:
-                    print("Current Pose:\t", pos)
-                    print("Target Pose:\t", target_pos)
-                iter += 1
-    else:
-        iter = 0
-        target_pos = np.array([0.2, 0.3, 0.3, 1, 0, 0])
-        action_p = (target_pos[:3] - env_test_class.obs[:3])*100
-        action_o = (target_pos[3:] - env_test_class.obs[3:])*20
-        env_test_class.take_action(np.hstack([action_p, action_o]))
-        while True:
-            env_test_class._step_simulation()
-            env_test_class.make_observation()
-            pos = env_test_class.obs[:6]
-            # if np.linalg.norm(pos[:3]-target_pos[:3]) < 0.005 and np.linalg.norm(pos[3:]-target_pos[3:]) < 0.01:
-            if np.linalg.norm(pos[:3]-target_pos[:3]) < 0.005 and abs(pos[3]-target_pos[3]) < 0.01 and abs(pos[4]-target_pos[4]) < 0.01 and abs(pos[5]-target_pos[5] < 0.01):
-                print("Reached Pose:\t", pos)
-                print("Reached")
-                time.sleep(10)
-                break
-            if iter % 100 == 0:
-                print("Current Pose:\t", pos)
-                print("Target Pose:\t", target_pos)
-            iter += 1

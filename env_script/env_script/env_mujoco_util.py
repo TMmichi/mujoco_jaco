@@ -70,8 +70,6 @@ class JacoMujocoEnvUtil:
         self.controller = controller
         if self.controller:
             ctrl_dof = [True, True, True, True, True, True]
-            # self.ctr = OSC(self.jaco, kp=50, ko=180, kv=20, vmax=[0.2, 0.5236], ctrlr_dof=ctrl_dof)
-            # self.ctr = OSC(self.jaco, kp=50, ko=180, kv=20, vmax=[0.3, 0.7854], ctrlr_dof=ctrl_dof)
             self.ctr = OSC(self.jaco, kp=50, ko=180, kv=20, vmax=[0.4, 1.0472], ctrlr_dof=ctrl_dof)
             self.target_pos = self._reset()[1:7]
         else:
@@ -121,7 +119,7 @@ class JacoMujocoEnvUtil:
             target=self.target_pos
         )
 
-    def _reset(self, target_angle=None):
+    def _reset(self):
         self.interface.sim.reset()
         self.num_episodes = 0
         self.gripper_iter = 0
@@ -365,7 +363,8 @@ class JacoMujocoEnvUtil:
         rpy_real[0] -= pi/2
         subgoal_ori = rpy_real + np.array([(np.random.uniform()-0.5)/10 for _ in range(3)])
 
-        return subgoal_pos, subgoal_ori
+        # return subgoal_pos, subgoal_ori
+        return np.array([0.01100211, 0.44915913, 0.2898]),np.array([-1.14061283, 0.21731743, 0.29008342])
 
     def _get_camera(self):
         self.interface.offscreen.render(width=640, height=480, camera_id=0)
@@ -664,10 +663,8 @@ class JacoMujocoEnvUtil:
                     subpos, subori = self._get_rulebased_subgoal()
                     subgoal_reach = np.append(subpos, subori)
                 else:
-                    subgoal_reach = subgoal + self.target_pos
+                    subgoal_reach = subgoal['level1_reaching/level0'][0] + self.target_pos
 
-            # print('subgoal: ',subgoal['level1_reaching/level0'][0])
-            # print('weight_reach: {0:2.3f}'.format(weight_reach),', subgoal: ', subgoal_reach)
             self.interface.set_mocap_xyz("weight_reach", [-0.18,0.1,-0.1 + weight_reach*0.1])
             self.interface.set_mocap_xyz("weight_grasp", [-0.14,0.1,-0.1 + weight_grasp*0.1])
             if self.auxiliary:

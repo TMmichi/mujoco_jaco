@@ -25,6 +25,7 @@ from stable_baselines.hpcppo.policies import MlpPolicy as MlpPolicy_hpcppo
 from stable_baselines.gail import generate_expert_traj, ExpertDataset
 from stable_baselines.common.buffers import ReplayBuffer
 from stable_baselines.common.vec_env.dummy_vec_env import DummyVecEnv
+from stable_baselines.common.vec_env.subproc_vec_env import SubprocVecEnv
 from stable_baselines.common.vec_env.vec_normalize import VecNormalize
 
 from env_script.env_mujoco import JacoMujocoEnv
@@ -76,7 +77,7 @@ class RL_controller:
         args.batches_per_episodes = self.batches_per_episodes
         self.num_episodes = 20000
         self.args = args
-        self.trial = 42
+        self.trial = 43
 
 
     def train_from_scratch_PPO1(self):
@@ -403,12 +404,12 @@ class RL_controller:
         algo = algo_list[1]
 
         self.args.train_log = False
-        self.args.visualize = False
+        self.args.visualize = True
         self.args.robot_file = "jaco2_curtain_torque"
         self.args.controller = True
         self.args.n_robots = 1
         self.args.subgoal_obs = False
-        self.args.rulebased_subgoal = True
+        self.args.rulebased_subgoal = False
         self.args.auxiliary = False
         self.args.seed = 42
 
@@ -421,7 +422,8 @@ class RL_controller:
             for i in range(1):
                 env_list.append(JacoMujocoEnv)
             env = DummyVecEnv(env_list, dict(**vars(self.args)))
-            env = VecNormalize(env)
+            # env = SubprocVecEnv(env_list)
+            env = VecNormalize(env, norm_obs=False)
             policy = MlpPolicy_hpcppo
             self.model = HPCPPO(policy=policy, env=None, _init_setup_model=False, composite_primitive_name=composite_primitive_name)
 
@@ -432,7 +434,7 @@ class RL_controller:
         else:
             prefix = composite_primitive_name +'_'+algo+"_noaux_trained_at_" + str(time.localtime().tm_year) + "_" + str(time.localtime().tm_mon) + "_" + str(
                     time.localtime().tm_mday) + "_" + str(time.localtime().tm_hour) + ":" + str(time.localtime().tm_min)
-        prefix = 'HPCtest'
+        # prefix = 'HPCtest'
         model_dir = self.model_path + prefix + "_" + str(self.trial)
         self.args.log_dir = model_dir
         os.makedirs(model_dir, exist_ok=True)
@@ -440,10 +442,11 @@ class RL_controller:
 
         obs_min = [-3, -1,-1,-1,-1,-1,-1, -1, -1,-1,-1, -1,-1,-1,-1,-1,-1]
         obs_max = [ 3,  1, 1, 1, 1, 1, 1,  1,  1, 1, 1,  1, 1, 1, 1, 1, 1]
+        obs_idx = [ 0,  1, 2, 3, 4, 5, 6,  7,  8, 9, 10,17,18,19,20,21,22]
         act_min = [-1,-1,-1,-1,-1,-1, -1]
         act_max = [ 1, 1, 1, 1, 1, 1,  1]
-        obs_idx = [0, 1,2,3,4,5,6, 7, 8,9,10, 17,18,19,20,21,22]
-        act_idx = [0,1,2,3,4,5, 6]
+        act_idx = [ 0, 1, 2, 3, 4, 5,  6]
+
         if self.args.auxiliary:
             self.model.construct_primitive_info(name='aux1', freeze=False, level=0,
                                             obs_range={'min': obs_min, 'max': obs_max}, obs_index=obs_idx, 
@@ -489,7 +492,7 @@ class RL_controller:
 
         self.num_timesteps = self.steps_per_batch * self.batches_per_episodes * self.num_episodes 
         model_dict = {'gamma': 0.99, 'tensorboard_log': model_dir,'verbose': 1, 'seed': self.args.seed, \
-            'learning_rate':_lr_scheduler, 'learning_starts':100, 'ent_coef': 0.1, 'batch_size': 1, 'noptepochs': 4} #
+            'learning_rate':_lr_scheduler, 'learning_starts':100, 'ent_coef': 0, 'batch_size': 1, 'noptepochs': 4} #
         if algo == 'sac':
             self.model.pretrainer_load(model=self.model, policy=policy, env=env, **model_dict)
         elif algo == 'ppo':
@@ -530,9 +533,10 @@ class RL_controller:
         self.args.visualize = True
         self.args.robot_file = "jaco2_curtain_torque"
         self.args.n_robots = 1
+        self.args.seed = 42
 
         task_list = ['reaching', 'grasping', 'picking', 'carrying', 'releasing', 'placing', 'pushing']
-        self.args.task = task_list[1]
+        self.args.task = task_list[0]
         algo_list = ['sac','ppo']
         algo = algo_list[0]
         self.args.subgoal_obs = False
@@ -555,7 +559,7 @@ class RL_controller:
         # Upper grasp
         # prefix = self.args.task + '_trained_at_12_28_17:26:27_15/continue1/policy_2330000.zip'
         # Side grasp (better)
-        prefix = 'comparison_observation_range_sym_discard_0/policy_8070000.zip'
+        # prefix = 'comparison_observation_range_sym_discard_0/policy_8070000.zip'
         # Side grasp
         # prefix = 'comparison_observation_range_sym_nobuffer_2/policy_4330000.zip'
 
@@ -569,7 +573,7 @@ class RL_controller:
         # prefix = self.args.task + '_trained_at_1_8_16:1:46_26/policy.zip'
         # prefix = self.args.task + '_trained_at_1_8_16:2:2_27/policy_7420000.zip'
         # prefix = self.args.task + '_trained_at_1_13_17:47:41_32/policy_6750000.zip'
-        # prefix = self.args.task + '_trained_at_1_13_17:47:15_31/continue1/policy_3860000.zip'
+        prefix = self.args.task + '_trained_at_1_13_17:47:15_31/continue1/policy_3860000.zip'
         # prefix = self.args.task + '_trained_at_1_13_17:47:15_31/continue1/policy_4300000.zip'
         # prefix = self.args.task + '_trained_at_1_13_17:47:15_31/continue1/continue4/policy_3580000.zip'
 
@@ -581,7 +585,7 @@ class RL_controller:
 
 
         model_dir = self.model_path + prefix
-        test_iter = 100
+        test_iter = 20
         if self.args.task in ['picking','placing','pickAndplace']:
             if algo == 'sac':
                 self.model = SAC_MULTI(policy=MlpPolicy_hpcsac, env=None, _init_setup_model=False, composite_primitive_name='picking')
@@ -612,15 +616,19 @@ class RL_controller:
             done = False
             while not done:
                 iter += 1
+                print('obs: ', obs)
                 if self.args.task in ['picking','placing','pickAndplace']:
-                    action, subgoal, weight = self.model.predict_subgoal(obs, deterministic=True)
+                    action, subgoal, weight = self.model.predict_subgoal(obs, deterministic=False)
                     obs, reward, done, _ = env.step(action, log=False, weight=weight, subgoal=subgoal)
                 else:
-                    action, _ = self.model.predict(obs, deterministic=True)
+                    action, _ = self.model.predict(obs, deterministic=False)
                     obs, reward, done, _ = env.step(action, log=False)
                 if algo == 'ppo':
                     done = True if done.any() == True else False
+                print('next obs: ', obs)
                 print('gripper action: ', action)
+                if iter > 100:
+                    done = True
                 # print('reward: {0:2.3f}'.format(reward), end='\n')
 
     def generate(self):
