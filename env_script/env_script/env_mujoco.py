@@ -23,7 +23,7 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
             # self.task_max_steps = 500
             self.task_max_steps = 500
         elif self.task in ['picking', 'placing']:
-            self.task_max_steps = 1000
+            self.task_max_steps = 700
         else:
             self.task_max_steps = 2500
         self.skip_frames = 50  #0.05s per step
@@ -141,10 +141,13 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
 
         obs = self.make_observation()
         reward_val = self._get_reward()
+        # print("Reward val: ", reward_val)
         done, additional_reward, self.wb = self.terminal_inspection()
         # if weight is not None:
         #     additional_reward -= weight[1] * 10
+        # print("Termination Reward: ", additional_reward)
         total_reward = reward_val + additional_reward
+        # print("Real reward from env: ", total_reward)
         if self.current_steps % 10 == 0:
             self.logging(obs, self.prev_obs, action, self.wb, total_reward) if log else None
         self.prev_obs = obs
@@ -184,7 +187,7 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
             return self._get_terminal_inspection()
         else:
             print("\033[91m \nTime Out \033[0m")
-            return True, -20, 0
+            return True, -1, 0
 
     def make_observation(self):
         obs = self._get_observation()[0]

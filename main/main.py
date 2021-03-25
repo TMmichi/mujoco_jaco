@@ -77,7 +77,7 @@ class RL_controller:
         args.batches_per_episodes = self.batches_per_episodes
         self.num_episodes = 20000
         self.args = args
-        self.trial = 43
+        self.trial = 46
 
 
     def train_from_scratch_PPO1(self):
@@ -409,9 +409,9 @@ class RL_controller:
         self.args.controller = True
         self.args.n_robots = 1
         self.args.subgoal_obs = False
-        self.args.rulebased_subgoal = False
+        self.args.rulebased_subgoal = True
         self.args.auxiliary = False
-        self.args.seed = 42
+        self.args.seed = self.trial
 
         if algo == 'sac':
             env = JacoMujocoEnv(**vars(self.args))
@@ -423,7 +423,7 @@ class RL_controller:
                 env_list.append(JacoMujocoEnv)
             env = DummyVecEnv(env_list, dict(**vars(self.args)))
             # env = SubprocVecEnv(env_list)
-            env = VecNormalize(env, norm_obs=False)
+            env = VecNormalize(env, norm_obs=False, norm_reward=False)
             policy = MlpPolicy_hpcppo
             self.model = HPCPPO(policy=policy, env=None, _init_setup_model=False, composite_primitive_name=composite_primitive_name)
 

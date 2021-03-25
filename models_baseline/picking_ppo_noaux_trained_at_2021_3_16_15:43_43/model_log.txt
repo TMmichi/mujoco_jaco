@@ -1,0 +1,9 @@
+Layers:
+	policy:	[128, 128, 128]
+	value:	[128, 128, 128]
+
+Additional Info:	Subgoal bounded
+            		Squashing function applied
+            		No Aux
+			Subgoal from the meta-controller
+			Additional penalty on time-out
