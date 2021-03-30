@@ -55,7 +55,7 @@ class JacoMujocoEnvUtil:
         self.subgoal_obs = kwargs.get('subgoal_obs', False)
         self.rulebased_subgoal = kwargs.get('rulebased_subgoal',False)
         self.auxiliary = kwargs.get('auxiliary', False)
-        self.binary = True
+        self.binary = False
         print('subgoal observation: ', self.subgoal_obs)
 
         ### ------------  STATE GENERATION  ------------ ###

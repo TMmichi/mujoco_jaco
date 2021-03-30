@@ -77,7 +77,7 @@ class RL_controller:
         args.batches_per_episodes = self.batches_per_episodes
         self.num_episodes = 20000
         self.args = args
-        self.trial = 46
+        self.trial = 50
 
 
     def train_from_scratch_PPO1(self):
@@ -248,8 +248,8 @@ class RL_controller:
         self.args.log_dir = model_dir
         self.args.robot_file = "jaco2_curtain_torque"
         self.args.n_robots = 1
-        traj_dict = np.load(self.model_path+'trajectories/'+self.args.task+"2.npz", allow_pickle=True)
-        self.args.init_buffer = np.array(traj_dict['obs'])
+        # traj_dict = np.load(self.model_path+'trajectories/'+self.args.task+"2.npz", allow_pickle=True)
+        # self.args.init_buffer = np.array(traj_dict['obs'])
         env = JacoMujocoEnv(**vars(self.args))
         
         os.makedirs(model_dir+sub_dir, exist_ok=True)
@@ -419,7 +419,7 @@ class RL_controller:
             self.model = SAC_MULTI(policy=policy, env=None, _init_setup_model=False, composite_primitive_name=composite_primitive_name)
         elif algo == 'ppo':
             env_list = []
-            for i in range(1):
+            for i in range(2):
                 env_list.append(JacoMujocoEnv)
             env = DummyVecEnv(env_list, dict(**vars(self.args)))
             # env = SubprocVecEnv(env_list)
@@ -492,16 +492,74 @@ class RL_controller:
 
         self.num_timesteps = self.steps_per_batch * self.batches_per_episodes * self.num_episodes 
         model_dict = {'gamma': 0.99, 'tensorboard_log': model_dir,'verbose': 1, 'seed': self.args.seed, \
-            'learning_rate':_lr_scheduler, 'learning_starts':100, 'ent_coef': 0, 'batch_size': 1, 'noptepochs': 4} #
-        if algo == 'sac':
-            self.model.pretrainer_load(model=self.model, policy=policy, env=env, **model_dict)
-        elif algo == 'ppo':
-            self.model.pretrainer_load(model=self.model, policy=policy, env=env, **model_dict)
+            'learning_rate':_lr_scheduler, 'learning_starts':100, 'ent_coef': 0, 'batch_size': 8, 'noptepochs': 4, 'n_steps': 128}
+        self.model.pretrainer_load(model=self.model, policy=policy, env=env, **model_dict)
         self._write_log(model_dir, info)
         print("\033[91mTraining Starts\033[0m")
         self.model.learn(total_timesteps=self.num_timesteps, save_interval=100, save_path=model_dir)
         print("\033[91mTrain Finished\033[0m")
-        self.model.save(model_dir+"/policy")
+        self.model.save(model_dir+"/policy", hierarchical=True)
+
+    def train_HPC_continue(self):
+        task_list = ['picking', 'placing', 'pickAndplace']
+        composite_primitive_name = self.args.task = task_list[0]
+        algo_list = ['sac','ppo']
+        algo = algo_list[0]
+
+        self.args.train_log = False
+        self.args.visualize = True
+        self.args.robot_file = "jaco2_curtain_torque"
+        self.args.controller = True
+        self.args.n_robots = 1
+        self.args.subgoal_obs = False
+        self.args.rulebased_subgoal = True
+        self.args.auxiliary = False
+        self.args.seed = self.trial
+
+        if algo == 'sac':
+            env = JacoMujocoEnv(**vars(self.args))
+            policy = MlpPolicy_hpcsac
+            self.model = SAC_MULTI(policy=policy, env=None, _init_setup_model=False, composite_primitive_name=composite_primitive_name)
+            save_interval = 10000
+        elif algo == 'ppo':
+            env_list = []
+            for i in range(2):
+                env_list.append(JacoMujocoEnv)
+            env = DummyVecEnv(env_list, dict(**vars(self.args)))
+            # env = SubprocVecEnv(env_list)
+            env = VecNormalize(env, norm_obs=False, norm_reward=False)
+            policy = MlpPolicy_hpcppo
+            self.model = HPCPPO(policy=policy, env=None, _init_setup_model=False, composite_primitive_name=composite_primitive_name)
+            save_interval = 100
+
+        model_dir = self.model_path + 'HPCtest_46'
+        self.args.log_dir = model_dir
+        sub_dir = '/SACcontinue2'
+        print("\033[92m"+model_dir + sub_dir+"\033[0m")
+        os.makedirs(model_dir+sub_dir, exist_ok=True)
+
+
+        # Weight definition
+        obs_idx = [0, 1,2,3,4,5,6, 7, 8,9,10, 17,18,19,20,21,22]
+        act_idx = [0,1,2,3,4,5, 6]
+        policy_zip_path = model_dir+'/policy_959873.zip'
+        self.model.construct_primitive_info(name='continue', freeze=False, level=1,
+                                        obs_range=None, obs_index=obs_idx,
+                                        act_range=None, act_index=act_idx, act_scale=1,
+                                        obs_relativity={},
+                                        layer_structure=None,
+                                        loaded_policy=SAC_MULTI._load_from_file(policy_zip_path),
+                                        load_value=False)
+
+        self.num_timesteps = self.steps_per_batch * self.batches_per_episodes * self.num_episodes 
+        model_dict = {'gamma': 0.99, 'tensorboard_log': model_dir+sub_dir,'verbose': 1, 'seed': self.args.seed, \
+            'learning_rate':_lr_scheduler, 'learning_starts':save_interval, 'ent_coef': 0, 'batch_size': 8, 'noptepochs': 4, 'n_steps': 128}
+        self.model.pretrainer_load(model=self.model, policy=policy, env=env, **model_dict)
+        self._write_log(model_dir, info)
+        print("\033[91mTraining Starts\033[0m")
+        self.model.learn(total_timesteps=self.num_timesteps, save_interval=save_interval, save_path=model_dir+sub_dir)
+        print("\033[91mTrain Finished\033[0m")
+        self.model.save(model_dir+"/policy",hierarchical=True)
 
     def _write_log(self, model_dir, info):
         model_log = open(model_dir+"/model_log.txt", 'w')
@@ -642,6 +700,7 @@ if __name__ == "__main__":
     # controller.train_from_scratch_SAC()
     # controller.train_continue()
     # controller.train_from_expert()
-    controller.train_HPC()
+    # controller.train_HPC()
+    controller.train_HPC_continue()
     # controller.generate_traj()
     # controller.test()
