@@ -52,7 +52,8 @@ model_configuration['random_exploration'] = 0.05
 # model_configuration['policy_kwargs'] = {'act_fun':tf.nn.swish}
 model_configuration['policy_kwargs'] = {'act_fun':tf.nn.relu}
 pretrain_configuration['n_epochs'] = 1000000
-pretrain_configuration['learning_rate'] = 5e-5
+pretrain_configuration['learning_rate'] = 1e-7
+# pretrain_configuration['learning_rate'] = 7e-5
 pretrain_configuration['val_interval'] = 100
 #####################################################################################################
 # info['non_lin'] = 'dist - coef: 5, th: 0.2\n\

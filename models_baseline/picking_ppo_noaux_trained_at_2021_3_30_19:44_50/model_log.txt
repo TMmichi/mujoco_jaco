@@ -1,0 +1,7 @@
+Layers:
+	policy:	[128, 128, 128]
+	value:	[128, 128, 128]
+
+longer time steps: 128
+Dense reward
+No entropy

@@ -1,0 +1,8 @@
+Layers:
+	policy:	[128, 128, 128]
+	value:	[128, 128, 128]
+
+shorten the rollout
+2 environments
+clipping 0.01
+neglogp only for reaching primitive

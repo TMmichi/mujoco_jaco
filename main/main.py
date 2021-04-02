@@ -77,7 +77,7 @@ class RL_controller:
         args.batches_per_episodes = self.batches_per_episodes
         self.num_episodes = 20000
         self.args = args
-        self.trial = 50
+        self.trial = 54
 
 
     def train_from_scratch_PPO1(self):
@@ -234,12 +234,12 @@ class RL_controller:
     def train_continue(self):
         self.args.train_log = False
         task_list = ['reaching', 'grasping', 'picking', 'carrying', 'releasing', 'placing', 'pushing']
-        self.args.task = task_list[0]
-        self.args.visualize = False
+        self.args.task = task_list[2]
+        self.args.visualize = True
         self.args.prev_action = False
-        model_dir = self.model_path + 'reaching_trained_at_1_13_17:47:15_31/continue1'
-        policy_dir = model_dir + '/policy_3860000.zip'
-        sub_dir = '/continue4'
+        model_dir = self.model_path + 'comparison_observation_range_sym_discard_0'
+        policy_dir = model_dir + '/policy_8070000.zip'
+        sub_dir = '/continue1'
         print("\033[92m"+model_dir + sub_dir+"\033[0m")
         
         # buffer = self.create_buffer('trajectory_expert5')
@@ -248,6 +248,8 @@ class RL_controller:
         self.args.log_dir = model_dir
         self.args.robot_file = "jaco2_curtain_torque"
         self.args.n_robots = 1
+        self.args.subgoal_obs = False
+        self.args.rulebased_subgoal = True
         # traj_dict = np.load(self.model_path+'trajectories/'+self.args.task+"2.npz", allow_pickle=True)
         # self.args.init_buffer = np.array(traj_dict['obs'])
         env = JacoMujocoEnv(**vars(self.args))
@@ -256,7 +258,7 @@ class RL_controller:
         # net_arch = {'pi': [128,128], 'vf': [64, 64]}
         # policy_kwargs = {'net_arch': [net_arch]}
         self.trainer = SAC_MULTI.load(policy_dir, policy=MlpPolicy_hpcsac, env=env, replay_buffer=buffer, tensorboard_log=model_dir+sub_dir, \
-                                    learning_rate=_lr_scheduler, learning_starts=0)
+                                    learning_rate=_lr_scheduler, learning_starts=100, ent_coef=1e-7)
         # self.trainer = PPO1.load(policy_dir, env=env, tensorboard_log=model_dir+sub_dir, policy_kwargs=policy_kwargs, exact_match=True, only={'value':True})
         # self.trainer = PPO1.load(policy_dir, env=env, tensorboard_log=model_dir+sub_dir)
         self.trainer.learn(total_time_step, save_interval=10000, save_path=model_dir+sub_dir)
@@ -401,7 +403,7 @@ class RL_controller:
         task_list = ['picking', 'placing', 'pickAndplace']
         composite_primitive_name = self.args.task = task_list[0]
         algo_list = ['sac','ppo']
-        algo = algo_list[1]
+        algo = algo_list[0]
 
         self.args.train_log = False
         self.args.visualize = True
@@ -417,6 +419,8 @@ class RL_controller:
             env = JacoMujocoEnv(**vars(self.args))
             policy = MlpPolicy_hpcsac
             self.model = SAC_MULTI(policy=policy, env=None, _init_setup_model=False, composite_primitive_name=composite_primitive_name)
+            save_interval = 10000
+            ent_coef = 1e-7
         elif algo == 'ppo':
             env_list = []
             for i in range(2):
@@ -426,7 +430,8 @@ class RL_controller:
             env = VecNormalize(env, norm_obs=False, norm_reward=False)
             policy = MlpPolicy_hpcppo
             self.model = HPCPPO(policy=policy, env=None, _init_setup_model=False, composite_primitive_name=composite_primitive_name)
-
+            save_interval = 100
+            ent_coef = 0
 
         if self.args.auxiliary:
             prefix = composite_primitive_name + "_trained_at_" + str(time.localtime().tm_year) + "_" + str(time.localtime().tm_mon) + "_" + str(
@@ -434,7 +439,7 @@ class RL_controller:
         else:
             prefix = composite_primitive_name +'_'+algo+"_noaux_trained_at_" + str(time.localtime().tm_year) + "_" + str(time.localtime().tm_mon) + "_" + str(
                     time.localtime().tm_mday) + "_" + str(time.localtime().tm_hour) + ":" + str(time.localtime().tm_min)
-        # prefix = 'HPCtest'
+        prefix = 'HPCSACtest'
         model_dir = self.model_path + prefix + "_" + str(self.trial)
         self.args.log_dir = model_dir
         os.makedirs(model_dir, exist_ok=True)
@@ -492,11 +497,11 @@ class RL_controller:
 
         self.num_timesteps = self.steps_per_batch * self.batches_per_episodes * self.num_episodes 
         model_dict = {'gamma': 0.99, 'tensorboard_log': model_dir,'verbose': 1, 'seed': self.args.seed, \
-            'learning_rate':_lr_scheduler, 'learning_starts':100, 'ent_coef': 0, 'batch_size': 8, 'noptepochs': 4, 'n_steps': 128}
+            'learning_rate':_lr_scheduler, 'learning_starts':100, 'ent_coef': ent_coef, 'batch_size': 8, 'noptepochs': 4, 'n_steps': 128}
         self.model.pretrainer_load(model=self.model, policy=policy, env=env, **model_dict)
         self._write_log(model_dir, info)
         print("\033[91mTraining Starts\033[0m")
-        self.model.learn(total_timesteps=self.num_timesteps, save_interval=100, save_path=model_dir)
+        self.model.learn(total_timesteps=self.num_timesteps, save_interval=save_interval, save_path=model_dir)
         print("\033[91mTrain Finished\033[0m")
         self.model.save(model_dir+"/policy", hierarchical=True)
 
@@ -521,6 +526,8 @@ class RL_controller:
             policy = MlpPolicy_hpcsac
             self.model = SAC_MULTI(policy=policy, env=None, _init_setup_model=False, composite_primitive_name=composite_primitive_name)
             save_interval = 10000
+            ent_coef = 1e-7
+            # ent_coef = 'auto'
         elif algo == 'ppo':
             env_list = []
             for i in range(2):
@@ -531,10 +538,11 @@ class RL_controller:
             policy = MlpPolicy_hpcppo
             self.model = HPCPPO(policy=policy, env=None, _init_setup_model=False, composite_primitive_name=composite_primitive_name)
             save_interval = 100
+            ent_coef = 0
 
-        model_dir = self.model_path + 'HPCtest_46'
+        model_dir = self.model_path + 'HPCtest_46/SACS_1e-7'
         self.args.log_dir = model_dir
-        sub_dir = '/SACcontinue2'
+        sub_dir = '/finetune1'
         print("\033[92m"+model_dir + sub_dir+"\033[0m")
         os.makedirs(model_dir+sub_dir, exist_ok=True)
 
@@ -542,18 +550,18 @@ class RL_controller:
         # Weight definition
         obs_idx = [0, 1,2,3,4,5,6, 7, 8,9,10, 17,18,19,20,21,22]
         act_idx = [0,1,2,3,4,5, 6]
-        policy_zip_path = model_dir+'/policy_959873.zip'
+        policy_zip_path = model_dir+'/policy_260000.zip'
         self.model.construct_primitive_info(name='continue', freeze=False, level=1,
                                         obs_range=None, obs_index=obs_idx,
                                         act_range=None, act_index=act_idx, act_scale=1,
                                         obs_relativity={},
                                         layer_structure=None,
                                         loaded_policy=SAC_MULTI._load_from_file(policy_zip_path),
-                                        load_value=False)
+                                        load_value=True)
 
         self.num_timesteps = self.steps_per_batch * self.batches_per_episodes * self.num_episodes 
         model_dict = {'gamma': 0.99, 'tensorboard_log': model_dir+sub_dir,'verbose': 1, 'seed': self.args.seed, \
-            'learning_rate':_lr_scheduler, 'learning_starts':save_interval, 'ent_coef': 0, 'batch_size': 8, 'noptepochs': 4, 'n_steps': 128}
+            'learning_rate':_lr_scheduler, 'learning_starts':100, 'ent_coef': ent_coef, 'batch_size': 8, 'noptepochs': 4, 'n_steps': 128}
         self.model.pretrainer_load(model=self.model, policy=policy, env=env, **model_dict)
         self._write_log(model_dir, info)
         print("\033[91mTraining Starts\033[0m")
@@ -594,7 +602,7 @@ class RL_controller:
         self.args.seed = 42
 
         task_list = ['reaching', 'grasping', 'picking', 'carrying', 'releasing', 'placing', 'pushing']
-        self.args.task = task_list[0]
+        self.args.task = task_list[2]
         algo_list = ['sac','ppo']
         algo = algo_list[0]
         self.args.subgoal_obs = False
@@ -631,7 +639,7 @@ class RL_controller:
         # prefix = self.args.task + '_trained_at_1_8_16:1:46_26/policy.zip'
         # prefix = self.args.task + '_trained_at_1_8_16:2:2_27/policy_7420000.zip'
         # prefix = self.args.task + '_trained_at_1_13_17:47:41_32/policy_6750000.zip'
-        prefix = self.args.task + '_trained_at_1_13_17:47:15_31/continue1/policy_3860000.zip'
+        # prefix = self.args.task + '_trained_at_1_13_17:47:15_31/continue1/policy_3860000.zip'
         # prefix = self.args.task + '_trained_at_1_13_17:47:15_31/continue1/policy_4300000.zip'
         # prefix = self.args.task + '_trained_at_1_13_17:47:15_31/continue1/continue4/policy_3580000.zip'
 
@@ -640,6 +648,7 @@ class RL_controller:
         # prefix = 'HPCtest_0/policy_2710000.zip'
         # prefix = self.args.task + '_ppo_noaux_trained_at_2021_2_25_15:29_42/policy_50689.zip'
         # prefix = self.args.task + '_ppo_noaux_trained_at_2021_2_26_14:16_42/policy.zip'
+        prefix = 'HPCtest_46/SACcontinue1/policy_80000.zip'
 
 
         model_dir = self.model_path + prefix
@@ -674,7 +683,6 @@ class RL_controller:
             done = False
             while not done:
                 iter += 1
-                print('obs: ', obs)
                 if self.args.task in ['picking','placing','pickAndplace']:
                     action, subgoal, weight = self.model.predict_subgoal(obs, deterministic=False)
                     obs, reward, done, _ = env.step(action, log=False, weight=weight, subgoal=subgoal)
@@ -683,10 +691,6 @@ class RL_controller:
                     obs, reward, done, _ = env.step(action, log=False)
                 if algo == 'ppo':
                     done = True if done.any() == True else False
-                print('next obs: ', obs)
-                print('gripper action: ', action)
-                if iter > 100:
-                    done = True
                 # print('reward: {0:2.3f}'.format(reward), end='\n')
 
     def generate(self):
@@ -700,7 +704,7 @@ if __name__ == "__main__":
     # controller.train_from_scratch_SAC()
     # controller.train_continue()
     # controller.train_from_expert()
-    # controller.train_HPC()
-    controller.train_HPC_continue()
+    controller.train_HPC()
+    # controller.train_HPC_continue()
     # controller.generate_traj()
     # controller.test()
