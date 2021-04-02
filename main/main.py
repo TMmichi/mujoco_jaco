@@ -439,7 +439,7 @@ class RL_controller:
         else:
             prefix = composite_primitive_name +'_'+algo+"_noaux_trained_at_" + str(time.localtime().tm_year) + "_" + str(time.localtime().tm_mon) + "_" + str(
                     time.localtime().tm_mday) + "_" + str(time.localtime().tm_hour) + ":" + str(time.localtime().tm_min)
-        prefix = 'HPCSACtest'
+        # prefix = 'HPCSACtest'
         model_dir = self.model_path + prefix + "_" + str(self.trial)
         self.args.log_dir = model_dir
         os.makedirs(model_dir, exist_ok=True)
