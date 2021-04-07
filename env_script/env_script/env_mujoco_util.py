@@ -215,7 +215,7 @@ class JacoMujocoEnvUtil:
                 break
                  
     def _create_init_angle(self):
-        if self.task in ['reaching', 'picking']:
+        if self.task in ['reaching', 'picking', 'pickAndplace']:
             random_init_angle = [uniform(0.7, 2.5), uniform(3.8,4), uniform(
                     1, 1.7), uniform(1.8, 2.5), uniform(1, 2.5), uniform(0.8, 2.3)]
             random_init_angle *= self.n_robots
@@ -297,6 +297,8 @@ class JacoMujocoEnvUtil:
                             self.dest_goal[i], 
                             pos,
                             ori/np.pi,
+                            #########################
+                            [0,0,0]
                         ]))
                     else:
                         # Observation dimensions: 
@@ -513,6 +515,8 @@ class JacoMujocoEnvUtil:
                 return 0
             elif self.task == 'pushing':
                 return 0
+            elif self.task == 'pickAndplace':
+                return 0
         elif self.reward_method is not None:
             return self.reward_module(self.gripper_pose, self.reaching_goal)
         else:
@@ -648,6 +652,14 @@ class JacoMujocoEnvUtil:
                     return True, 0, wb
                 elif self.task == 'pushing':
                     return True, 0, wb
+                elif self.task == 'pickAndplace':
+                    # Dropped
+                    if self.interface.get_xyz('object_body')[2] < 0.1:
+                        print("\033[91m Dropped \033[0m")
+                        return True, -1, wb
+                    # Else
+                    else:
+                        return False, 0, wb
 
     def _take_action(self, a, weight=None, subgoal=None):
         self.action_in = True

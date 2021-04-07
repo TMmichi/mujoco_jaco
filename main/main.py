@@ -401,7 +401,7 @@ class RL_controller:
 
     def train_HPC(self):
         task_list = ['picking', 'placing', 'pickAndplace']
-        composite_primitive_name = self.args.task = task_list[0]
+        composite_primitive_name = self.args.task = task_list[2]
         algo_list = ['sac','ppo']
         algo = algo_list[0]
 
@@ -445,9 +445,12 @@ class RL_controller:
         os.makedirs(model_dir, exist_ok=True)
         print("\033[92m"+model_dir+"\033[0m")
 
-        obs_min = [-3, -1,-1,-1,-1,-1,-1, -1, -1,-1,-1, -1,-1,-1,-1,-1,-1]
-        obs_max = [ 3,  1, 1, 1, 1, 1, 1,  1,  1, 1, 1,  1, 1, 1, 1, 1, 1]
-        obs_idx = [ 0,  1, 2, 3, 4, 5, 6,  7,  8, 9, 10,17,18,19,20,21,22]
+        # obs_min = [-3, -1,-1,-1,-1,-1,-1, -1, -1,-1,-1, -1,-1,-1,-1,-1,-1]
+        # obs_max = [ 3,  1, 1, 1, 1, 1, 1,  1,  1, 1, 1,  1, 1, 1, 1, 1, 1]
+        # obs_idx = [ 0,  1, 2, 3, 4, 5, 6,  7,  8, 9, 10,17,18,19,20,21,22]
+        obs_min = [-3, -1,-1,-1,-1,-1,-1, -1, -1,-1,-1, -1,-1,-1, -1,-1,-1,-1,-1,-1, -1,-1,-1]
+        obs_max = [ 3,  1, 1, 1, 1, 1, 1,  1,  1, 1, 1,  1, 1, 1,  1, 1, 1, 1, 1, 1,  1, 1, 1]
+        obs_idx = [ 0,  1, 2, 3, 4, 5, 6,  7,  8, 9,10, 14,15,16, 17,18,19,20,21,22, 23,24,25]
         act_min = [-1,-1,-1,-1,-1,-1, -1]
         act_max = [ 1, 1, 1, 1, 1, 1,  1]
         act_idx = [ 0, 1, 2, 3, 4, 5,  6]
@@ -463,19 +466,41 @@ class RL_controller:
         prim_name = 'reaching'
         # policy_zip_path = self.model_path+prim_name+'_trained_at_1_13_17:47:15_31/continue1/continue4/policy_3580000.zip'
         policy_zip_path = self.model_path+prim_name+'_trained_at_1_13_17:47:15_31/continue1/policy_3860000.zip'
-        self.model.construct_primitive_info(name=prim_name, freeze=True, level=1,
-                                        obs_range=None, obs_index=[1,2,3,4,5,6, 17,18,19,20,21,22],
+        self.model.construct_primitive_info(name=prim_name, freeze=True, level=2,
+                                        obs_range=None, obs_index=[1,2,3,4,5,6, 14,15,16, 23,24,25,],
                                         act_range=None, act_index=[0,1,2,3,4,5], act_scale=1,
-                                        obs_relativity={'subtract':{'ref':[17,18,19,20,21,22],'tar':[1,2,3,4,5,6]}},
+                                        obs_relativity={'subtract':{'ref':[14,15,16,23,24,25],'tar':[1,2,3,4,5,6]}},
                                         layer_structure=None,
                                         loaded_policy=SAC_MULTI._load_from_file(policy_zip_path),
                                         load_value=False)
 
-        prim_name = 'grasping'
-        # policy_zip_path = self.model_path+prim_name+"_trained_at_12_28_17:26:27_15/continue1/policy_2330000.zip"
-        policy_zip_path = self.model_path+'comparison_observation_range_sym_discard_0/policy_8070000.zip'
-        self.model.construct_primitive_info(name=prim_name, freeze=True, level=1,
-                                        obs_range=None, obs_index=[0, 1,2,3,4,5,6, 7, 8,9,10], 
+        # # Pretrained primitives
+        # prim_name = 'reaching'
+        # # policy_zip_path = self.model_path+prim_name+'_trained_at_1_13_17:47:15_31/continue1/continue4/policy_3580000.zip'
+        # policy_zip_path = self.model_path+prim_name+'_trained_at_1_13_17:47:15_31/continue1/policy_3860000.zip'
+        # self.model.construct_primitive_info(name=prim_name, freeze=True, level=1,
+        #                                 obs_range=None, obs_index=[1,2,3,4,5,6, 17,18,19,20,21,22],
+        #                                 act_range=None, act_index=[0,1,2,3,4,5], act_scale=1,
+        #                                 obs_relativity={'subtract':{'ref':[17,18,19,20,21,22],'tar':[1,2,3,4,5,6]}},
+        #                                 layer_structure=None,
+        #                                 loaded_policy=SAC_MULTI._load_from_file(policy_zip_path),
+        #                                 load_value=False)
+
+        # prim_name = 'grasping'
+        # # policy_zip_path = self.model_path+prim_name+"_trained_at_12_28_17:26:27_15/continue1/policy_2330000.zip"
+        # policy_zip_path = self.model_path+'comparison_observation_range_sym_discard_0/policy_8070000.zip'
+        # self.model.construct_primitive_info(name=prim_name, freeze=True, level=1,
+        #                                 obs_range=None, obs_index=[0, 1,2,3,4,5,6, 7, 8,9,10], 
+        #                                 act_range=None, act_index=[0,1,2,3,4,5, 6], act_scale=1,
+        #                                 obs_relativity={},
+        #                                 layer_structure=None,
+        #                                 loaded_policy=SAC_MULTI._load_from_file(policy_zip_path), 
+        #                                 load_value=False)
+        
+        prim_name = 'picking'
+        policy_zip_path = self.model_path+prim_name+'_sac_noaux_trained_at_2021_4_2_21:41_54/policy_4200000.zip'
+        self.model.construct_primitive_info(name=prim_name, freeze=True, level=2,
+                                        obs_range=None, obs_index=[0, 1,2,3,4,5,6, 7, 8,9,10, 17,18,19,20,21,22], 
                                         act_range=None, act_index=[0,1,2,3,4,5, 6], act_scale=1,
                                         obs_relativity={},
                                         layer_structure=None,
@@ -488,7 +513,7 @@ class RL_controller:
             subgoal_dict = None
         else:
             subgoal_dict = {'level1_reaching/level0':[17,18,19,20,21,22]}
-        self.model.construct_primitive_info(name='weight', freeze=False, level=1,
+        self.model.construct_primitive_info(name='weight', freeze=False, level=2,
                                         obs_range=0, obs_index=obs_idx,
                                         act_range=0, act_index=list(range(number_of_primitives)), act_scale=None,
                                         obs_relativity={},
@@ -648,7 +673,7 @@ class RL_controller:
         # prefix = 'HPCtest_0/policy_2710000.zip'
         # prefix = self.args.task + '_ppo_noaux_trained_at_2021_2_25_15:29_42/policy_50689.zip'
         # prefix = self.args.task + '_ppo_noaux_trained_at_2021_2_26_14:16_42/policy.zip'
-        prefix = 'HPCtest_46/SACcontinue1/policy_80000.zip'
+        prefix = self.args.task + '_sac_noaux_trained_at_2021_4_2_21:41_54/policy_4200000.zip'
 
 
         model_dir = self.model_path + prefix

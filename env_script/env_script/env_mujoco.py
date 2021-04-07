@@ -25,7 +25,7 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
         elif self.task in ['picking', 'placing']:
             self.task_max_steps = 700
         else:
-            self.task_max_steps = 2500
+            self.task_max_steps = 2000
         self.skip_frames = 50  #0.05s per step
         self.seed(kwargs.get('seed', None))
 
@@ -54,6 +54,8 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
         reach_position_max = [1]*3                  
         # normalized into 1
         reach_orientation_max = [1]*3
+        # normalized into 1
+        dest_ori_max = [1]*3
         if self.ctrl_type == 'torque':
             obs_max = np.hstack([
                 touch_index,                        #[0]
@@ -64,7 +66,9 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
                 obj_orientation_max,                #[11:14]
                 dest_max,                           #[14:17]
                 reach_position_max,                 #[17:20]
-                reach_orientation_max])             #[20:23]
+                # reach_orientation_max])             #[20:23]
+                reach_orientation_max,              #[20:23]
+                dest_ori_max])                      #[24:27]
         elif self.ctrl_type == 'velocity':
             obs_max = np.hstack([
                 touch_index,                        #[0]
