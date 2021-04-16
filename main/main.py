@@ -177,7 +177,7 @@ class RL_controller:
         self.args.train_log = False
         self.args.visualize = False
         task_list = ['reaching', 'grasping', 'carrying', 'releasing', 'pushing']
-        self.args.task = task_list[1]
+        self.args.task = task_list[2]
         prefix = self.args.task+"_trained_at_" + str(time.localtime().tm_mon) + "_" + str(time.localtime().tm_mday)\
             + "_" + str(time.localtime().tm_hour) + ":" + str(time.localtime().tm_min) + ":" + str(time.localtime().tm_sec)
         # prefix="comparison_observation_range_sym_nobuffer"
@@ -194,27 +194,22 @@ class RL_controller:
 
         net_arch = {'pi': model_configuration['layers']['policy'], 'vf': model_configuration['layers']['value']}
         if self.args.task is 'reaching':
-            if self.args.controller:
-                traj_dict = np.load(self.model_path+'trajectories/'+self.args.task+".npz", allow_pickle=True)
-                self.args.init_buffer = np.array(traj_dict['obs'])
-                # obs_relativity = {'subtract':{'ref':[17,18,19,20,21,22],'tar':[1,2,3,4,5,6]}, 'leave':[1,2,3]}
-                obs_relativity = {'subtract':{'ref':[17,18,19,20,21,22],'tar':[1,2,3,4,5,6]}}
-                # obs_relativity = {}
-                obs_index = [1,2,3,4,5,6, 17,18,19,20,21,22]
-            else:
-                obs_relativity = {'subtract':{'ref':[30,31,32,33,34,35],'tar':[13,14,15,16,17,18]}}
-                obs_index = [1,2,3,4,5,6, 7,8,9,10,11,12, 13,14,15,16,17,18, 30,31,32,33,34,35]
-        elif self.args.task in ['grasping','carrying']:
-            buffer = self.create_buffer('trajectory_expert5_mod')
+            traj_dict = np.load(self.model_path+'trajectories/'+self.args.task+".npz", allow_pickle=True)
+            self.args.init_buffer = np.array(traj_dict['obs'])
+            # obs_relativity = {'subtract':{'ref':[17,18,19,20,21,22],'tar':[1,2,3,4,5,6]}, 'leave':[1,2,3]}
+            obs_relativity = {'subtract':{'ref':[17,18,19,20,21,22],'tar':[1,2,3,4,5,6]}}
+            # obs_relativity = {}
+            obs_index = [1,2,3,4,5,6, 17,18,19,20,21,22]
+        elif self.args.task in ['grasping','carrying','releasing']:
+            # buffer = self.create_buffer('trajectory_expert5_mod')
             # obs_relativity = {'subtract':{'ref':[9,10,11],'tar':[1,2,3]}, 'leave':[2]}
             # obs_relativity = {'subtract':{'ref':[9,10,11],'tar':[1,2]}, 'leave':[0,1,2]}
-            if self.args.controller:
-                obs_relativity = {}
-                # obs_index = [0, 1,2,3,4,5,6, 7,8,  9,10,11]
-                obs_index = [0, 1,2,3,4,5,6, 7, 8,9,10]
-            else:
-                obs_relativity = {}
-                obs_index = [0, 1,2,3,4,5,6, 7,8,9,10,11,12, 13,14,15,16,17,18, 19, 20,21,22, 26]
+            obs_relativity = {}
+            # obs_index = [0, 1,2,3,4,5,6, 7,8,  9,10,11]
+            obs_index = [0, 1,2,3,4,5,6, 7, 8,9,10]
+        elif self.args.task == 'pushing':
+            obs_relativity = {}
+            obs_index = [0, 1,2,3,4,5,6, 8,9,10]
         
         env = JacoMujocoEnv(**vars(self.args))
 
@@ -401,7 +396,7 @@ class RL_controller:
 
     def train_HPC(self):
         task_list = ['picking', 'placing', 'pickAndplace']
-        composite_primitive_name = self.args.task = task_list[2]
+        composite_primitive_name = self.args.task = task_list[0]
         algo_list = ['sac','ppo']
         algo = algo_list[0]
 
@@ -439,18 +434,18 @@ class RL_controller:
         else:
             prefix = composite_primitive_name +'_'+algo+"_noaux_trained_at_" + str(time.localtime().tm_year) + "_" + str(time.localtime().tm_mon) + "_" + str(
                     time.localtime().tm_mday) + "_" + str(time.localtime().tm_hour) + ":" + str(time.localtime().tm_min)
-        # prefix = 'HPCSACtest'
+        prefix = 'HPCsepQtest'
         model_dir = self.model_path + prefix + "_" + str(self.trial)
         self.args.log_dir = model_dir
         os.makedirs(model_dir, exist_ok=True)
         print("\033[92m"+model_dir+"\033[0m")
 
-        # obs_min = [-3, -1,-1,-1,-1,-1,-1, -1, -1,-1,-1, -1,-1,-1,-1,-1,-1]
-        # obs_max = [ 3,  1, 1, 1, 1, 1, 1,  1,  1, 1, 1,  1, 1, 1, 1, 1, 1]
-        # obs_idx = [ 0,  1, 2, 3, 4, 5, 6,  7,  8, 9, 10,17,18,19,20,21,22]
-        obs_min = [-3, -1,-1,-1,-1,-1,-1, -1, -1,-1,-1, -1,-1,-1, -1,-1,-1,-1,-1,-1, -1,-1,-1]
-        obs_max = [ 3,  1, 1, 1, 1, 1, 1,  1,  1, 1, 1,  1, 1, 1,  1, 1, 1, 1, 1, 1,  1, 1, 1]
-        obs_idx = [ 0,  1, 2, 3, 4, 5, 6,  7,  8, 9,10, 14,15,16, 17,18,19,20,21,22, 23,24,25]
+        obs_min = [-3, -1,-1,-1,-1,-1,-1, -1, -1,-1,-1, -1,-1,-1,-1,-1,-1]
+        obs_max = [ 3,  1, 1, 1, 1, 1, 1,  1,  1, 1, 1,  1, 1, 1, 1, 1, 1]
+        obs_idx = [ 0,  1, 2, 3, 4, 5, 6,  7,  8, 9,10, 17,18,19,20,21,22]
+        # obs_min = [-3, -1,-1,-1,-1,-1,-1, -1, -1,-1,-1, -1,-1,-1, -1,-1,-1,-1,-1,-1, -1,-1,-1]
+        # obs_max = [ 3,  1, 1, 1, 1, 1, 1,  1,  1, 1, 1,  1, 1, 1,  1, 1, 1, 1, 1, 1,  1, 1, 1]
+        # obs_idx = [ 0,  1, 2, 3, 4, 5, 6,  7,  8, 9,10, 14,15,16, 17,18,19,20,21,22, 23,24,25]
         act_min = [-1,-1,-1,-1,-1,-1, -1]
         act_max = [ 1, 1, 1, 1, 1, 1,  1]
         act_idx = [ 0, 1, 2, 3, 4, 5,  6]
@@ -462,50 +457,50 @@ class RL_controller:
                                             obs_relativity={},
                                             layer_structure={'policy':[128, 128, 128]})
 
-        # Pretrained primitives
-        prim_name = 'reaching'
-        # policy_zip_path = self.model_path+prim_name+'_trained_at_1_13_17:47:15_31/continue1/continue4/policy_3580000.zip'
-        policy_zip_path = self.model_path+prim_name+'_trained_at_1_13_17:47:15_31/continue1/policy_3860000.zip'
-        self.model.construct_primitive_info(name=prim_name, freeze=True, level=2,
-                                        obs_range=None, obs_index=[1,2,3,4,5,6, 14,15,16, 23,24,25,],
-                                        act_range=None, act_index=[0,1,2,3,4,5], act_scale=1,
-                                        obs_relativity={'subtract':{'ref':[14,15,16,23,24,25],'tar':[1,2,3,4,5,6]}},
-                                        layer_structure=None,
-                                        loaded_policy=SAC_MULTI._load_from_file(policy_zip_path),
-                                        load_value=False)
-
         # # Pretrained primitives
         # prim_name = 'reaching'
         # # policy_zip_path = self.model_path+prim_name+'_trained_at_1_13_17:47:15_31/continue1/continue4/policy_3580000.zip'
         # policy_zip_path = self.model_path+prim_name+'_trained_at_1_13_17:47:15_31/continue1/policy_3860000.zip'
-        # self.model.construct_primitive_info(name=prim_name, freeze=True, level=1,
-        #                                 obs_range=None, obs_index=[1,2,3,4,5,6, 17,18,19,20,21,22],
+        # self.model.construct_primitive_info(name=prim_name, freeze=True, level=2,
+        #                                 obs_range=None, obs_index=[1,2,3,4,5,6, 14,15,16, 23,24,25,],
         #                                 act_range=None, act_index=[0,1,2,3,4,5], act_scale=1,
-        #                                 obs_relativity={'subtract':{'ref':[17,18,19,20,21,22],'tar':[1,2,3,4,5,6]}},
+        #                                 obs_relativity={'subtract':{'ref':[14,15,16,23,24,25],'tar':[1,2,3,4,5,6]}},
         #                                 layer_structure=None,
         #                                 loaded_policy=SAC_MULTI._load_from_file(policy_zip_path),
         #                                 load_value=False)
 
-        # prim_name = 'grasping'
-        # # policy_zip_path = self.model_path+prim_name+"_trained_at_12_28_17:26:27_15/continue1/policy_2330000.zip"
-        # policy_zip_path = self.model_path+'comparison_observation_range_sym_discard_0/policy_8070000.zip'
-        # self.model.construct_primitive_info(name=prim_name, freeze=True, level=1,
-        #                                 obs_range=None, obs_index=[0, 1,2,3,4,5,6, 7, 8,9,10], 
-        #                                 act_range=None, act_index=[0,1,2,3,4,5, 6], act_scale=1,
-        #                                 obs_relativity={},
-        #                                 layer_structure=None,
-        #                                 loaded_policy=SAC_MULTI._load_from_file(policy_zip_path), 
-        #                                 load_value=False)
-        
-        prim_name = 'picking'
-        policy_zip_path = self.model_path+prim_name+'_sac_noaux_trained_at_2021_4_2_21:41_54/policy_4200000.zip'
-        self.model.construct_primitive_info(name=prim_name, freeze=True, level=2,
-                                        obs_range=None, obs_index=[0, 1,2,3,4,5,6, 7, 8,9,10, 17,18,19,20,21,22], 
+        # Pretrained primitives
+        prim_name = 'reaching'
+        # policy_zip_path = self.model_path+prim_name+'_trained_at_1_13_17:47:15_31/continue1/continue4/policy_3580000.zip'
+        policy_zip_path = self.model_path+prim_name+'_trained_at_1_13_17:47:15_31/continue1/policy_3860000.zip'
+        self.model.construct_primitive_info(name=prim_name, freeze=True, level=1,
+                                        obs_range=None, obs_index=[1,2,3,4,5,6, 17,18,19,20,21,22],
+                                        act_range=None, act_index=[0,1,2,3,4,5], act_scale=1,
+                                        obs_relativity={'subtract':{'ref':[17,18,19,20,21,22],'tar':[1,2,3,4,5,6]}},
+                                        layer_structure=None,
+                                        loaded_policy=SAC_MULTI._load_from_file(policy_zip_path),
+                                        load_value=False)
+
+        prim_name = 'grasping'
+        # policy_zip_path = self.model_path+prim_name+"_trained_at_12_28_17:26:27_15/continue1/policy_2330000.zip"
+        policy_zip_path = self.model_path+'comparison_observation_range_sym_discard_0/policy_8070000.zip'
+        self.model.construct_primitive_info(name=prim_name, freeze=True, level=1,
+                                        obs_range=None, obs_index=[0, 1,2,3,4,5,6, 7, 8,9,10], 
                                         act_range=None, act_index=[0,1,2,3,4,5, 6], act_scale=1,
                                         obs_relativity={},
                                         layer_structure=None,
                                         loaded_policy=SAC_MULTI._load_from_file(policy_zip_path), 
                                         load_value=False)
+        
+        # prim_name = 'picking'
+        # policy_zip_path = self.model_path+prim_name+'_sac_noaux_trained_at_2021_4_2_21:41_54/policy_4200000.zip'
+        # self.model.construct_primitive_info(name=prim_name, freeze=True, level=2,
+        #                                 obs_range=None, obs_index=[0, 1,2,3,4,5,6, 7, 8,9,10, 17,18,19,20,21,22], 
+        #                                 act_range=None, act_index=[0,1,2,3,4,5, 6], act_scale=1,
+        #                                 obs_relativity={},
+        #                                 layer_structure=None,
+        #                                 loaded_policy=SAC_MULTI._load_from_file(policy_zip_path), 
+        #                                 load_value=False)
         
         # Weight definition
         number_of_primitives = 3 if self.args.auxiliary else 2
@@ -513,7 +508,7 @@ class RL_controller:
             subgoal_dict = None
         else:
             subgoal_dict = {'level1_reaching/level0':[17,18,19,20,21,22]}
-        self.model.construct_primitive_info(name='weight', freeze=False, level=2,
+        self.model.construct_primitive_info(name='weight', freeze=False, level=1,
                                         obs_range=0, obs_index=obs_idx,
                                         act_range=0, act_index=list(range(number_of_primitives)), act_scale=None,
                                         obs_relativity={},
@@ -627,7 +622,7 @@ class RL_controller:
         self.args.seed = 42
 
         task_list = ['reaching', 'grasping', 'picking', 'carrying', 'releasing', 'placing', 'pushing']
-        self.args.task = task_list[2]
+        self.args.task = task_list[1]
         algo_list = ['sac','ppo']
         algo = algo_list[0]
         self.args.subgoal_obs = False
@@ -650,7 +645,7 @@ class RL_controller:
         # Upper grasp
         # prefix = self.args.task + '_trained_at_12_28_17:26:27_15/continue1/policy_2330000.zip'
         # Side grasp (better)
-        # prefix = 'comparison_observation_range_sym_discard_0/policy_8070000.zip'
+        prefix = 'comparison_observation_range_sym_discard_0/policy_8070000.zip'
         # Side grasp
         # prefix = 'comparison_observation_range_sym_nobuffer_2/policy_4330000.zip'
 
@@ -673,7 +668,7 @@ class RL_controller:
         # prefix = 'HPCtest_0/policy_2710000.zip'
         # prefix = self.args.task + '_ppo_noaux_trained_at_2021_2_25_15:29_42/policy_50689.zip'
         # prefix = self.args.task + '_ppo_noaux_trained_at_2021_2_26_14:16_42/policy.zip'
-        prefix = self.args.task + '_sac_noaux_trained_at_2021_4_2_21:41_54/policy_4200000.zip'
+        # prefix = self.args.task + '_sac_noaux_trained_at_2021_4_2_21:41_54/policy_4200000.zip'
 
 
         model_dir = self.model_path + prefix
@@ -712,7 +707,7 @@ class RL_controller:
                     action, subgoal, weight = self.model.predict_subgoal(obs, deterministic=False)
                     obs, reward, done, _ = env.step(action, log=False, weight=weight, subgoal=subgoal)
                 else:
-                    action, _ = self.model.predict(obs, deterministic=False)
+                    action, _ = self.model.predict(obs, deterministic=True)
                     obs, reward, done, _ = env.step(action, log=False)
                 if algo == 'ppo':
                     done = True if done.any() == True else False
@@ -726,10 +721,10 @@ if __name__ == "__main__":
     controller = RL_controller()
     # controller.train_from_scratch_PPO1()  
     # controller.train_from_scratch_PPO2()
-    # controller.train_from_scratch_SAC()
+    controller.train_from_scratch_SAC()
     # controller.train_continue()
     # controller.train_from_expert()
-    controller.train_HPC()
+    # controller.train_HPC()
     # controller.train_HPC_continue()
     # controller.generate_traj()
     # controller.test()

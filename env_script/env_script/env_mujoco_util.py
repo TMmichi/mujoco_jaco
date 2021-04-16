@@ -661,7 +661,7 @@ class JacoMujocoEnvUtil:
                     else:
                         return False, 0, wb
 
-    def _take_action(self, a, weight=None, subgoal=None):
+    def _take_action(self, a, weight=None, subgoal=None, id=None):
         self.action_in = True
         self.gripper_iter = 0
         self.__get_gripper_pose()
@@ -692,7 +692,13 @@ class JacoMujocoEnvUtil:
                     subgoal_reach = np.append(subpos, subori)
                 else:
                     subgoal_reach = subgoal['level1_reaching/level0'][0] + self.target_pos
-
+            if id is not None:
+                if id[0] == 0:
+                    self.interface.set_mocap_xyz("id_reach", [-0.18,0.05,-0.1 + 1*0.1])
+                    self.interface.set_mocap_xyz("id_grasp", [-0.14,0.05,-0.1 + 0])
+                else:
+                    self.interface.set_mocap_xyz("id_reach", [-0.18,0.05,-0.1 + 0])
+                    self.interface.set_mocap_xyz("id_grasp", [-0.14,0.05,-0.1 + 1*0.1])
             self.interface.set_mocap_xyz("weight_reach", [-0.18,0.1,-0.1 + weight_reach*0.1])
             self.interface.set_mocap_xyz("weight_grasp", [-0.14,0.1,-0.1 + weight_grasp*0.1])
             if self.auxiliary:
