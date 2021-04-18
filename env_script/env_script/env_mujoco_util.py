@@ -225,8 +225,9 @@ class JacoMujocoEnvUtil:
                     1, 1.1), uniform(2, 2.1), uniform(0.8, 2.3), uniform(-1.2, -1.1)]
             random_init_angle *= self.n_robots
         elif self.task in ['releasing', 'placing', 'pushing']:
-            # TODO: Find init angle close to the dest position
-            random_init_angle = []
+            random_init_angle = [uniform(0.7, 2.5), uniform(3.8,4), uniform(
+                    1, 1.7), uniform(1.8, 2.5), uniform(1, 2.5), uniform(0.8, 2.3)]
+            random_init_angle *= self.n_robots
         return random_init_angle
 
     def __sample_goal(self):
@@ -315,7 +316,8 @@ class JacoMujocoEnvUtil:
                             [0,0,0],
                             self.dest_goal[i], 
                             self.reaching_goal[i][:3],
-                            self.reaching_goal[i][3:]/np.pi
+                            self.reaching_goal[i][3:]/np.pi,
+                            [0,0,0]
                         ]))
                     
                 else:
@@ -647,7 +649,11 @@ class JacoMujocoEnvUtil:
                 elif self.task == 'carrying':
                     return True, 0, wb
                 elif self.task == 'releasing':
-                    return True, 0, wb
+                    if self.interface.get_xyz('object_body')[2] < 0.1:
+                        print("\033[91m Dropped \033[0m")
+                        return True, -20, wb
+                    else:
+                        return False, 0, wb
                 elif self.task == 'placing':
                     return True, 0, wb
                 elif self.task == 'pushing':

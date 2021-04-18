@@ -175,12 +175,12 @@ class RL_controller:
     def train_from_scratch_SAC(self):
         print("Training from scratch called")
         self.args.train_log = False
-        self.args.visualize = False
+        self.args.visualize = True
         task_list = ['reaching', 'grasping', 'carrying', 'releasing', 'pushing']
-        self.args.task = task_list[2]
+        self.args.task = task_list[3]
         prefix = self.args.task+"_trained_at_" + str(time.localtime().tm_mon) + "_" + str(time.localtime().tm_mday)\
             + "_" + str(time.localtime().tm_hour) + ":" + str(time.localtime().tm_min) + ":" + str(time.localtime().tm_sec)
-        # prefix="comparison_observation_range_sym_nobuffer"
+        # prefix="releasingTest"
         model_dir = self.model_path + prefix + "_" + str(self.trial)
         os.makedirs(model_dir, exist_ok=True)
         print("\033[92m"+model_dir+"\033[0m")
@@ -200,14 +200,17 @@ class RL_controller:
             obs_relativity = {'subtract':{'ref':[17,18,19,20,21,22],'tar':[1,2,3,4,5,6]}}
             # obs_relativity = {}
             obs_index = [1,2,3,4,5,6, 17,18,19,20,21,22]
-        elif self.args.task in ['grasping','carrying','releasing']:
+        elif self.args.task is 'grasping':
             # buffer = self.create_buffer('trajectory_expert5_mod')
-            # obs_relativity = {'subtract':{'ref':[9,10,11],'tar':[1,2,3]}, 'leave':[2]}
-            # obs_relativity = {'subtract':{'ref':[9,10,11],'tar':[1,2]}, 'leave':[0,1,2]}
             obs_relativity = {}
-            # obs_index = [0, 1,2,3,4,5,6, 7,8,  9,10,11]
             obs_index = [0, 1,2,3,4,5,6, 7, 8,9,10]
-        elif self.args.task == 'pushing':
+        elif self.args.task is 'carrying':
+            obs_relativity = {}
+            obs_index =  [1,2,3,4,5,6, 8,9,10, 14,15,16]
+        elif self.args.task is 'releasing':
+            obs_relativity = {}
+            obs_index =  [0, 1,2,3,4,5,6, 7, 8,9,10, 14,15,16]
+        elif self.args.task is 'pushing':
             obs_relativity = {}
             obs_index = [0, 1,2,3,4,5,6, 8,9,10]
         

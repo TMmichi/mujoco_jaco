@@ -66,7 +66,6 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
                 obj_orientation_max,                #[11:14]
                 dest_max,                           #[14:17]
                 reach_position_max,                 #[17:20]
-                # reach_orientation_max])             #[20:23]
                 reach_orientation_max,              #[20:23]
                 dest_ori_max])                      #[24:27]
         elif self.ctrl_type == 'velocity':
