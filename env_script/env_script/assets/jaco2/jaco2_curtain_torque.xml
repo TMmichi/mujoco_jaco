@@ -51,7 +51,7 @@
 
         <!--######### CONTROL VISUALIZATIONS #########-->
         <body name="hand" pos="0 0 -0.15" mocap="true">
-            <geom type="box" size=".01 .02.035" rgba="0 .9 0 .5" contype="2" conaffinity="2"/>
+            <geom type="box" size=".01 .02 .035" rgba="0 .9 0 .5" contype="2" conaffinity="2"/>
             <geom type="box" size=".001 .001 .02" pos="0.02 0 0" euler="0 -1.570796326794896 0" rgba=".9 0 0 .9" contype="8" conaffinity="8"/>
             <geom type="box" size=".001 .001 .02" pos="0 0.02 0" euler="-1.570796326794896 0 0" rgba=".0 9 0 .9" contype="8" conaffinity="8"/>
             <geom type="box" size=".001 .001 .02" pos="0 0 0.02" rgba=".0 0 9 .9" contype="8" conaffinity="8"/>
@@ -66,8 +66,9 @@
             <geom type="box" size=".001 .001 .02" pos="0 0 0.02" rgba=".0 0 9 .9" contype="8" conaffinity="8"/>
         </body>
 
+
         <body name="subgoal_reach" pos="0 0 -0.15" mocap="true">
-            <geom type="box" size=".01 .02 .03" rgba=".7 .3 .7 .5" contype="8" conaffinity="8"/>
+            <geom type="box" size=".01 .02 .035" rgba=".7 .3 .7 .5" contype="8" conaffinity="8"/>
         </body>
         <body name="weight_reach" pos="-0.18 0.1 -0.1" mocap="true">
             <geom type="box" size=".02 .02 .1" rgba=".7 .3 .1 1" contype="8" conaffinity="8"/>
@@ -75,8 +76,11 @@
         <body name="weight_grasp" pos="-0.14 0.1 -0.1" mocap="true">
             <geom type="box" size=".02 .02 .1" rgba=".3 .7 .1 1" contype="8" conaffinity="8"/>
         </body>
-        <body name="weight_aux" pos="-0.1 0.1 -0.1" mocap="true">
+        <body name="weight_release" pos="-0.1 0.1 -0.1" mocap="true">
             <geom type="box" size=".02 .02 .1" rgba=".1 .5 .5 1" contype="8" conaffinity="8"/>
+        </body>
+        <body name="weight_aux" pos="-0.06 0.1 -0.1" mocap="true">
+            <geom type="box" size=".02 .02 .1" rgba=".5 .5 .1 1" contype="8" conaffinity="8"/>
         </body>
         <body name="id_reach" pos="-0.18 0.05 -0.1" mocap="true">
             <geom type="box" size=".02 .02 .1" rgba=".7 .3 .1 1" contype="8" conaffinity="8"/>
@@ -161,13 +165,22 @@
                                     <!-- for palm EE -->
                                     <body name="EE" pos="0 0 0.12" euler="0 0 0">
                                         <body name="EE_obj" pos="0.04 0 0.04" euler="0 0 0"></body>
+                                        <body name="xwise"  euler="0 1.570796326794896 0">
+                                            <geom type="box" size=".001 .001 .02" pos="0 0 0.02"  rgba=".9 0 0 .9" contype="8" conaffinity="8"/>
+                                        </body>
+                                        <body name="ywise"  euler="-1.570796326794896 0 0">
+                                            <geom type="box" size=".001 .001 .02" pos="0 0 0.02" rgba=".0 9 0 .9" contype="8" conaffinity="8"/>
+                                        </body>
+                                        <body name="zwise"  euler='0 0 0'>
+                                            <geom type="box" size=".001 .001 .02" pos="0 0 0.02" rgba=".0 0 9 .9" contype="8" conaffinity="8"/>
+                                        </body>
                                         <body name="palm_plane" pos="0 0 -0.002" euler="0 0 0" >
                                             <geom name="palm_plane" type="box" size="0.02 0.02 0.0005" rgba="0 1 0 0.5" />
                                             <site name="0_touch" type="box" size="0.02 0.02 0.0005" pos="0 0 0.001" rgba="0 0 1 0.5"/>
                                         </body>
                                     </body>
 
-                                    <body name="thumb_proximal" pos="0.002786 -0.03126 0.114668" quat="0.95922726  0.262085    0.02762996 -0.10213274">
+                                    <body name="thumb_proximal" pos="0.002786 -0.03126 0.114668" quat="0.95922726 0.262085 0.02762996 -0.10213274">
                                         <geom name="thumb_proximal" type="mesh" mesh="finger_proximal" euler="0 -1.5707 0" friction="1 0.5 0.01" solimp="0.95 0.95 0.01 0.5 6" solref="0.01 1" condim="6" margin="0.0"/>
                                         <!-- <joint name="joint_thumb" pos="0 0 0" axis="1 0 0" ref="1.1" limited="true" range="-0.2 1.1" solimplimit="0.95 0.95 0.01" solreflimit="0.01 1" stiffness="5" springref="0.0" damping="0.35"/>                                         -->
                                         <!-- <joint name="joint_thumb" pos="0 0 0" axis="1 0 0" ref="1.1" limited="true" range="0.35 1.1" solimplimit="0.95 0.95 0.01" solreflimit="0.01 1" stiffness="5" springref="0.0" damping="0.35"/> -->
@@ -291,7 +304,7 @@
         <!--############## OBJECT BODY ##############-->
         <body name="object_body" pos="1 1.2 1">
             <freejoint></freejoint>
-            <geom type="box" size=".027 0.027 0.03" density="30" solimp="0.998 0.998 0.001" friction="0.95 0.3 0.1" solref="0.001 1" pos="0 0 0" rgba="0 0 0.5 0.8"></geom>
+            <geom type="box" size=".027 0.027 0.03" density="100" solimp="0.998 0.998 0.001" friction="0.95 0.3 0.1" solref="0.001 1" pos="0 0 0" rgba="0 0 0.5 0.8"></geom>
         </body>
 
         <!-- <body name="object_body" pos="1 1.2 1">
@@ -303,9 +316,13 @@
             <geom type="box" size=".15 .15 .1" density="100" pos="0 0 .07" rgba=".5 .5 .5 1"></geom>
         </body>
 
-        <body name="object_dest" pos="0.6 0.3 0">
-            <geom name="dest_dum" type="sphere" pos="0 0 0.3" size="0.05" rgba="0 0 0.9 0.4" contype="8" conaffinity="8"/>
-            <geom type="box" size=".15 .15 .175" density="100" pos="0 0 .07" rgba="0 .5 0 1"></geom>
+        <body name="object_dest" pos="0.6 0.3 0.09">
+            <freejoint></freejoint>
+            <geom type="box" size=".1 .1 .16" density="100000" pos="0 0 .07" rgba="0 .5 0 1"></geom>
+        </body>
+
+        <body name="dest_marker" pos="0 0 0" mocap="true">
+            <geom name="dest_marker" type="sphere" pos="0 0 0" size="0.03" rgba="0 0 0.9 0.4" contype="4" conaffinity="4"/>
         </body>
 
         <body name="target_dummy" pos="0 0 0" mocap="true">

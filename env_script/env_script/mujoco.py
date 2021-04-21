@@ -207,16 +207,31 @@ class Mujoco:
 
         return np.copy(xyz)
     
+    def get_obj_vel(self):
+        old_state = self.sim.get_state()
+        return old_state.qvel.copy()[9:12]
+    
     def set_obj_xyz(self, xyz, quat=[0,0,0,0]):
         old_state = self.sim.get_state()
         new_qpos = old_state.qpos.copy()
         new_qvel = old_state.qvel.copy()
         new_qpos[9:12] = xyz
-        new_qpos[12:] = quat
+        new_qpos[12:16] = quat
         new_qvel[9:] = 0
         new_state = mjp.MjSimState(old_state.time, new_qpos, new_qvel, old_state.act, old_state.udd_state)
         self.sim.set_state(new_state)
         self.sim.forward()
+    
+    def set_dest_xyz(self, xy):
+        old_state = self.sim.get_state()
+        new_qpos = old_state.qpos.copy()
+        new_qvel = old_state.qvel.copy()
+        new_qpos[16:18] = xy
+        new_qvel[16:] = 0
+        new_state = mjp.MjSimState(old_state.time, new_qpos, new_qvel, old_state.act, old_state.udd_state)
+        self.sim.set_state(new_state)
+        self.sim.forward()
+
     
     def stop_obj(self):
         old_state = self.sim.get_state()
@@ -318,8 +333,10 @@ class Mujoco:
         dq: np.array
             joint velocities [rad/s]
         """
-
-        self.sim.data.qpos[self.joint_pos_addrs] = np.copy(q)
+        if len(q) == 6:
+            self.sim.data.qpos[self.joint_pos_addrs] = np.copy(q)
+        elif len(q) == 9:
+            self.sim.data.qpos[self.joint_pos_addrs + [6, 7, 8]] = np.copy(q)
         self.sim.data.qvel[self.joint_vel_addrs] = np.copy(dq)
         self.sim.forward()
 

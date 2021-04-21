@@ -33,6 +33,18 @@ from state_gen.state_generator import State_generator
 
 from argparser import ArgParser
 
+def open_connection():
+    try:            
+        print("Opening connection to SpaceNav driver ...")
+        spacenav.open()
+        print("... connection established.")
+    except Exception:
+        print("No connection to the SpaceNav driver. Is spacenavd running?")
+
+def close_connection():
+    atexit.register(spacenav.close)
+    
+
 default_lr = model_configuration['learning_rate']
 def _lr_scheduler(frac):
     return default_lr * frac
@@ -56,15 +68,16 @@ class RL_controller:
         # args.stateGen = self.stateGen
 
         # Reward Generation
-        self.reward_method = None
-        self.reward_module = None
-        args.reward_method = self.reward_method
-        args.reward_module = self.reward_module
+        # self.reward_method = None
+        # self.reward_module = None
+        # args.reward_method = self.reward_method
+        # args.reward_module = self.reward_module
 
         # Action
         self.g_angle = 0
         self.g_changed = None
-        self.pressed = {0:False, 1:False}        # 0:Left - Open, 1:Right - Close
+        # 0:Left - Open, 1:Right - Close
+        self.pressed = {0:False, 1:False}
 
         # If resume training on pre-trained models with episodes, else None
         package_path = str(Path(__file__).resolve().parent.parent)
@@ -77,7 +90,7 @@ class RL_controller:
         args.batches_per_episodes = self.batches_per_episodes
         self.num_episodes = 20000
         self.args = args
-        self.trial = 54
+        self.trial = 62
 
 
     def train_from_scratch_PPO1(self):
@@ -177,10 +190,12 @@ class RL_controller:
         self.args.train_log = False
         self.args.visualize = True
         task_list = ['reaching', 'grasping', 'carrying', 'releasing', 'pushing']
-        self.args.task = task_list[3]
+        task_list_comp = ['picking', 'placing', 'pickAndplace']
+        # self.args.task = task_list[3]
+        self.args.task = task_list_comp[0]
         prefix = self.args.task+"_trained_at_" + str(time.localtime().tm_mon) + "_" + str(time.localtime().tm_mday)\
             + "_" + str(time.localtime().tm_hour) + ":" + str(time.localtime().tm_min) + ":" + str(time.localtime().tm_sec)
-        # prefix="releasingTest"
+        prefix="flat_comparison_picking"
         model_dir = self.model_path + prefix + "_" + str(self.trial)
         os.makedirs(model_dir, exist_ok=True)
         print("\033[92m"+model_dir+"\033[0m")
@@ -190,6 +205,7 @@ class RL_controller:
         self.args.controller = True
         self.args.n_robots = 1
         self.args.prev_action = False
+        self.args.rulebased_subgoal = True
         buffer = None
 
         net_arch = {'pi': model_configuration['layers']['policy'], 'vf': model_configuration['layers']['value']}
@@ -213,6 +229,15 @@ class RL_controller:
         elif self.args.task is 'pushing':
             obs_relativity = {}
             obs_index = [0, 1,2,3,4,5,6, 8,9,10]
+        elif self.args.task is 'picking':
+            obs_relativity = {}
+            obs_index = [0, 1,2,3,4,5,6, 7, 8,9,10, 17,18,19,20,21,22]
+        elif self.args.task is 'placing':
+            obs_relativity = {}
+            obs_index = [0, 1,2,3,4,5,6, 7, 8,9,10, 14,15,16, 23,24,25]
+        elif self.args.task is 'pickAndplace':
+            obs_relativity = {}
+            obs_index = [0, 1,2,3,4,5,6, 7, 8,9,10, 17,18,19,20,21,22, 23,24,25]
         
         env = JacoMujocoEnv(**vars(self.args))
 
@@ -232,11 +257,11 @@ class RL_controller:
     def train_continue(self):
         self.args.train_log = False
         task_list = ['reaching', 'grasping', 'picking', 'carrying', 'releasing', 'placing', 'pushing']
-        self.args.task = task_list[2]
+        self.args.task = task_list[4]
         self.args.visualize = True
         self.args.prev_action = False
-        model_dir = self.model_path + 'comparison_observation_range_sym_discard_0'
-        policy_dir = model_dir + '/policy_8070000.zip'
+        model_dir = self.model_path + 'releasing_trained_at_4_18_22:26:14_58'
+        policy_dir = model_dir + '/policy_2900000.zip'
         sub_dir = '/continue1'
         print("\033[92m"+model_dir + sub_dir+"\033[0m")
         
@@ -256,7 +281,7 @@ class RL_controller:
         # net_arch = {'pi': [128,128], 'vf': [64, 64]}
         # policy_kwargs = {'net_arch': [net_arch]}
         self.trainer = SAC_MULTI.load(policy_dir, policy=MlpPolicy_hpcsac, env=env, replay_buffer=buffer, tensorboard_log=model_dir+sub_dir, \
-                                    learning_rate=_lr_scheduler, learning_starts=100, ent_coef=1e-7)
+                                    learning_rate=_lr_scheduler, learning_starts=100, ent_coef='auto')
         # self.trainer = PPO1.load(policy_dir, env=env, tensorboard_log=model_dir+sub_dir, policy_kwargs=policy_kwargs, exact_match=True, only={'value':True})
         # self.trainer = PPO1.load(policy_dir, env=env, tensorboard_log=model_dir+sub_dir)
         self.trainer.learn(total_time_step, save_interval=10000, save_path=model_dir+sub_dir)
@@ -280,8 +305,6 @@ class RL_controller:
         traj_dict = np.load(self.model_path+'trajectories/'+self.args.task+"_trajectory_expert4.npz", allow_pickle=True)
         dataset = ExpertDataset(traj_data=traj_dict, batch_size=16384)
         buffer = ReplayBuffer(64)
-
-        quit()
 
         net_arch = {'pi': model_configuration['layers']['policy'], 'vf': model_configuration['layers']['value']}
         if self.args.task is 'reaching':
@@ -318,23 +341,12 @@ class RL_controller:
         print("\033[91mTrain Finished\033[0m")
         self.trainer.save(model_dir+"/policy")
 
-    def _open_connection(self):
-        try:            
-            print("Opening connection to SpaceNav driver ...")
-            spacenav.open()
-            print("... connection established.")
-        except Exception:
-            print("No connection to the SpaceNav driver. Is spacenavd running?")
-    
-    def _close_connection(self):
-        atexit.register(spacenav.close)
-
     def _expert_3d(self, _obs):
         if sys.platform in ['linux', 'linux2']:
             event = spacenav.poll()
             if type(event) is spacenav.MotionEvent:
-                # action = np.array([event.x, event.z, event.y, event.rx, -event.ry, event.rz, self.g_angle])/350*1.5
-                action = np.array([event.x, event.z, event.y, event.rx, -event.ry, event.rz])/350*1.5
+                action = np.array([event.x, event.z, event.y, event.rx, -event.ry, event.rz, self.g_angle])/350*1.5
+                # action = np.array([event.x, event.z, event.y, event.rx, -event.ry, event.rz])/350*1.5
             elif type(event) is spacenav.ButtonEvent:
                 if self.g_changed is not None:
                     self.g_changed = not self.g_changed
@@ -346,8 +358,8 @@ class RL_controller:
                     action = [0,0,0,0,0,0,0]
                 self.pressed[event.button] = event.pressed
             else:
-                # action = [0,0,0,0,0,0,0]
-                action = [0,0,0,0,0,0]
+                action = [0,0,0,0,0,0,0]
+                # action = [0,0,0,0,0,0]
             if self.pressed[0]:
                 self.g_angle = 0.5
             elif self.pressed[1]:
@@ -355,7 +367,7 @@ class RL_controller:
             else:
                 self.g_angle = 0
             
-            # action[6] = self.g_angle
+            action[6] = self.g_angle
             spacenav.remove_events(1)
             if self.g_changed is not None and not self.g_changed:
                 # print("Removed")
@@ -370,14 +382,14 @@ class RL_controller:
         print("Trajectory Generating")
         self.args.train_log = False
         task_list = ['reaching', 'grasping', 'picking', 'carrying', 'releasing', 'placing', 'pushing']
-        self.args.task = task_list[0]
+        self.args.task = task_list[4]
 
-        self._open_connection()
+        open_connection()
         self.args.robot_file = "jaco2_curtain_torque"
         env = JacoMujocoEnv(**vars(self.args))
         # traj_dict = generate_expert_traj(self._expert_3d, self.model_path+'/trajectories/'+self.args.task+'_trajectory_expert1', env, n_episodes=100)
-        traj_dict = generate_expert_traj(self._expert_3d, self.model_path+'/trajectories/'+self.args.task+"2", env, n_episodes=1)
-        self._close_connection()
+        traj_dict = generate_expert_traj(self._expert_3d, self.model_path+'/trajectories/'+self.args.task+"2", env, n_episodes=100)
+        close_connection()
 
     def create_buffer(self, name):
         traj_dict = np.load(self.model_path+'trajectories/'+self.args.task+"_"+name+".npz", allow_pickle=True)
@@ -399,7 +411,7 @@ class RL_controller:
 
     def train_HPC(self):
         task_list = ['picking', 'placing', 'pickAndplace']
-        composite_primitive_name = self.args.task = task_list[0]
+        composite_primitive_name = self.args.task = task_list[1]
         algo_list = ['sac','ppo']
         algo = algo_list[0]
 
@@ -437,18 +449,28 @@ class RL_controller:
         else:
             prefix = composite_primitive_name +'_'+algo+"_noaux_trained_at_" + str(time.localtime().tm_year) + "_" + str(time.localtime().tm_mon) + "_" + str(
                     time.localtime().tm_mday) + "_" + str(time.localtime().tm_hour) + ":" + str(time.localtime().tm_min)
-        prefix = 'HPCsepQtest'
+        # prefix = 'HPCtest'
         model_dir = self.model_path + prefix + "_" + str(self.trial)
         self.args.log_dir = model_dir
         os.makedirs(model_dir, exist_ok=True)
         print("\033[92m"+model_dir+"\033[0m")
 
-        obs_min = [-3, -1,-1,-1,-1,-1,-1, -1, -1,-1,-1, -1,-1,-1,-1,-1,-1]
-        obs_max = [ 3,  1, 1, 1, 1, 1, 1,  1,  1, 1, 1,  1, 1, 1, 1, 1, 1]
-        obs_idx = [ 0,  1, 2, 3, 4, 5, 6,  7,  8, 9,10, 17,18,19,20,21,22]
+        # Obs for Picking
+        # obs_min = [-3, -1,-1,-1,-1,-1,-1, -1, -1,-1,-1, -1,-1,-1,-1,-1,-1]
+        # obs_max = [ 3,  1, 1, 1, 1, 1, 1,  1,  1, 1, 1,  1, 1, 1, 1, 1, 1]
+        # obs_idx = [ 0,  1, 2, 3, 4, 5, 6,  7,  8, 9,10, 17,18,19,20,21,22]
+
+        # Obs for Placing
+        obs_min = [-3, -1,-1,-1,-1,-1,-1, -1, -1,-1,-1, -1,-1,-1, -1,-1,-1]
+        obs_max = [ 3,  1, 1, 1, 1, 1, 1,  1,  1, 1, 1,  1, 1, 1,  1, 1, 1]
+        obs_idx = [ 0,  1, 2, 3, 4, 5, 6,  7,  8, 9,10, 14,15,16, 23,24,25]
+
+        # Obs for pickAndplace
         # obs_min = [-3, -1,-1,-1,-1,-1,-1, -1, -1,-1,-1, -1,-1,-1, -1,-1,-1,-1,-1,-1, -1,-1,-1]
         # obs_max = [ 3,  1, 1, 1, 1, 1, 1,  1,  1, 1, 1,  1, 1, 1,  1, 1, 1, 1, 1, 1,  1, 1, 1]
         # obs_idx = [ 0,  1, 2, 3, 4, 5, 6,  7,  8, 9,10, 14,15,16, 17,18,19,20,21,22, 23,24,25]
+
+        # Action
         act_min = [-1,-1,-1,-1,-1,-1, -1]
         act_max = [ 1, 1, 1, 1, 1, 1,  1]
         act_idx = [ 0, 1, 2, 3, 4, 5,  6]
@@ -460,41 +482,48 @@ class RL_controller:
                                             obs_relativity={},
                                             layer_structure={'policy':[128, 128, 128]})
 
-        # # Pretrained primitives
-        # prim_name = 'reaching'
-        # # policy_zip_path = self.model_path+prim_name+'_trained_at_1_13_17:47:15_31/continue1/continue4/policy_3580000.zip'
-        # policy_zip_path = self.model_path+prim_name+'_trained_at_1_13_17:47:15_31/continue1/policy_3860000.zip'
-        # self.model.construct_primitive_info(name=prim_name, freeze=True, level=2,
-        #                                 obs_range=None, obs_index=[1,2,3,4,5,6, 14,15,16, 23,24,25,],
-        #                                 act_range=None, act_index=[0,1,2,3,4,5], act_scale=1,
-        #                                 obs_relativity={'subtract':{'ref':[14,15,16,23,24,25],'tar':[1,2,3,4,5,6]}},
-        #                                 layer_structure=None,
-        #                                 loaded_policy=SAC_MULTI._load_from_file(policy_zip_path),
-        #                                 load_value=False)
-
         # Pretrained primitives
-        prim_name = 'reaching'
-        # policy_zip_path = self.model_path+prim_name+'_trained_at_1_13_17:47:15_31/continue1/continue4/policy_3580000.zip'
+        prim_name = 'reaching'      # Reaching for Placing
         policy_zip_path = self.model_path+prim_name+'_trained_at_1_13_17:47:15_31/continue1/policy_3860000.zip'
         self.model.construct_primitive_info(name=prim_name, freeze=True, level=1,
-                                        obs_range=None, obs_index=[1,2,3,4,5,6, 17,18,19,20,21,22],
+                                        obs_range=None, obs_index=[1,2,3,4,5,6, 14,15,16, 23,24,25],
                                         act_range=None, act_index=[0,1,2,3,4,5], act_scale=1,
-                                        obs_relativity={'subtract':{'ref':[17,18,19,20,21,22],'tar':[1,2,3,4,5,6]}},
+                                        obs_relativity={'subtract':{'ref':[14,15,16,23,24,25],'tar':[1,2,3,4,5,6]}},
                                         layer_structure=None,
                                         loaded_policy=SAC_MULTI._load_from_file(policy_zip_path),
                                         load_value=False)
 
-        prim_name = 'grasping'
-        # policy_zip_path = self.model_path+prim_name+"_trained_at_12_28_17:26:27_15/continue1/policy_2330000.zip"
-        policy_zip_path = self.model_path+'comparison_observation_range_sym_discard_0/policy_8070000.zip'
+        # prim_name = 'reaching'    # Reaching for Picking
+        # policy_zip_path = self.model_path+prim_name+'_trained_at_1_13_17:47:15_31/continue1/policy_3860000.zip'
+        # self.model.construct_primitive_info(name=prim_name, freeze=True, level=1,
+        #                                 obs_range=None, obs_index=[1,2,3,4,5,6, 17,18,19,20,21,22],
+        #                                 act_range=None, act_index=[0,1,2,3,4,5], act_scale=1,
+        #                                 obs_relativity={'subtract':{'ref':[17,18,19,20,21,22],'tar':[1,2,3,4,5,6]}},
+        #                                 layer_structure=None,
+        #                                 loaded_policy=SAC_MULTI._load_from_file(policy_zip_path),
+        #                                 load_value=False)
+
+        # prim_name = 'grasping'
+        # # policy_zip_path = self.model_path+prim_name+"_trained_at_12_28_17:26:27_15/continue1/policy_2330000.zip"
+        # policy_zip_path = self.model_path+'comparison_observation_range_sym_discard_0/policy_8070000.zip'
+        # self.model.construct_primitive_info(name=prim_name, freeze=True, level=1,
+        #                                 obs_range=None, obs_index=[0, 1,2,3,4,5,6, 7, 8,9,10], 
+        #                                 act_range=None, act_index=[0,1,2,3,4,5, 6], act_scale=1,
+        #                                 obs_relativity={},
+        #                                 layer_structure=None,
+        #                                 loaded_policy=SAC_MULTI._load_from_file(policy_zip_path), 
+        #                                 load_value=False)
+
+        prim_name = 'releasing'
+        policy_zip_path = self.model_path+'releasing_trained_at_4_18_22:26:14_58/continue1/policy_2070000.zip'
         self.model.construct_primitive_info(name=prim_name, freeze=True, level=1,
-                                        obs_range=None, obs_index=[0, 1,2,3,4,5,6, 7, 8,9,10], 
+                                        obs_range=None, obs_index=[0, 1,2,3,4,5,6, 7, 8,9,10, 14,15,16], 
                                         act_range=None, act_index=[0,1,2,3,4,5, 6], act_scale=1,
                                         obs_relativity={},
                                         layer_structure=None,
                                         loaded_policy=SAC_MULTI._load_from_file(policy_zip_path), 
                                         load_value=False)
-        
+
         # prim_name = 'picking'
         # policy_zip_path = self.model_path+prim_name+'_sac_noaux_trained_at_2021_4_2_21:41_54/policy_4200000.zip'
         # self.model.construct_primitive_info(name=prim_name, freeze=True, level=2,
@@ -504,7 +533,17 @@ class RL_controller:
         #                                 layer_structure=None,
         #                                 loaded_policy=SAC_MULTI._load_from_file(policy_zip_path), 
         #                                 load_value=False)
-        
+
+        # prim_name = 'placing'
+        # policy_zip_path = self.model_path+prim_name+'?'
+        # self.model.construct_primitive_info(name=prim_name, freeze=True, level=2,
+        #                                 obs_range=None, obs_index=[0, 1,2,3,4,5,6, 7, 8,9,10, 14,15,16, 23,24,25], 
+        #                                 act_range=None, act_index=[0,1,2,3,4,5, 6], act_scale=1,
+        #                                 obs_relativity={},
+        #                                 layer_structure=None,
+        #                                 loaded_policy=SAC_MULTI._load_from_file(policy_zip_path), 
+        #                                 load_value=False)
+
         # Weight definition
         number_of_primitives = 3 if self.args.auxiliary else 2
         if self.args.rulebased_subgoal:
@@ -530,7 +569,7 @@ class RL_controller:
 
     def train_HPC_continue(self):
         task_list = ['picking', 'placing', 'pickAndplace']
-        composite_primitive_name = self.args.task = task_list[0]
+        composite_primitive_name = self.args.task = task_list[1]
         algo_list = ['sac','ppo']
         algo = algo_list[0]
 
@@ -625,7 +664,7 @@ class RL_controller:
         self.args.seed = 42
 
         task_list = ['reaching', 'grasping', 'picking', 'carrying', 'releasing', 'placing', 'pushing']
-        self.args.task = task_list[1]
+        self.args.task = task_list[2]
         algo_list = ['sac','ppo']
         algo = algo_list[0]
         self.args.subgoal_obs = False
@@ -644,34 +683,25 @@ class RL_controller:
             env = DummyVecEnv(env_list, dict(**vars(self.args)))
             env = VecNormalize(env)
 
-        ##### Grasping
+
+        ##### Grasping #####
         # Upper grasp
         # prefix = self.args.task + '_trained_at_12_28_17:26:27_15/continue1/policy_2330000.zip'
         # Side grasp (better)
-        prefix = 'comparison_observation_range_sym_discard_0/policy_8070000.zip'
+        # prefix = 'comparison_observation_range_sym_discard_0/policy_8070000.zip'
         # Side grasp
         # prefix = 'comparison_observation_range_sym_nobuffer_2/policy_4330000.zip'
 
-        ##### Reaching
-        # prefix = self.args.task + '_trained_at_11_27_18:25:54/policy_9999105.zip'
-        # prefix = self.args.task + '_trained_at_1_2_20:34:52_22/policy.zip'
-        # prefix = self.args.task + '_trained_at_1_3_17:15:43_23/policy.zip'
-        # prefix = self.args.task + '_trained_at_1_4_23:29:45_24/policy.zip'
-        # prefix = self.args.task + '_trained_at_1_4_23:30:10_25/policy.zip'
-        # prefix = self.args.task + '_trained_at_1_8_16:1:46_26/policy_7440000.zip'
-        # prefix = self.args.task + '_trained_at_1_8_16:1:46_26/policy.zip'
-        # prefix = self.args.task + '_trained_at_1_8_16:2:2_27/policy_7420000.zip'
-        # prefix = self.args.task + '_trained_at_1_13_17:47:41_32/policy_6750000.zip'
+        ##### Reaching #####
         # prefix = self.args.task + '_trained_at_1_13_17:47:15_31/continue1/policy_3860000.zip'
-        # prefix = self.args.task + '_trained_at_1_13_17:47:15_31/continue1/policy_4300000.zip'
-        # prefix = self.args.task + '_trained_at_1_13_17:47:15_31/continue1/continue4/policy_3580000.zip'
 
-        ##### Picking
-        # prefix = self.args.task + '_trained_at_2021_1_20_12:5_39/policy_8990000.zip'
-        # prefix = 'HPCtest_0/policy_2710000.zip'
+        ##### Picking #####
         # prefix = self.args.task + '_ppo_noaux_trained_at_2021_2_25_15:29_42/policy_50689.zip'
         # prefix = self.args.task + '_ppo_noaux_trained_at_2021_2_26_14:16_42/policy.zip'
-        # prefix = self.args.task + '_sac_noaux_trained_at_2021_4_2_21:41_54/policy_4200000.zip'
+        prefix = self.args.task + '_sac_noaux_trained_at_2021_4_2_21:41_54/policy_4200000.zip'
+
+        ##### Releasing #####
+        # prefix = self.args.task + '_trained_at_4_18_22:26:14_58/continue1/policy_2070000.zip'
 
 
         model_dir = self.model_path + prefix
@@ -681,7 +711,7 @@ class RL_controller:
                 self.model = SAC_MULTI(policy=MlpPolicy_hpcsac, env=None, _init_setup_model=False, composite_primitive_name='picking')
             elif algo == 'ppo':
                 self.model = HPCPPO(policy=MlpPolicy_hpcppo, env=None, _init_setup_model=False, composite_primitive_name='picking')
-            obs_idx = [0, 1,2,3,4,5,6, 7, 8,9,10, 17,18,19,20,21,22]
+            obs_idx = [0, 1,2,3,4,5,6, 7, 8,9,10, 17,18,19,20,21,22, 23,24,25]
             act_idx = [0,1,2,3,4,5, 6]
             self.model.construct_primitive_info(name=None, freeze=True, level=1,
                                                 obs_range=None, obs_index=obs_idx,
@@ -698,8 +728,7 @@ class RL_controller:
             if algo == 'sac':
                 print("SAC model LOADING in MAIN")
                 self.model = SAC_MULTI.load(model_dir, MlpPolicy_hpcsac, env)
-            else:
-                pass
+
         for _ in range(test_iter):
             iter = 0
             obs = env.reset()
@@ -707,7 +736,7 @@ class RL_controller:
             while not done:
                 iter += 1
                 if self.args.task in ['picking','placing','pickAndplace']:
-                    action, subgoal, weight = self.model.predict_subgoal(obs, deterministic=False)
+                    action, subgoal, weight = self.model.predict_subgoal(obs, deterministic=True)
                     obs, reward, done, _ = env.step(action, log=False, weight=weight, subgoal=subgoal)
                 else:
                     action, _ = self.model.predict(obs, deterministic=True)
@@ -716,18 +745,15 @@ class RL_controller:
                     done = True if done.any() == True else False
                 # print('reward: {0:2.3f}'.format(reward), end='\n')
 
-    def generate(self):
-        pass
-
 
 if __name__ == "__main__":
     controller = RL_controller()
     # controller.train_from_scratch_PPO1()  
     # controller.train_from_scratch_PPO2()
-    controller.train_from_scratch_SAC()
+    # controller.train_from_scratch_SAC()
     # controller.train_continue()
     # controller.train_from_expert()
-    # controller.train_HPC()
+    controller.train_HPC()
     # controller.train_HPC_continue()
     # controller.generate_traj()
     # controller.test()

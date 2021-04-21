@@ -20,12 +20,11 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
         self.max_steps = 2500
         self.task = kwargs.get('task', None)
         if self.task in ['reaching','grasping', 'carrying', 'releasing', 'pushing']:
-            # self.task_max_steps = 500
             self.task_max_steps = 500
         elif self.task in ['picking', 'placing']:
             self.task_max_steps = 700
         else:
-            self.task_max_steps = 2000
+            self.task_max_steps = 1500
         self.skip_frames = 50  #0.05s per step
         self.seed(kwargs.get('seed', None))
 
@@ -137,7 +136,6 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
 
     def step(self, action, weight=None, subgoal=None, log=True, id=None):
         action = np.clip(action, self.act_min, self.act_max)
-        self.prev_action = action
         self.take_action(action, weight, subgoal, id)
         for _ in range(self.skip_frames):
             self._step_simulation()
