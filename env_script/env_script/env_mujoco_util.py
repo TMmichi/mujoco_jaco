@@ -118,6 +118,7 @@ class JacoMujocoEnvUtil:
 
     def _reset(self):
         self.interface.sim.reset()
+        self.picked = False
         self.num_episodes = 0
         self.gripper_iter = 0
         self.touch_index = 0
@@ -129,6 +130,8 @@ class JacoMujocoEnvUtil:
         self.interface.set_joint_state(init_angle, [0]*6*self.n_robots)
         self.reaching_goal, self.obj_goal, self.dest_goal = self.__sample_goal()
         print('sampled obj_goal: ', self.obj_goal)
+
+        # Place objects 
         if self.task in ['carrying', 'releasing', 'placing']:
             pos = self.__get_property('EE_obj', 'pose')[0]
             quat = transformations.quaternion_from_euler(pos[3], pos[4], pos[5], axes='rxyz')
@@ -669,11 +672,11 @@ class JacoMujocoEnvUtil:
                         print("\033[91m Dropped \033[0m")
                         return True, -20, wb
                     # Released Success
-                    elif dest_diff < 0.03 and self.touch_index == 0 and obj_position[2] < 0.35:
+                    elif dest_diff < 0.04 and self.touch_index == 0 and obj_position[2] < 0.35:
                         print("\033[92m Releasing Succeeded \033[0m")
                         return True, 200 - (self.num_episodes*0.1), wb
                     # Released Wrong
-                    elif dest_diff > 0.03 and self.touch_index == 0 and obj_position[2] < 0.20:
+                    elif dest_diff > 0.04 and self.touch_index == 0 and obj_position[2] < 0.20:
                         print("\033[91m Released at the wrong position \033[0m")
                         return True, -20, wb
                     # Else
@@ -682,11 +685,19 @@ class JacoMujocoEnvUtil:
                 elif self.task == 'pushing':
                     return True, 0, wb
                 elif self.task == 'pickAndplace':
+                    # Picked
+                    if (self.interface.get_xyz('object_body')[2] > self.object_z + 0.07) and self.touch_index in [1,3] and not self.picked:
+                        print("\033[92m Picked \033[0m")
+                        self.picked = True
+                        return False, 20, wb
+                    # Released Success
+                    elif dest_diff < 0.04 and self.touch_index == 0 and obj_position[2] < 0.35:
+                        print("\033[92m Pick and Place Succeeded \033[0m")
+                        return True, 50, wb
                     # Dropped
-                    if self.interface.get_xyz('object_body')[2] < 0.1:
+                    elif obj_position[2] < 0.1:
                         print("\033[91m Dropped \033[0m")
-                        return True, -1, wb
-                    # Else
+                        return True, -20, wb
                     else:
                         return False, 0, wb
 
@@ -694,41 +705,67 @@ class JacoMujocoEnvUtil:
         self.action_in = True
         self.gripper_iter = 0
         self.__get_gripper_pose()
-        weight_layer = 'level1_'+self.task+'/weight'
-        weight_reach = 0
+        weight_reach1 = 0
         weight_grasp = 0
+        weight_reach2 = 0
         weight_release = 0
+        weight_pick = 0
+        weight_place = 0
         weight_aux = 0
 
         if type(weight) == dict:
+            weight_layer = 'level1_'+self.task+'/weight'
+            # print(weight)
             if self.task == 'picking':
                 if self.auxiliary:
                     weight_aux = weight[weight_layer][0][0]
-                    weight_reach = weight[weight_layer][0][1]
+                    weight_reach1 = weight[weight_layer][0][1]
                     weight_grasp = weight[weight_layer][0][2]
                 else:
-                    weight_reach = weight[weight_layer][0][0]
+                    weight_reach1 = weight[weight_layer][0][0]
                     weight_grasp = weight[weight_layer][0][1]
             elif self.task == 'placing':
                 if self.auxiliary:
                     weight_aux = weight[weight_layer][0][0]
-                    weight_reach = weight[weight_layer][0][1]
+                    weight_reach2 = weight[weight_layer][0][1]
                     weight_release = weight[weight_layer][0][2]
                 else:
-                    weight_reach = weight[weight_layer][0][0]
+                    weight_reach2 = weight[weight_layer][0][0]
                     weight_release = weight[weight_layer][0][1]
+            elif self.task == 'pickAndplace':
+                weight_pick_layer = 'level1_picking/weight'
+                weight_place_layer = 'level1_placing/weight'
+                weight_pickAndplace_layer = 'level2_pickAndplace/weight'
+                if self.auxiliary:
+                    weight_aux = weight[weight_pickAndplace_layer][0][0]
+                    weight_pick = weight[weight_pickAndplace_layer][0][1]
+                    weight_place = weight[weight_pickAndplace_layer][0][2]
+                    weight_reach1 = weight_pick * weight[weight_pick_layer][0][0]
+                    weight_grasp = weight_pick * weight[weight_pick_layer][0][1]
+                    weight_reach2 = weight_place * weight[weight_place_layer][0][0]
+                    weight_release = weight_place * weight[weight_place_layer][0][1]
+                else:
+                    weight_pick = weight[weight_pickAndplace_layer][0][0]
+                    weight_place = weight[weight_pickAndplace_layer][0][1]
+                    weight_reach1 = weight_pick * weight[weight_pick_layer][0][0]
+                    weight_grasp = weight_pick * weight[weight_pick_layer][0][1]
+                    weight_reach2 = weight_place * weight[weight_place_layer][0][0]
+                    weight_release = weight_place * weight[weight_place_layer][0][1]
             if id is not None:
                 if id[0] == 0:
-                    self.interface.set_mocap_xyz("id_reach", [-0.18,0.05,-0.1 + 1*0.1])
-                    self.interface.set_mocap_xyz("id_grasp", [-0.14,0.05,-0.1 + 0])
+                    self.interface.set_mocap_xyz("id_reach", [-0.26,0.14,-0.1 + 1*0.1])
+                    self.interface.set_mocap_xyz("id_grasp", [-0.22,0.14,-0.1 + 0])
                 else:
-                    self.interface.set_mocap_xyz("id_reach", [-0.18,0.05,-0.1 + 0])
-                    self.interface.set_mocap_xyz("id_grasp", [-0.14,0.05,-0.1 + 1*0.1])
+                    self.interface.set_mocap_xyz("id_reach", [-0.26,0.14,-0.1 + 0])
+                    self.interface.set_mocap_xyz("id_grasp", [-0.22,0.14,-0.1 + 1*0.1])
             
-            self.interface.set_mocap_xyz("weight_reach", [-0.18,0.1,-0.1 + weight_reach*0.1])
-            self.interface.set_mocap_xyz("weight_grasp", [-0.14,0.1,-0.1 + weight_grasp*0.1])
-            self.interface.set_mocap_xyz("weight_release", [-0.1,0.1,-0.1 + weight_release*0.1])
-            self.interface.set_mocap_xyz("weight_aux", [-0.06,0.1,-0.1 + weight_aux*0.1])
+            self.interface.set_mocap_xyz("weight_reach", [-0.26,0.1,-0.1 + weight_reach1*0.1])
+            self.interface.set_mocap_xyz("weight_grasp", [-0.22,0.1,-0.1 + weight_grasp*0.1])
+            self.interface.set_mocap_xyz("weight_reach2", [-0.18,0.1,-0.1 + weight_reach2*0.1])
+            self.interface.set_mocap_xyz("weight_release", [-0.14,0.1,-0.1 + weight_release*0.1])
+            self.interface.set_mocap_xyz("weight_aux", [-0.1,0.1,-0.1 + weight_aux*0.1])
+            self.interface.set_mocap_xyz("weight_pick", [-0.26,0.06,-0.1 + weight_pick*0.1])
+            self.interface.set_mocap_xyz("weight_place", [-0.22,0.06,-0.1 + weight_place*0.1])
             
         if self.rulebased_subgoal:
             subpos, subori = self._get_rulebased_subgoal()

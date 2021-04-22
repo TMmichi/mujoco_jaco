@@ -90,7 +90,7 @@ class RL_controller:
         args.batches_per_episodes = self.batches_per_episodes
         self.num_episodes = 20000
         self.args = args
-        self.trial = 62
+        self.trial = 66
 
 
     def train_from_scratch_PPO1(self):
@@ -411,7 +411,7 @@ class RL_controller:
 
     def train_HPC(self):
         task_list = ['picking', 'placing', 'pickAndplace']
-        composite_primitive_name = self.args.task = task_list[1]
+        composite_primitive_name = self.args.task = task_list[2]
         algo_list = ['sac','ppo']
         algo = algo_list[0]
 
@@ -461,14 +461,14 @@ class RL_controller:
         # obs_idx = [ 0,  1, 2, 3, 4, 5, 6,  7,  8, 9,10, 17,18,19,20,21,22]
 
         # Obs for Placing
-        obs_min = [-3, -1,-1,-1,-1,-1,-1, -1, -1,-1,-1, -1,-1,-1, -1,-1,-1]
-        obs_max = [ 3,  1, 1, 1, 1, 1, 1,  1,  1, 1, 1,  1, 1, 1,  1, 1, 1]
-        obs_idx = [ 0,  1, 2, 3, 4, 5, 6,  7,  8, 9,10, 14,15,16, 23,24,25]
+        # obs_min = [-3, -1,-1,-1,-1,-1,-1, -1, -1,-1,-1, -1,-1,-1, -1,-1,-1]
+        # obs_max = [ 3,  1, 1, 1, 1, 1, 1,  1,  1, 1, 1,  1, 1, 1,  1, 1, 1]
+        # obs_idx = [ 0,  1, 2, 3, 4, 5, 6,  7,  8, 9,10, 14,15,16, 23,24,25]
 
         # Obs for pickAndplace
-        # obs_min = [-3, -1,-1,-1,-1,-1,-1, -1, -1,-1,-1, -1,-1,-1, -1,-1,-1,-1,-1,-1, -1,-1,-1]
-        # obs_max = [ 3,  1, 1, 1, 1, 1, 1,  1,  1, 1, 1,  1, 1, 1,  1, 1, 1, 1, 1, 1,  1, 1, 1]
-        # obs_idx = [ 0,  1, 2, 3, 4, 5, 6,  7,  8, 9,10, 14,15,16, 17,18,19,20,21,22, 23,24,25]
+        obs_min = [-3, -1,-1,-1,-1,-1,-1, -1, -1,-1,-1, -1,-1,-1, -1,-1,-1,-1,-1,-1, -1,-1,-1]
+        obs_max = [ 3,  1, 1, 1, 1, 1, 1,  1,  1, 1, 1,  1, 1, 1,  1, 1, 1, 1, 1, 1,  1, 1, 1]
+        obs_idx = [ 0,  1, 2, 3, 4, 5, 6,  7,  8, 9,10, 14,15,16, 17,18,19,20,21,22, 23,24,25]
 
         # Action
         act_min = [-1,-1,-1,-1,-1,-1, -1]
@@ -482,19 +482,9 @@ class RL_controller:
                                             obs_relativity={},
                                             layer_structure={'policy':[128, 128, 128]})
 
-        # Pretrained primitives
-        prim_name = 'reaching'      # Reaching for Placing
-        policy_zip_path = self.model_path+prim_name+'_trained_at_1_13_17:47:15_31/continue1/policy_3860000.zip'
-        self.model.construct_primitive_info(name=prim_name, freeze=True, level=1,
-                                        obs_range=None, obs_index=[1,2,3,4,5,6, 14,15,16, 23,24,25],
-                                        act_range=None, act_index=[0,1,2,3,4,5], act_scale=1,
-                                        obs_relativity={'subtract':{'ref':[14,15,16,23,24,25],'tar':[1,2,3,4,5,6]}},
-                                        layer_structure=None,
-                                        loaded_policy=SAC_MULTI._load_from_file(policy_zip_path),
-                                        load_value=False)
-
+        ##### Pretrained primitives #####
         # prim_name = 'reaching'    # Reaching for Picking
-        # policy_zip_path = self.model_path+prim_name+'_trained_at_1_13_17:47:15_31/continue1/policy_3860000.zip'
+        # policy_zip_path = self.model_path+'reaching_trained_at_1_13_17:47:15_31/continue1/policy_3860000.zip'
         # self.model.construct_primitive_info(name=prim_name, freeze=True, level=1,
         #                                 obs_range=None, obs_index=[1,2,3,4,5,6, 17,18,19,20,21,22],
         #                                 act_range=None, act_index=[0,1,2,3,4,5], act_scale=1,
@@ -504,7 +494,7 @@ class RL_controller:
         #                                 load_value=False)
 
         # prim_name = 'grasping'
-        # # policy_zip_path = self.model_path+prim_name+"_trained_at_12_28_17:26:27_15/continue1/policy_2330000.zip"
+        # # policy_zip_path = self.model_path+"grasping_trained_at_12_28_17:26:27_15/continue1/policy_2330000.zip"
         # policy_zip_path = self.model_path+'comparison_observation_range_sym_discard_0/policy_8070000.zip'
         # self.model.construct_primitive_info(name=prim_name, freeze=True, level=1,
         #                                 obs_range=None, obs_index=[0, 1,2,3,4,5,6, 7, 8,9,10], 
@@ -514,35 +504,45 @@ class RL_controller:
         #                                 loaded_policy=SAC_MULTI._load_from_file(policy_zip_path), 
         #                                 load_value=False)
 
-        prim_name = 'releasing'
-        policy_zip_path = self.model_path+'releasing_trained_at_4_18_22:26:14_58/continue1/policy_2070000.zip'
-        self.model.construct_primitive_info(name=prim_name, freeze=True, level=1,
-                                        obs_range=None, obs_index=[0, 1,2,3,4,5,6, 7, 8,9,10, 14,15,16], 
+        # prim_name = 'reaching_place'      # Reaching for Placing
+        # policy_zip_path = self.model_path+'reaching_trained_at_1_13_17:47:15_31/continue1/policy_3860000.zip'
+        # self.model.construct_primitive_info(name=prim_name, freeze=True, level=1,
+        #                                 obs_range=None, obs_index=[1,2,3,4,5,6, 14,15,16, 23,24,25],
+        #                                 act_range=None, act_index=[0,1,2,3,4,5], act_scale=1,
+        #                                 obs_relativity={'subtract':{'ref':[14,15,16,23,24,25],'tar':[1,2,3,4,5,6]}},
+        #                                 layer_structure=None,
+        #                                 loaded_policy=SAC_MULTI._load_from_file(policy_zip_path),
+        #                                 load_value=False)
+
+        # prim_name = 'releasing'
+        # policy_zip_path = self.model_path+'releasing_trained_at_4_18_22:26:14_58/continue1/policy_2070000.zip'
+        # self.model.construct_primitive_info(name=prim_name, freeze=True, level=1,
+        #                                 obs_range=None, obs_index=[0, 1,2,3,4,5,6, 7, 8,9,10, 14,15,16], 
+        #                                 act_range=None, act_index=[0,1,2,3,4,5, 6], act_scale=1,
+        #                                 obs_relativity={},
+        #                                 layer_structure=None,
+        #                                 loaded_policy=SAC_MULTI._load_from_file(policy_zip_path), 
+        #                                 load_value=False)
+
+        prim_name = 'picking'
+        policy_zip_path = self.model_path+'picking_sac_noaux_trained_at_2021_4_2_21:41_54/policy_4200000.zip'
+        self.model.construct_primitive_info(name=prim_name, freeze=True, level=2,
+                                        obs_range=None, obs_index=[0, 1,2,3,4,5,6, 7, 8,9,10, 17,18,19,20,21,22], 
                                         act_range=None, act_index=[0,1,2,3,4,5, 6], act_scale=1,
                                         obs_relativity={},
                                         layer_structure=None,
                                         loaded_policy=SAC_MULTI._load_from_file(policy_zip_path), 
                                         load_value=False)
 
-        # prim_name = 'picking'
-        # policy_zip_path = self.model_path+prim_name+'_sac_noaux_trained_at_2021_4_2_21:41_54/policy_4200000.zip'
-        # self.model.construct_primitive_info(name=prim_name, freeze=True, level=2,
-        #                                 obs_range=None, obs_index=[0, 1,2,3,4,5,6, 7, 8,9,10, 17,18,19,20,21,22], 
-        #                                 act_range=None, act_index=[0,1,2,3,4,5, 6], act_scale=1,
-        #                                 obs_relativity={},
-        #                                 layer_structure=None,
-        #                                 loaded_policy=SAC_MULTI._load_from_file(policy_zip_path), 
-        #                                 load_value=False)
-
-        # prim_name = 'placing'
-        # policy_zip_path = self.model_path+prim_name+'?'
-        # self.model.construct_primitive_info(name=prim_name, freeze=True, level=2,
-        #                                 obs_range=None, obs_index=[0, 1,2,3,4,5,6, 7, 8,9,10, 14,15,16, 23,24,25], 
-        #                                 act_range=None, act_index=[0,1,2,3,4,5, 6], act_scale=1,
-        #                                 obs_relativity={},
-        #                                 layer_structure=None,
-        #                                 loaded_policy=SAC_MULTI._load_from_file(policy_zip_path), 
-        #                                 load_value=False)
+        prim_name = 'placing'
+        policy_zip_path = self.model_path+'placing_sac_noaux_trained_at_2021_4_22_16:15_59/policy_120000.zip'
+        self.model.construct_primitive_info(name=prim_name, freeze=True, level=2,
+                                        obs_range=None, obs_index=[0, 1,2,3,4,5,6, 7, 8,9,10, 14,15,16, 23,24,25], 
+                                        act_range=None, act_index=[0,1,2,3,4,5, 6], act_scale=1,
+                                        obs_relativity={},
+                                        layer_structure=None,
+                                        loaded_policy=SAC_MULTI._load_from_file(policy_zip_path), 
+                                        load_value=False)
 
         # Weight definition
         number_of_primitives = 3 if self.args.auxiliary else 2
@@ -550,7 +550,7 @@ class RL_controller:
             subgoal_dict = None
         else:
             subgoal_dict = {'level1_reaching/level0':[17,18,19,20,21,22]}
-        self.model.construct_primitive_info(name='weight', freeze=False, level=1,
+        self.model.construct_primitive_info(name='weight', freeze=False, level=2,
                                         obs_range=0, obs_index=obs_idx,
                                         act_range=0, act_index=list(range(number_of_primitives)), act_scale=None,
                                         obs_relativity={},
@@ -559,7 +559,7 @@ class RL_controller:
 
         self.num_timesteps = self.steps_per_batch * self.batches_per_episodes * self.num_episodes 
         model_dict = {'gamma': 0.99, 'tensorboard_log': model_dir,'verbose': 1, 'seed': self.args.seed, \
-            'learning_rate':_lr_scheduler, 'learning_starts':100, 'ent_coef': ent_coef, 'batch_size': 8, 'noptepochs': 4, 'n_steps': 128}
+            'learning_rate':_lr_scheduler, 'learning_starts':20000, 'ent_coef': ent_coef, 'batch_size': 8, 'noptepochs': 4, 'n_steps': 128}
         self.model.pretrainer_load(model=self.model, policy=policy, env=env, **model_dict)
         self._write_log(model_dir, info)
         print("\033[91mTraining Starts\033[0m")
@@ -703,6 +703,9 @@ class RL_controller:
         ##### Releasing #####
         # prefix = self.args.task + '_trained_at_4_18_22:26:14_58/continue1/policy_2070000.zip'
 
+        ##### Placking #####
+        # prefix = self.args.task + '_sac_noaux_trained_at_2021_4_21_22:7_62/policy_1650000.zip'
+
 
         model_dir = self.model_path + prefix
         test_iter = 20
@@ -736,7 +739,7 @@ class RL_controller:
             while not done:
                 iter += 1
                 if self.args.task in ['picking','placing','pickAndplace']:
-                    action, subgoal, weight = self.model.predict_subgoal(obs, deterministic=True)
+                    action, subgoal, weight = self.model.predict_subgoal(obs, deterministic=False)
                     obs, reward, done, _ = env.step(action, log=False, weight=weight, subgoal=subgoal)
                 else:
                     action, _ = self.model.predict(obs, deterministic=True)
