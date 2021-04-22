@@ -34,6 +34,7 @@ pip install -r requirements.txt
 #### Note
 
 If you get `No matching distribution found` error for tensorflow==1.15.0, you should upgrade your pip version to the latest one.
+You need to have a CUDA and CuDNN installed in your machine.
 
 ### Pyspacenav
 
