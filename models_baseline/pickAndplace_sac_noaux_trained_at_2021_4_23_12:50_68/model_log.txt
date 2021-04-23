@@ -1,0 +1,7 @@
+Layers:
+	policy:	[128, 128, 128]
+	value:	[128, 128, 128]
+
+no weight direct.
+first sample from direct weight
+and update wrt. actions

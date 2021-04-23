@@ -90,7 +90,7 @@ class RL_controller:
         args.batches_per_episodes = self.batches_per_episodes
         self.num_episodes = 20000
         self.args = args
-        self.trial = 66
+        self.trial = 69
 
 
     def train_from_scratch_PPO1(self):
@@ -260,8 +260,8 @@ class RL_controller:
         self.args.task = task_list[4]
         self.args.visualize = True
         self.args.prev_action = False
-        model_dir = self.model_path + 'releasing_trained_at_4_18_22:26:14_58'
-        policy_dir = model_dir + '/policy_2900000.zip'
+        model_dir = self.model_path + 'releasing_trained_at_4_18_22:26:14_58/continue1/'
+        policy_dir = model_dir + '/policy_2070000.zip'
         sub_dir = '/continue1'
         print("\033[92m"+model_dir + sub_dir+"\033[0m")
         
@@ -278,12 +278,8 @@ class RL_controller:
         env = JacoMujocoEnv(**vars(self.args))
         
         os.makedirs(model_dir+sub_dir, exist_ok=True)
-        # net_arch = {'pi': [128,128], 'vf': [64, 64]}
-        # policy_kwargs = {'net_arch': [net_arch]}
         self.trainer = SAC_MULTI.load(policy_dir, policy=MlpPolicy_hpcsac, env=env, replay_buffer=buffer, tensorboard_log=model_dir+sub_dir, \
                                     learning_rate=_lr_scheduler, learning_starts=100, ent_coef='auto')
-        # self.trainer = PPO1.load(policy_dir, env=env, tensorboard_log=model_dir+sub_dir, policy_kwargs=policy_kwargs, exact_match=True, only={'value':True})
-        # self.trainer = PPO1.load(policy_dir, env=env, tensorboard_log=model_dir+sub_dir)
         self.trainer.learn(total_time_step, save_interval=10000, save_path=model_dir+sub_dir)
         print("Train Finished")
         self.trainer.save(model_dir+sub_dir)
@@ -559,7 +555,7 @@ class RL_controller:
 
         self.num_timesteps = self.steps_per_batch * self.batches_per_episodes * self.num_episodes 
         model_dict = {'gamma': 0.99, 'tensorboard_log': model_dir,'verbose': 1, 'seed': self.args.seed, \
-            'learning_rate':_lr_scheduler, 'learning_starts':20000, 'ent_coef': ent_coef, 'batch_size': 8, 'noptepochs': 4, 'n_steps': 128}
+            'learning_rate':_lr_scheduler, 'learning_starts':40000, 'ent_coef': ent_coef, 'batch_size': 8, 'noptepochs': 4, 'n_steps': 128}
         self.model.pretrainer_load(model=self.model, policy=policy, env=env, **model_dict)
         self._write_log(model_dir, info)
         print("\033[91mTraining Starts\033[0m")
@@ -663,8 +659,9 @@ class RL_controller:
         self.args.n_robots = 1
         self.args.seed = 42
 
-        task_list = ['reaching', 'grasping', 'picking', 'carrying', 'releasing', 'placing', 'pushing']
-        self.args.task = task_list[2]
+        #                 0           1          2          3            4           5          6             7
+        task_list = ['reaching', 'grasping', 'picking', 'carrying', 'releasing', 'placing', 'pushing', 'pickAndplace']
+        self.args.task = task_list[7]
         algo_list = ['sac','ppo']
         algo = algo_list[0]
         self.args.subgoal_obs = False
@@ -698,13 +695,16 @@ class RL_controller:
         ##### Picking #####
         # prefix = self.args.task + '_ppo_noaux_trained_at_2021_2_25_15:29_42/policy_50689.zip'
         # prefix = self.args.task + '_ppo_noaux_trained_at_2021_2_26_14:16_42/policy.zip'
-        prefix = self.args.task + '_sac_noaux_trained_at_2021_4_2_21:41_54/policy_4200000.zip'
+        # prefix = self.args.task + '_sac_noaux_trained_at_2021_4_2_21:41_54/policy_4200000.zip'
 
         ##### Releasing #####
         # prefix = self.args.task + '_trained_at_4_18_22:26:14_58/continue1/policy_2070000.zip'
 
         ##### Placking #####
         # prefix = self.args.task + '_sac_noaux_trained_at_2021_4_21_22:7_62/policy_1650000.zip'
+    
+        ##### pickAndplace #####
+        prefix = self.args.task + '_sac_noaux_trained_at_2021_4_22_18:20_67/policy_290000.zip'
 
 
         model_dir = self.model_path + prefix
@@ -739,7 +739,7 @@ class RL_controller:
             while not done:
                 iter += 1
                 if self.args.task in ['picking','placing','pickAndplace']:
-                    action, subgoal, weight = self.model.predict_subgoal(obs, deterministic=False)
+                    action, subgoal, weight = self.model.predict_subgoal(obs, deterministic=True)
                     obs, reward, done, _ = env.step(action, log=False, weight=weight, subgoal=subgoal)
                 else:
                     action, _ = self.model.predict(obs, deterministic=True)

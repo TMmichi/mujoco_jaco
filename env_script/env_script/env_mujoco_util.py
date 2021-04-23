@@ -582,39 +582,47 @@ class JacoMujocoEnvUtil:
             print("\033[91m \nUn wanted joint angle - possible singular state \033[0m")
             return True, -1, wb
         else:
-            # OB termination
-            if abs(relx) >= 1 or abs(rely) >= 1 or abs(relz) >= 1 or wb > 0.9:
-                print("\033[91m \nWorkspace out of bound \033[0m")
-                return True, -50, wb
-            else:
-                if self.task == 'reaching':
-                    grip = transformations.unit_vector(
-                        transformations.quaternion_from_euler(
-                            self.gripper_pose[0][3], self.gripper_pose[0][4], self.gripper_pose[0][5], axes="rxyz"))
-                    tar = transformations.unit_vector(
-                        transformations.quaternion_from_euler(
-                            self.reaching_goal[0][3], self.reaching_goal[0][4], self.reaching_goal[0][5], axes="rxyz"))
-                    # angle_diff = grip-tar
-                    # ang_diff = np.linalg.norm(angle_diff)
-                    grip_euler = transformations.euler_from_quaternion(grip,'rxyz')
-                    tar_euler = transformations.euler_from_quaternion(tar,'rxyz')
-                    ang_diff = np.linalg.norm(np.array(grip_euler) - np.array(tar_euler))
-                    if ang_diff > np.pi:
-                        ang_diff = 2*np.pi - ang_diff
-                    if dist_diff < 0.025 and ang_diff < np.pi/6: 
-                        print("\033[92m Target Reached \033[0m")
-                        return True, 200 - (self.num_episodes*0.1), wb
-                    else:
-                        return False, 0, wb
-                elif self.task == 'grasping':
-                    # Too Far
-                    if obj_diff > 0.2:
-                        print("\033[91m \nGripper too far away from the object \033[0m")
-                        return True, -20, wb
-                    # Grasped
+            if self.task == 'reaching':
+                grip = transformations.unit_vector(
+                    transformations.quaternion_from_euler(
+                        self.gripper_pose[0][3], self.gripper_pose[0][4], self.gripper_pose[0][5], axes="rxyz"))
+                tar = transformations.unit_vector(
+                    transformations.quaternion_from_euler(
+                        self.reaching_goal[0][3], self.reaching_goal[0][4], self.reaching_goal[0][5], axes="rxyz"))
+                # angle_diff = grip-tar
+                # ang_diff = np.linalg.norm(angle_diff)
+                grip_euler = transformations.euler_from_quaternion(grip,'rxyz')
+                tar_euler = transformations.euler_from_quaternion(tar,'rxyz')
+                ang_diff = np.linalg.norm(np.array(grip_euler) - np.array(tar_euler))
+                if ang_diff > np.pi:
+                    ang_diff = 2*np.pi - ang_diff
+                if dist_diff < 0.025 and ang_diff < np.pi/6: 
+                    print("\033[92m Target Reached \033[0m")
+                    return True, 200 - (self.num_episodes*0.1), wb
+                else:
+                    return False, 0, wb
+            elif self.task == 'grasping':
+                # Too Far
+                if obj_diff > 0.2:
+                    print("\033[91m \nGripper too far away from the object \033[0m")
+                    return True, -20, wb
+                # Grasped
+                if (self.interface.get_xyz('object_body')[2] > self.object_z + 0.07) and self.touch_index in [1,3]:
+                # if (self.interface.get_xyz('object_body')[2] > self.object_z + 0.12) and self.touch_index in [1,3]:
+                    print("\033[92m Grasping Succeeded \033[0m")
+                    return True, 200 - (self.num_episodes*0.1), wb
+                # Dropped
+                elif self.interface.get_xyz('object_body')[2] < 0.1:
+                    print("\033[91m Dropped \033[0m")
+                    return True, -20, wb
+                # Else
+                else:
+                    return False, 0, wb
+            elif self.task == 'picking':
+                if not self.binary:
+                    # Picked
                     if (self.interface.get_xyz('object_body')[2] > self.object_z + 0.07) and self.touch_index in [1,3]:
-                    # if (self.interface.get_xyz('object_body')[2] > self.object_z + 0.12) and self.touch_index in [1,3]:
-                        print("\033[92m Grasping Succeeded \033[0m")
+                        print("\033[92m Picking Succeeded \033[0m")
                         return True, 200 - (self.num_episodes*0.1), wb
                     # Dropped
                     elif self.interface.get_xyz('object_body')[2] < 0.1:
@@ -623,83 +631,70 @@ class JacoMujocoEnvUtil:
                     # Else
                     else:
                         return False, 0, wb
-                elif self.task == 'picking':
-                    if not self.binary:
-                        # Picked
-                        if (self.interface.get_xyz('object_body')[2] > self.object_z + 0.07) and self.touch_index in [1,3]:
-                            print("\033[92m Picking Succeeded \033[0m")
-                            return True, 200 - (self.num_episodes*0.1), wb
-                        # Dropped
-                        elif self.interface.get_xyz('object_body')[2] < 0.1:
-                            print("\033[91m Dropped \033[0m")
-                            return True, -20, wb
-                        # Else
-                        else:
-                            return False, 0, wb
-                    else:
-                        # Picked
-                        if (self.interface.get_xyz('object_body')[2] > self.object_z + 0.07) and self.touch_index in [1,3]:
-                            print("\033[92m Picking Succeeded \033[0m")
-                            return True, 10, wb
-                        # Dropped
-                        elif self.interface.get_xyz('object_body')[2] < 0.1:
-                            print("\033[91m Dropped \033[0m")
-                            return True, -1, wb
-                        # Else
-                        else:
-                            return False, 0, wb
-                elif self.task == 'carrying':
-                    return True, 0, wb
-                elif self.task == 'releasing':
-                    # Dropped
-                    if obj_position[2] < 0.1:
-                        print("\033[91m Dropped \033[0m")
-                        return True, -20, wb
-                    # Released Success
-                    elif dest_diff < 0.03 and self.touch_index == 0 and obj_position[2] < 0.35 and obj_velocity < 0.01:
-                        print("\033[92m Releasing Succeeded \033[0m")
-                        return True, 200 - (self.num_episodes*0.1), wb
-                    # Released Wrong
-                    elif dest_diff > 0.03 and self.touch_index == 0 and obj_position[2] < 0.27:
-                        print("\033[91m Released at the wrong position \033[0m")
-                        return True, -20, wb
-                    # Else
-                    else:
-                        return False, 0, wb
-                elif self.task == 'placing':
-                    # Dropped
-                    if obj_position[2] < 0.1:
-                        print("\033[91m Dropped \033[0m")
-                        return True, -20, wb
-                    # Released Success
-                    elif dest_diff < 0.04 and self.touch_index == 0 and obj_position[2] < 0.35:
-                        print("\033[92m Releasing Succeeded \033[0m")
-                        return True, 200 - (self.num_episodes*0.1), wb
-                    # Released Wrong
-                    elif dest_diff > 0.04 and self.touch_index == 0 and obj_position[2] < 0.20:
-                        print("\033[91m Released at the wrong position \033[0m")
-                        return True, -20, wb
-                    # Else
-                    else:
-                        return False, 0, wb
-                elif self.task == 'pushing':
-                    return True, 0, wb
-                elif self.task == 'pickAndplace':
+                else:
                     # Picked
-                    if (self.interface.get_xyz('object_body')[2] > self.object_z + 0.07) and self.touch_index in [1,3] and not self.picked:
-                        print("\033[92m Picked \033[0m")
-                        self.picked = True
-                        return False, 20, wb
-                    # Released Success
-                    elif dest_diff < 0.04 and self.touch_index == 0 and obj_position[2] < 0.35:
-                        print("\033[92m Pick and Place Succeeded \033[0m")
-                        return True, 50, wb
+                    if (self.interface.get_xyz('object_body')[2] > self.object_z + 0.07) and self.touch_index in [1,3]:
+                        print("\033[92m Picking Succeeded \033[0m")
+                        return True, 10, wb
                     # Dropped
-                    elif obj_position[2] < 0.1:
+                    elif self.interface.get_xyz('object_body')[2] < 0.1:
                         print("\033[91m Dropped \033[0m")
-                        return True, -20, wb
+                        return True, -1, wb
+                    # Else
                     else:
                         return False, 0, wb
+            elif self.task == 'carrying':
+                return True, 0, wb
+            elif self.task == 'releasing':
+                # Dropped
+                if obj_position[2] < 0.1:
+                    print("\033[91m Dropped \033[0m")
+                    return True, -20, wb
+                # Released Success
+                elif dest_diff < 0.03 and self.touch_index == 0 and obj_position[2] < 0.35 and obj_velocity < 0.01:
+                    print("\033[92m Releasing Succeeded \033[0m")
+                    return True, 200 - (self.num_episodes*0.1), wb
+                # Released Wrong
+                elif dest_diff > 0.03 and self.touch_index == 0 and obj_position[2] < 0.27:
+                    print("\033[91m Released at the wrong position \033[0m")
+                    return True, -20, wb
+                # Else
+                else:
+                    return False, 0, wb
+            elif self.task == 'placing':
+                # Dropped
+                if obj_position[2] < 0.1:
+                    print("\033[91m Dropped \033[0m")
+                    return True, -20, wb
+                # Released Success
+                elif dest_diff < 0.04 and self.touch_index == 0 and obj_position[2] < 0.35:
+                    print("\033[92m Placing Succeeded \033[0m")
+                    return True, 200 - (self.num_episodes*0.1), wb
+                # Released Wrong
+                elif dest_diff > 0.04 and self.touch_index == 0 and obj_position[2] < 0.20:
+                    print("\033[91m Released at the wrong position \033[0m")
+                    return True, -20, wb
+                # Else
+                else:
+                    return False, 0, wb
+            elif self.task == 'pushing':
+                return True, 0, wb
+            elif self.task == 'pickAndplace':
+                # Picked
+                if (self.interface.get_xyz('object_body')[2] > self.object_z + 0.07) and self.touch_index in [1,3] and not self.picked:
+                    print("\033[92m Picked \033[0m")
+                    self.picked = True
+                    return False, 20, wb
+                # Released Success
+                elif dest_diff < 0.04 and self.touch_index == 0 and obj_position[2] < 0.35:
+                    print("\033[92m pickAndplace Succeeded \033[0m")
+                    return True, 50, wb
+                # Dropped
+                elif obj_position[2] < 0.1:
+                    print("\033[91m Dropped \033[0m")
+                    return True, -20, wb
+                else:
+                    return False, 0, wb
 
     def _take_action(self, a, weight=None, subgoal=None, id=None):
         self.action_in = True
