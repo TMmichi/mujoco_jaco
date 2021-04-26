@@ -688,7 +688,7 @@ class JacoMujocoEnvUtil:
                 # Released Success
                 elif dest_diff < 0.04 and self.touch_index == 0 and obj_position[2] < 0.35:
                     print("\033[92m pickAndplace Succeeded \033[0m")
-                    return True, 50, wb
+                    return True, 180, wb
                 # Dropped
                 elif obj_position[2] < 0.1:
                     print("\033[91m Dropped \033[0m")

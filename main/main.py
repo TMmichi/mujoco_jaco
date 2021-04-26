@@ -90,7 +90,7 @@ class RL_controller:
         args.batches_per_episodes = self.batches_per_episodes
         self.num_episodes = 20000
         self.args = args
-        self.trial = 69
+        self.trial = 74
 
 
     def train_from_scratch_PPO1(self):
@@ -412,7 +412,7 @@ class RL_controller:
         algo = algo_list[0]
 
         self.args.train_log = False
-        self.args.visualize = True
+        self.args.visualize = False
         self.args.robot_file = "jaco2_curtain_torque"
         self.args.controller = True
         self.args.n_robots = 1
@@ -555,7 +555,7 @@ class RL_controller:
 
         self.num_timesteps = self.steps_per_batch * self.batches_per_episodes * self.num_episodes 
         model_dict = {'gamma': 0.99, 'tensorboard_log': model_dir,'verbose': 1, 'seed': self.args.seed, \
-            'learning_rate':_lr_scheduler, 'learning_starts':40000, 'ent_coef': ent_coef, 'batch_size': 8, 'noptepochs': 4, 'n_steps': 128}
+            'learning_rate':_lr_scheduler, 'learning_starts':50000, 'ent_coef': ent_coef, 'batch_size': 8, 'noptepochs': 4, 'n_steps': 128}
         self.model.pretrainer_load(model=self.model, policy=policy, env=env, **model_dict)
         self._write_log(model_dir, info)
         print("\033[91mTraining Starts\033[0m")
@@ -704,7 +704,8 @@ class RL_controller:
         # prefix = self.args.task + '_sac_noaux_trained_at_2021_4_21_22:7_62/policy_1650000.zip'
     
         ##### pickAndplace #####
-        prefix = self.args.task + '_sac_noaux_trained_at_2021_4_22_18:20_67/policy_290000.zip'
+        # prefix = self.args.task + '_sac_noaux_trained_at_2021_4_22_18:20_67/policy_290000.zip'
+        prefix = self.args.task + '_sac_noaux_trained_at_2021_4_23_16:3_74/policy_8220000.zip'
 
 
         model_dir = self.model_path + prefix
@@ -756,7 +757,7 @@ if __name__ == "__main__":
     # controller.train_from_scratch_SAC()
     # controller.train_continue()
     # controller.train_from_expert()
-    controller.train_HPC()
+    # controller.train_HPC()
     # controller.train_HPC_continue()
     # controller.generate_traj()
-    # controller.test()
+    controller.test()
