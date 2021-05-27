@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 
 import os, sys
+from pynput.keyboard import Key, Controller
+import time
 from pathlib import Path
 from math import pi
 
@@ -52,6 +54,7 @@ class JacoMujocoEnvUtil:
         self.auxiliary = kwargs.get('auxiliary', False)
         self.binary = False
         print('subgoal observation: ', self.subgoal_obs)
+        self.keyboard = Controller()
 
         ### ------------  STATE GENERATION  ------------ ###
         self.package_path = str(Path(__file__).resolve().parent.parent)
@@ -75,7 +78,7 @@ class JacoMujocoEnvUtil:
         ### ------------  REWARD  ------------ ###
         self.reward_method = kwargs.get('reward_method', None)
         self.reward_module = kwargs.get('reward_module', None)
-        
+    
 
     def _step_simulation(self):
         fb = self.interface.get_feedback()
@@ -146,7 +149,8 @@ class JacoMujocoEnvUtil:
                 self.interface.set_obj_xyz(pos[:3], quat)
         else:
             quat = [0,0,0,0]
-            self.interface.set_obj_xyz(self.obj_goal[0],quat)
+            if not self.task is 'reaching':
+                self.interface.set_obj_xyz(self.obj_goal[0],quat)
 
         if self.task in ['grasping', 'carrying']:
             self.__get_gripper_pose()
@@ -187,34 +191,8 @@ class JacoMujocoEnvUtil:
             self.interface.set_mocap_orientation("target_reach", transformations.quaternion_from_euler(
                 self.reaching_goal[0][3], self.reaching_goal[0][4], self.reaching_goal[0][5], axes="rxyz"))
             self.target_pos = np.reshape(np.hstack([self.reaching_goal]),(-1))
-            # self._test()
         obs = self._get_observation()
         return obs[0]
-    
-    def _test(self):
-        while True:
-            self._step_simulation()
-            self.__get_gripper_pose()
-            dist_diff = np.linalg.norm(self.gripper_pose[0][:3] - self.reaching_goal[0][:3])
-            grip = transformations.unit_vector(
-                transformations.quaternion_from_euler(
-                    self.gripper_pose[0][3], self.gripper_pose[0][4], self.gripper_pose[0][5], axes="rxyz"))
-            tar = transformations.unit_vector(
-                transformations.quaternion_from_euler(
-                    self.reaching_goal[0][3], self.reaching_goal[0][4], self.reaching_goal[0][5], axes="rxyz"))
-            grip_euler = transformations.euler_from_quaternion(grip,'rxyz')
-            tar_euler = transformations.euler_from_quaternion(tar,'rxyz')
-            angle_diff = grip-tar
-            # ang_diff = np.linalg.norm(angle_diff)
-            ang_diff = np.linalg.norm(np.array(grip_euler) - np.array(tar_euler))
-            if ang_diff > np.pi:
-                ang_diff = 2*np.pi - ang_diff
-            # print(grip, tar)
-            # print(grip_euler, tar_euler)
-            print(ang_diff)
-            if dist_diff < 0.05 and ang_diff < np.pi/6:
-                print("\033[92m Target Reached \033[0m")
-                break
                  
     def _create_init_angle(self):
         if self.task in ['reaching', 'picking', 'pickAndplace']:
@@ -228,8 +206,8 @@ class JacoMujocoEnvUtil:
             random_init_angle *= self.n_robots
         elif self.task is 'releasing':
             random_init_angle = [uniform(1.9, 2), uniform(3.3,3.6), uniform(
-                    # 0.5, 0.8), uniform(1.8, 2.5), uniform(1.3, 2), uniform(-0.4, -0.9), 0.6, 0.6, 0.6]
-                    0.5, 0.8), uniform(1.8, 2.5), uniform(1.3, 2), uniform(-0.4, -0.9), 0, 0, 0]
+                    0.5, 0.8), uniform(1.8, 2.5), uniform(1.3, 2), uniform(-0.4, -0.9), 0.6, 0.6, 0.6]
+                    # 0.5, 0.8), uniform(1.8, 2.5), uniform(1.3, 2), uniform(-0.4, -0.9), 0, 0, 0]
             random_init_angle *= self.n_robots
         return random_init_angle
 
@@ -651,11 +629,11 @@ class JacoMujocoEnvUtil:
                     print("\033[91m Dropped \033[0m")
                     return True, -20, wb
                 # Released Success
-                elif dest_diff < 0.03 and self.touch_index == 0 and obj_position[2] < 0.35 and obj_velocity < 0.01:
+                elif dest_diff < 0.04 and self.touch_index == 0 and obj_position[2] < 0.35 and obj_velocity < 0.01:
                     print("\033[92m Releasing Succeeded \033[0m")
                     return True, 200 - (self.num_episodes*0.1), wb
                 # Released Wrong
-                elif dest_diff > 0.03 and self.touch_index == 0 and obj_position[2] < 0.27:
+                elif dest_diff > 0.04 and self.touch_index == 0 and obj_position[2] < 0.20:
                     print("\033[91m Released at the wrong position \033[0m")
                     return True, -20, wb
                 # Else
@@ -858,6 +836,13 @@ class JacoMujocoEnvUtil:
 
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
+
+    def set_capture_path(self, path):
+        self.interface.viewer._image_path = path
+    
+    def capture(self):
+        self.keyboard.press('t')
+        self.keyboard.release('t')
 
 if __name__ == "__main__":
     sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../abr_control')))

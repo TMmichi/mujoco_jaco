@@ -1,0 +1,326 @@
+<mujoco model="jaco2">
+    <size njmax="8000" nconmax="4000"/>
+    <compiler angle="radian" meshdir="meshes" balanceinertia="true" convexhull="true"/>
+    <!-- <compiler angle="radian" meshdir="meshes" balanceinertia="true" convexhull="false"/> -->
+
+
+    <default>
+        <light castshadow="false" diffuse="1 1 1" />
+        <!-- Camera -1 -->
+        <camera fovy="60" />
+    </default>
+
+    <custom>
+        <numeric name="START_ANGLES" data="2.0 3.14 1.57 4.71 0.0 3.04" />
+        <numeric name="N_GRIPPER_JOINTS" data="3" />
+    </custom>
+
+    <asset>
+        <!-- arm models -->
+        <mesh file="link0.STL" />
+        <mesh file="link1.STL"/>
+        <mesh file="link2.STL"/>
+        <mesh file="link3.STL"/>
+        <mesh file="link4_5.STL"/>
+        <mesh file="hand_3finger.STL"/>
+        <mesh file="finger_distal.STL"/>
+        <mesh file="finger_proximal.STL"/>
+        <mesh file="ring_big.STL"/>
+        <mesh file="ring_big_joint0.stl"/>
+        <mesh file="ring_small.STL"/>
+        <mesh file="dice.STL" scale="0.005 0.005 0.005"/>
+
+        <material name="carbon" specular="1" shininess="1" reflectance="1" rgba="0.05 0.05 0.05 1" emission="1" />
+        <material name="grey_plastic" specular="0.5" shininess="0" reflectance="0" rgba="0.12 0.14 0.14 1" emission="1" />
+
+        <texture name="floor_wood" file="meshes/floor_wood.png" width="1200" height="1200" type="2d"/>
+        <material name="wood" texture="floor_wood" specular="0" shininess="0" reflectance="0" emission="1" texrepeat="5 5"/>
+
+        <texture name="texcarpet" type="2d" file="meshes/carpet.png"/>
+        <material name="matcarpet" texture="texcarpet"/>
+
+        <texture name="texdice" type="cube" fileright="meshes/dice1.png" fileleft="meshes/dice6.png" fileup="meshes/dice2.png" filedown="meshes/dice5.png" filefront="meshes/dice3.png" fileback="meshes/dice4.png" rgb1="1 1 1" />
+        <material name="matdice" texture="texdice"/>
+
+    </asset>
+
+    <worldbody>
+        <light directional="true" pos="-0.5 0.5 3" dir="0 0 -1" />
+
+        <geom name="floor_wood" pos="0 0 0" size="1 1 0.05" type="plane" material="wood"/>
+
+        <!--######### CONTROL VISUALIZATIONS #########-->
+        <body name="hand" pos="0 0 -0.15" mocap="true">
+            <geom type="box" size=".01 .02 .035" rgba="0 .9 0 .5" contype="2" conaffinity="2"/>
+            <geom type="box" size=".001 .001 .02" pos="0.02 0 0" euler="0 -1.570796326794896 0" rgba=".9 0 0 .9" contype="8" conaffinity="8"/>
+            <geom type="box" size=".001 .001 .02" pos="0 0.02 0" euler="-1.570796326794896 0 0" rgba=".0 9 0 .9" contype="8" conaffinity="8"/>
+            <geom type="box" size=".001 .001 .02" pos="0 0 0.02" rgba=".0 0 9 .9" contype="8" conaffinity="8"/>
+        </body>
+        <body name="target_dest" pos="0 0 -0.15" mocap="true">
+            <geom name="target" type="sphere" size="0.025" rgba=".9 0 0 .5" contype="4" conaffinity="4"/>
+        </body>
+        <body name="target_reach" pos="0.2 0.4 0.5" euler="0 -1.570796326794896 0" mocap="true">
+            <geom type="box" size=".01 .02 .03" rgba=".9 0 0 .5" contype="8" conaffinity="8"/>
+            <geom type="box" size=".001 .001 .02" pos="0.02 0 0" euler="0 -1.570796326794896 0" rgba=".9 0 0 .9" contype="8" conaffinity="8"/>
+            <geom type="box" size=".001 .001 .02" pos="0 0.02 0" euler="-1.570796326794896 0 0" rgba=".0 9 0 .9" contype="8" conaffinity="8"/>
+            <geom type="box" size=".001 .001 .02" pos="0 0 0.02" rgba=".0 0 9 .9" contype="8" conaffinity="8"/>
+        </body>
+        <!--#########################################-->
+
+        <!--############ VISOION BLOCKER ############-->
+        <!-- <body name="blocker" pos="0 0.35 0">
+            HOLDER
+            <body name="Holder_left" pos="-0.5 0 0.4">
+                <site type="sphere" size="0.015" pos="0 0 0.4"/>
+                <geom type="cylinder" size=".01 0.4" density="100"/>
+            </body>
+            <body name="Holder_right" pos="0.5 0 0.4">
+                <site type="sphere" size="0.015" pos="0 0 0.4"/>
+                <geom type="cylinder" size=".01 0.4" density="100"/>
+            </body>
+            <body name="Holder_up" pos="0 0 0.8">
+                <geom type="cylinder" size=".01 0.5" zaxis="1 0 0" density="100"/>
+                CLOTH 
+                    <body name="B10_0" pos="0 0 0" zaxis="0 1 0">
+                    <composite type="cloth" count="21 11 1" spacing="0.049" flatinertia="0.001">
+                        <joint kind="main" damping="0.001"/>
+                        <skin material="matcarpet" texcoord="true" inflate="0.005" subgrid="2"/>
+                        <geom type="capsule" size="0.005 0.005" rgba=".8 .2 .1 1"/>
+                    </composite>
+                </body>
+            </body>
+        </body> -->
+        <!--#########################################-->
+        
+        <!--################# JACO #################-->
+        <body name="base_link" pos="0 0 0">
+            <geom name="link0" type="mesh" mesh="link0" pos="0 0 0" material="carbon"/>
+            <inertial pos="0.000000 0.000000 0.125500" mass="1.226" diaginertia="0.25 0.25 0.25"/>
+            <geom type="sphere" size="0.025" pos="0.000000 0.000000 0.125500" rgba="1 0.5 0 1"/>
+
+            <body name="link1" pos="0 0 0.157">
+                <inertial pos="-0.000042 -0.001285 0.112784" mass="0.754000" diaginertia="0.3 0.3 0.3"/>
+                <geom name="link1" type="mesh" mesh="link1" pos="0 0 0" euler="0 3.14 0" material="carbon"/>
+                <!--<geom name="ring0" type="mesh" mesh="ring_big_joint0" material="grey_plastic"/>-->
+                <joint name="joint0" axis="0 0 -1" pos="0 0 0"/>
+
+                <body name="link2" pos="0 0.0016 0.1186">
+                    <inertial pos="0.000014 0.009353 0.329006" mass="1.010000" diaginertia="0.3 0.3 0.3"/>
+                    <geom name="link2" type="mesh" mesh="link2" pos="0 0 0" euler="1.57 0 3.14" material="carbon"/>
+                    <geom name="ring1" type="mesh" mesh="ring_big" material="grey_plastic" euler="1.57 0 0"/>
+                    <joint name="joint1" pos="0 0 0" axis="0 -1 0"  ref="3.14" limited="true" range="0.872665 5.41052"/>
+
+                    <body name="link3" pos="0 0 0.410">
+                        <inertial pos="-0.000039 -0.018069 0.153270" mass="0.559000" diaginertia="0.275 0.275 0.275"/>
+                        <geom name="link3" type="mesh" mesh="link3" pos="0 0 0" euler="1.57 3.14 0" material="carbon"/>
+                        <geom name="ring2" type="mesh" mesh="ring_big" material="grey_plastic" euler="1.57 0 0"/>
+                        <joint name="joint2" pos="0 0 0" axis="0 1 0" ref="3.14" limited="true" range="0.331613 5.95157"/>
+
+                        <body name="link4" pos="0 -0.0115 0.2072">
+                            <inertial pos="0.000000 0.032302 0.059705" mass="0.417000" diaginertia="0.175 0.175 0.175"/>
+                            <geom name="link4" type="mesh" mesh="link4_5" euler="3.14 0 0" material="carbon"/>
+                            <geom name="ring3" type="mesh" mesh="ring_small" material="grey_plastic"/>
+                            <joint name="joint3" pos="0 0 0" axis="0 0 -1" ref="0"/>
+
+                            <body name="link5" pos="0 0.037 0.0641">
+                                <inertial pos="-0.000000 0.035545 0.057833" mass="0.417" diaginertia="0.175 0.175 0.175"/>
+                                <geom name="link5" type="mesh" mesh="link4_5" euler="-1.0472 3.14 0" material="carbon"/>
+                                <geom name="ring4" type="mesh" mesh="ring_small" material="grey_plastic" euler="-1.0471 0 0"/>
+                                <joint name="joint4" pos="0 0 0" axis="0 -1.9 -1.1" ref="0"/>
+
+                                <body name="link6" pos="0 0.037 0.0641">
+                                    <inertial pos="0.000030 -0.006840 0.082220" mass="0.727000" diaginertia="0.025 0.025 0.025"/>
+                                    <geom name="link6" type="mesh" mesh="hand_3finger" euler="3.14 0 0" material="carbon" solimp="0.97 0.97 0.01" solref="0.01 1" condim="6" />
+                                    <site name="EE_touch" type="cylinder" size="0.07 0.05 0.1" euler="3.14 0 0" pos="0 0 0.065" rgba="0 0 1 0"/>
+                                    <geom name="ring5" type="mesh" mesh="ring_small" material="grey_plastic"/>
+                                    <joint name="joint5" pos="0 0 0" axis="0 0 -1" ref="0"/>
+
+                                    <!-- for fingertip EE -->
+                                    <!-- <body name="EE" pos="0 0 0.20222" euler="0 0 0"> -->
+                                    <!-- </body> -->
+
+                                    <!-- for palm EE -->
+                                    <body name="EE" pos="0 0 0.12" euler="0 0 0">
+                                        <body name="EE_obj" pos="0.04 0 0.04" euler="0 0 0"></body>
+                                        <body name="xwise"  euler="0 1.570796326794896 0">
+                                            <geom type="box" size=".001 .001 .02" pos="0 0 0.02"  rgba=".9 0 0 .9" contype="8" conaffinity="8"/>
+                                        </body>
+                                        <body name="ywise"  euler="-1.570796326794896 0 0">
+                                            <geom type="box" size=".001 .001 .02" pos="0 0 0.02" rgba=".0 9 0 .9" contype="8" conaffinity="8"/>
+                                        </body>
+                                        <body name="zwise"  euler='0 0 0'>
+                                            <geom type="box" size=".001 .001 .02" pos="0 0 0.02" rgba=".0 0 9 .9" contype="8" conaffinity="8"/>
+                                        </body>
+                                        <body name="palm_plane" pos="0 0 -0.002" euler="0 0 0" >
+                                            <geom name="palm_plane" type="box" size="0.02 0.02 0.0005" rgba="0 1 0 0.5" />
+                                            <site name="0_touch" type="box" size="0.02 0.02 0.0005" pos="0 0 0.001" rgba="0 0 1 0.5"/>
+                                        </body>
+                                    </body>
+
+                                    <body name="thumb_proximal" pos="0.002786 -0.03126 0.114668" quat="0.95922726 0.262085 0.02762996 -0.10213274">
+                                        <geom name="thumb_proximal" type="mesh" mesh="finger_proximal" euler="0 -1.5707 0" friction="1 0.5 0.01" solimp="0.95 0.95 0.01 0.5 6" solref="0.01 1" condim="6" margin="0.0"/>
+                                        <!-- <joint name="joint_thumb" pos="0 0 0" axis="1 0 0" ref="1.1" limited="true" range="-0.2 1.1" solimplimit="0.95 0.95 0.01" solreflimit="0.01 1" stiffness="5" springref="0.0" damping="0.35"/>                                         -->
+                                        <!-- <joint name="joint_thumb" pos="0 0 0" axis="1 0 0" ref="1.1" limited="true" range="0.35 1.1" solimplimit="0.95 0.95 0.01" solreflimit="0.01 1" stiffness="5" springref="0.0" damping="0.35"/> -->
+                                        <joint name="joint_thumb" pos="0 0 0" axis="1 0 0" ref="1.1" limited="true" range="0 1.51" damping="0.15"/>
+                                        <body name="thumb_outer_proximal_plane" pos="0 -0.021 0.022" euler="1.49 0 0">
+                                            <geom name="thumb_outer_proximal_plane" type="box"  size="0.01 0.02 0.0005" rgba="0 1 0 0.5" />
+                                            <site name="13_touch" type="box" pos="0 0 0.0010 " size="0.01 0.02 0.0005" rgba="0 0 1 0.5"/>
+                                        </body>
+                                        <body name="thumb_proximal_plane"  euler="1.44 0 0" pos="0 0.0035 0.032">
+                                            <geom name="thumb_proximal_plane" type="box" size="0.01 0.02 0.0005" rgba="0 1 0 0.5" />
+                                            <site name="1_touch" type="box" pos="0 0.0010 0.0" size="0.01 0.02 0.0005" rgba="0 0 1 0.5"/>
+                                        </body>
+                                        <body name="thumb_proximal_plane2" pos="0 0.0035 0.013" euler="1.7453 0 0">
+                                            <geom name="thumb_proximal_plane2" type="box" size="0.01 0.02 0.0005" rgba="0 1 0 0.5" />
+                                            <site name="2_touch" type="box" pos="0 0.0010 0.0" size="0.01 0.02 0.0005" rgba="0 0 1 0.5"/>
+                                        </body>
+                                        <body name="thumb_distal" pos="0 -0.0035 0.044" euler="-0.3 0 0">
+                                            <geom name="thumb_distal" type="mesh" mesh="finger_distal" euler="0 -1.5707 0" friction="1 0.5 0.01" solimp="0.95 0.95 0.01 0.5 6" solref="0.01 1" condim="6" margin="0.0"/>
+                                            <!-- <joint name="joint_thumb_distal" pos="0 0 0" axis="-1 0 0" ref="-0.5" limited="true" range="-0.4 0.4" stiffness="5" springref="-0.4" damping="0.5" solimplimit="0.95 0.95 0.01" solreflimit="0.01 1"/> -->
+                                            <!-- <joint name="joint_thumb_distal" pos="0 0 0" axis="-1 0 0" limited="true" range="0 0.6981"/> -->
+                                            <body name="thumb_outer_distal_plane" pos="0 -0.011 0.02" euler="1.42 0 0">
+                                                <geom name="thumb_outer_distal_plane" type="box"  size="0.01 0.022 0.0005" rgba="0 1 0 0.5" />
+                                                <site name="14_touch" type="box" pos="0 0 0.0010 " size="0.01 0.022 0.0005" rgba="0 0 1 0.5"/>
+                                            </body>                                            
+                                            <body name="thumb_distal_plane" pos="0 -0.0025 0.035">
+                                                <geom name="thumb_distal_plane" type="box" euler="1.8325 0 0" size="0.01 0.008 0.0005" rgba="0 1 0 0.5" />
+                                                <site name="3_touch" type="box" pos="0 0.001 0.0" size="0.01 0.008 0.0005" euler="1.8325 0 0" rgba="0 0 1 0.5"/>
+                                            </body>
+                                            <body name="thumb_distal_plane2" pos="0 0.0025 0.016">
+                                                <geom name="thumb_distal_plane2" type="box" euler="1.9 0 0" size="0.01 0.008 0.0005" rgba="0 1 0 0.5" />
+                                                <site name="4_touch" type="box" pos="0 0.001 0.0" size="0.01 0.008 0.0005" euler="1.9 0 0" rgba="0 0 1 0.5"/>
+                                            </body>
+                                        </body>
+                                    </body>
+
+                                    <body name="index_proximal" pos="0.022256 0.027073 0.114668" quat="0.96181018 -0.25771638 0.0238668 -0.08907205">
+                                        <geom name="index_proximal" type="mesh" mesh="finger_proximal" quat="5.63312174e-04  7.06824957e-01 -5.62863772e-04  7.07388045e-01" friction="1 0.5 0.01" solimp="0.95 0.95 0.01 0.5 6" solref="0.01 1" condim="6" margin="0.0"/>
+                                        <!-- <joint name="joint_index" pos="0 0 0" axis="-1 0 0" ref="1.1" limited="true" range="-0.2 1.1" solimplimit="0.95 0.95 0.01" solreflimit="0.01 1" stiffness="5" springref="0.0" damping="0.35"/> -->
+                                        <!-- <joint name="joint_index" pos="0 0 0" axis="-1 0 0" ref="1.1" limited="true" range="0.35 1.1" solimplimit="0.95 0.95 0.01" solreflimit="0.01 1" stiffness="5" springref="0.0" damping="0.35"/> -->
+                                        <joint name="joint_index" pos="0 0 0" axis="-1 0 0" ref="1.1" limited="true" range="0 1.51" damping="0.15"/>
+                                        <body name="index_outer_proximal_plane" pos="0 0.021 0.022" euler="1.59 0 0">
+                                            <geom name="index_outer_proximal_plane" type="box"  size="0.01 0.02 0.0005" rgba="0 1 0 0.5" />
+                                            <site name="15_touch" type="box" pos="0 0 -0.0010" size="0.01 0.02 0.0005" rgba="0 0 1 0.5"/>
+                                        </body>
+                                        <body name="index_proximal_plane" pos="0 -0.0025 0.032">
+                                            <geom name="index_proximal_plane" type="box" euler="1.7 0 0" size="0.01 0.02 0.0005" rgba="0 1 0 0.5" />
+                                            <site name="5_touch" type="box" pos="0 -0.001 0.0" size="0.01 0.02 0.0005" euler="1.7 0 0" rgba="0 0 1 0.5"/>
+                                        </body>
+                                        <body name="index_proximal_plane2" pos="0 -0.0025 0.013">
+                                            <geom name="index_proximal_plane2" type="box" euler="1.3963 0 0" size="0.01 0.02 0.0005" rgba="0 1 0 0.5" />
+                                            <site name="6_touch" type="box" pos="0 -0.001 0.0" size="0.01 0.02 0.0005" euler="1.3963 0 0" rgba="0 0 1 0.5"/>
+                                        </body>
+                                        <body name="index_distal" pos="0 0.003 0.044" euler="0.3 0 0">
+                                            <geom name="index_distal" type="mesh" mesh="finger_distal" quat="5.63312174e-04  7.06824957e-01 -5.62863772e-04  7.07388045e-01" friction="1 0.5 0.01" solimp="0.95 0.95 0.01 0.5 6" solref="0.01 1" condim="6" margin="0.0"/>
+                                            <!-- <joint name="joint_index_distal" pos="0 0 0" axis="1 0 0" ref="-0.5" limited="true" range="-0.4 0.4" stiffness="5" springref="-0.4" damping="0.5" solimplimit="0.95 0.95 0.01" solreflimit="0.01 1"/> -->
+                                            <!-- <joint name="joint_index_distal" pos="0 0 0" axis="1 0 0" limited="true" range="0 0.6981"/> -->
+                                            <body name="index_outer_distal_plane" pos="0 0.012 0.02" euler="1.715 0 0">
+                                                <geom name="index_outer_distal_plane" type="box"  size="0.01 0.022 0.0005" rgba="0 1 0 0.5" />
+                                                <site name="16_touch" type="box" pos="0 0 -0.0010 " size="0.01 0.022 0.0005" rgba="0 0 1 0.5"/>
+                                            </body> 
+                                            <body name="index_distal_plane" pos="0 0.0025 0.035">
+                                                <geom name="index_distal_plane" type="box" euler="1.309 0 0" size="0.01 0.008 0.0005" rgba="0 1 0 0.5" />
+                                                <site name="7_touch" type="box" pos="0 -0.001 0.0" size="0.01 0.008 0.0005" euler="1.309 0 0" rgba="0 0 1 0.5"/>
+                                            </body>
+                                            <body name="index_distal_plane2" pos="0 -0.0035 0.016">
+                                                <geom name="index_distal_plane2" type="box" euler="1.309 0 0" size="0.01 0.008 0.0005" rgba="0 1 0 0.5" />
+                                                <site name="8_touch" type="box" pos="0 -0.001 0.0" size="0.01 0.008 0.0005" euler="1.309 0 0" rgba="0 0 1 0.5"/>
+                                            </body>
+                                        </body>
+                                    </body>
+
+                                    <body name="pinky_proximal" pos="-0.022256 0.027073 0.114816" quat="0.96181018 -0.25771638 -0.0238668 0.08907205">
+                                        <geom name="pinky_proximal" type="mesh" mesh="finger_proximal" quat="5.63312174e-04  7.06824957e-01 -5.62863772e-04  7.07388045e-01" friction="1 0.5 0.01" solimp="0.95 0.95 0.01 0.5 6" solref="0.01 1" condim="6" margin="0.0"/>
+                                        <!-- <joint name="joint_pinky" pos="0 0 0" axis="-1 0 0" ref="1.1" limited="true" range="-0.2 1.1" solimplimit="0.95 0.95 0.01" solreflimit="0.01 1" stiffness="5" springref="0.0" damping="0.35"/> -->
+                                        <!-- <joint name="joint_pinky" pos="0 0 0" axis="-1 0 0" ref="1.1" limited="true" range="0.35 1.1" solimplimit="0.95 0.95 0.01" solreflimit="0.01 1" stiffness="5" springref="0.0" damping="0.35"/> -->
+                                        <joint name="joint_pinky" pos="0 0 0" axis="-1 0 0" ref="1.1" limited="true" range="0 1.51" damping="0.15"/>
+                                        <body name="pinky_outer_proximal_plane" pos="0 0.021 0.022" euler="1.59 0 0">
+                                            <geom name="pinky_outer_proximal_plane" type="box"  size="0.01 0.02 0.0005" rgba="0 1 0 0.5" />
+                                            <site name="17_touch" type="box" pos="0 0 -0.0010" size="0.01 0.02 0.0005" rgba="0 0 1 0.5"/>
+                                        </body>
+                                        <body name="pinky_proximal_plane" pos="0 -0.003 0.032">
+                                            <geom name="pinky_proximal_plane" type="box" euler="1.7 0 0" size="0.01 0.02 0.0005" rgba="0 1 0 0.5" />
+                                            <site name="9_touch" type="box" pos="0 -0.001 0.0" size="0.01 0.02 0.0005" euler="1.7 0 0" rgba="0 0 1 0.5"/>
+                                        </body>
+                                        <body name="pinky_proximal_plane2" pos="0 -0.0025 0.013">
+                                            <geom name="pinky_proximal_plane2" type="box" euler="1.3963 0 0" size="0.01 0.02 0.0005" rgba="0 1 0 0.5" />
+                                            <site name="10_touch" type="box" pos="0 -0.001 0.0" size="0.01 0.02 0.0005" euler="1.3963 0 0" rgba="0 0 1 0.5"/>
+                                        </body>
+                                        <body name="pinky_distal" pos="0 0.003 0.044" euler="0.3 0 0">
+                                            <geom name="pinky_distal" type="mesh" mesh="finger_distal" quat="5.63312174e-04  7.06824957e-01 -5.62863772e-04  7.07388045e-01" friction="1 0.5 0.01" solimp="0.95 0.95 0.01 0.5 6" solref="0.01 1" condim="6" margin="0.0"/>
+                                            <!-- <joint name="joint_pinky_distal" pos="0 0 0" axis="1 0 0" ref="0.2" limited="true" range="-0.4 0.4" stiffness="5" springref="0.4" damping="0.5" solimplimit="0.95 0.95 0.01" solreflimit="0.01 1"/> -->
+                                            <!-- <joint name="joint_pinky_distal" pos="0 0 0" axis="1 0 0" limited="true" range="0 0.6981"/> -->
+                                            <body name="pink_outer_distal_plane" pos="0 0.012 0.02" euler="1.715 0 0">
+                                                <geom name="pink_outer_distal_plane" type="box"  size="0.01 0.022 0.0005" rgba="0 1 0 0.5" />
+                                                <site name="18_touch" type="box" pos="0 0 -0.0010 " size="0.01 0.022 0.0005" rgba="0 0 1 0.5"/>
+                                            </body> 
+                                            <body name="pinky_distal_plane" pos="0 0.0025 0.035">
+                                                <geom name="pinky_distal_plane" type="box" euler="1.309 0 0" size="0.01 0.008 0.0005" rgba="0 1 0 0.5" />
+                                                <site name="11_touch" type="box" pos="0 -0.0008 0.0" size="0.01 0.008 0.0005" euler="1.309 0 0" rgba="0 0 1 0.5"/>
+                                            </body>
+                                            <body name="pinky_distal_plane2" pos="0 -0.0035 0.016">
+                                                <geom name="pinky_distal_plane2" type="box" euler="1.309 0 0" size="0.01 0.008 0.0005" rgba="0 1 0 0.5" />
+                                                <site name="12_touch" type="box" pos="0 -0.001 0.0" size="0.01 0.008 0.0005" euler="1.309 0 0" rgba="0 0 1 0.5"/>
+                                            </body>
+                                        </body>
+                                    </body>
+                                </body>
+                            </body>
+                        </body>
+                    </body>
+                </body>
+            </body>
+        </body>
+        <!--#########################################-->
+
+        <!--################ CAMERA ################-->
+        <!-- Camera 0 -->
+        <camera name="visual_camera" pos="0 0.2 0.5" euler="1.3 0 0"></camera> 
+        <!--#########################################-->
+    </worldbody>
+    
+    <tendon>
+        <fixed name='finger'>
+            <joint joint='joint_thumb' coef='2'/>
+            <joint joint='joint_index' coef='1'/>
+            <joint joint='joint_pinky' coef='1'/>
+        </fixed>
+    </tendon>
+
+    <actuator>
+        <motor name="joint0_motor" joint="joint0" forcelimited="true" forcerange="-30 30"/>
+        <motor name="joint1_motor" joint="joint1" forcelimited="true" forcerange="-30 30"/>
+        <motor name="joint2_motor" joint="joint2" forcelimited="true" forcerange="-30 30"/>
+        <motor name="joint3_motor" joint="joint3" forcelimited="true" forcerange="-15 15"/>
+        <motor name="joint4_motor" joint="joint4" forcelimited="true" forcerange="-15 15"/>
+        <motor name="joint5_motor" joint="joint5" forcelimited="true" forcerange="-15 15"/>
+        <position name='thumb' ctrllimited="true" kp="20" joint='joint_thumb' ctrlrange='0 1.51' forcelimited="true" forcerange="-0.3 0.3" />
+        <position name='index' ctrllimited="true" kp="20" joint='joint_index' ctrlrange='0 1.51' forcelimited="true" forcerange="-0.3 0.3" />
+        <position name='pinky'  ctrllimited="true" kp="20" joint='joint_pinky' ctrlrange='0 1.51' forcelimited="true" forcerange="-0.3 0.3" />
+    </actuator>
+
+    <sensor>
+        <!-- <touch name="boxx" site ="boxx"/> -->
+        <touch name="EE_touch" site ="EE_touch"/>
+        <touch name="0_touch" site ="0_touch"/>
+        <touch name="1_touch" site ="1_touch"/>
+        <touch name="2_touch" site ="2_touch"/>
+        <touch name="3_touch" site ="3_touch"/>
+        <touch name="4_touch" site ="4_touch"/>
+        <touch name="5_touch" site ="5_touch"/>
+        <touch name="6_touch" site ="6_touch"/>
+        <touch name="7_touch" site ="7_touch"/>
+        <touch name="8_touch" site ="8_touch"/>
+        <touch name="9_touch" site ="9_touch"/>
+        <touch name="10_touch" site ="10_touch"/>
+        <touch name="11_touch" site ="11_touch"/>
+        <touch name="12_touch" site ="12_touch"/>
+        <touch name="13_touch" site ="13_touch"/>
+        <touch name="14_touch" site ="14_touch"/>
+        <touch name="15_touch" site ="15_touch"/>
+        <touch name="16_touch" site ="16_touch"/>
+        <touch name="17_touch" site ="17_touch"/>
+        <touch name="18_touch" site ="18_touch"/>
+    </sensor>
+
+</mujoco>

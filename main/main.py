@@ -412,7 +412,7 @@ class RL_controller:
         algo = algo_list[0]
 
         self.args.train_log = False
-        self.args.visualize = False
+        self.args.visualize = True
         self.args.robot_file = "jaco2_curtain_torque"
         self.args.controller = True
         self.args.n_robots = 1
@@ -445,7 +445,7 @@ class RL_controller:
         else:
             prefix = composite_primitive_name +'_'+algo+"_noaux_trained_at_" + str(time.localtime().tm_year) + "_" + str(time.localtime().tm_mon) + "_" + str(
                     time.localtime().tm_mday) + "_" + str(time.localtime().tm_hour) + ":" + str(time.localtime().tm_min)
-        # prefix = 'HPCtest'
+        prefix = 'HPCcheck_noQ'
         model_dir = self.model_path + prefix + "_" + str(self.trial)
         self.args.log_dir = model_dir
         os.makedirs(model_dir, exist_ok=True)
@@ -555,7 +555,7 @@ class RL_controller:
 
         self.num_timesteps = self.steps_per_batch * self.batches_per_episodes * self.num_episodes 
         model_dict = {'gamma': 0.99, 'tensorboard_log': model_dir,'verbose': 1, 'seed': self.args.seed, \
-            'learning_rate':_lr_scheduler, 'learning_starts':50000, 'ent_coef': ent_coef, 'batch_size': 8, 'noptepochs': 4, 'n_steps': 128}
+            'learning_rate':_lr_scheduler, 'learning_starts':0, 'ent_coef': ent_coef, 'batch_size': 8, 'noptepochs': 4, 'n_steps': 128}
         self.model.pretrainer_load(model=self.model, policy=policy, env=env, **model_dict)
         self._write_log(model_dir, info)
         print("\033[91mTraining Starts\033[0m")
@@ -661,15 +661,16 @@ class RL_controller:
 
         #                 0           1          2          3            4           5          6             7
         task_list = ['reaching', 'grasping', 'picking', 'carrying', 'releasing', 'placing', 'pushing', 'pickAndplace']
-        self.args.task = task_list[7]
+        self.args.task = task_list[2]
         algo_list = ['sac','ppo']
         algo = algo_list[0]
         self.args.subgoal_obs = False
         self.args.rulebased_subgoal = True
         
         if self.args.task == 'reaching':
-            traj_dict = np.load(self.model_path+'trajectories/'+self.args.task+"2.npz", allow_pickle=True)
-            self.args.init_buffer = np.array(traj_dict['obs'])
+            # traj_dict = np.load(self.model_path+'trajectories/'+self.args.task+"2.npz", allow_pickle=True)
+            # self.args.init_buffer = np.array(traj_dict['obs'])
+            self.args.robot_file = "jaco2_reaching_torque"
         
         if algo == 'sac':
             env = JacoMujocoEnv(**vars(self.args))
@@ -693,19 +694,17 @@ class RL_controller:
         # prefix = self.args.task + '_trained_at_1_13_17:47:15_31/continue1/policy_3860000.zip'
 
         ##### Picking #####
-        # prefix = self.args.task + '_ppo_noaux_trained_at_2021_2_25_15:29_42/policy_50689.zip'
-        # prefix = self.args.task + '_ppo_noaux_trained_at_2021_2_26_14:16_42/policy.zip'
-        # prefix = self.args.task + '_sac_noaux_trained_at_2021_4_2_21:41_54/policy_4200000.zip'
+        prefix = self.args.task + '_sac_noaux_trained_at_2021_4_2_21:41_54/policy_4200000.zip'
 
         ##### Releasing #####
         # prefix = self.args.task + '_trained_at_4_18_22:26:14_58/continue1/policy_2070000.zip'
+        # prefix = 'policies/releasing/policy_2070000.zip'
 
         ##### Placking #####
         # prefix = self.args.task + '_sac_noaux_trained_at_2021_4_21_22:7_62/policy_1650000.zip'
     
         ##### pickAndplace #####
-        # prefix = self.args.task + '_sac_noaux_trained_at_2021_4_22_18:20_67/policy_290000.zip'
-        prefix = self.args.task + '_sac_noaux_trained_at_2021_4_23_16:3_74/policy_8220000.zip'
+        # prefix = self.args.task + '_sac_noaux_trained_at_2021_4_23_16:3_74/policy_8220000.zip'
 
 
         model_dir = self.model_path + prefix
@@ -733,11 +732,28 @@ class RL_controller:
                 print("SAC model LOADING in MAIN")
                 self.model = SAC_MULTI.load(model_dir, MlpPolicy_hpcsac, env)
 
-        for _ in range(test_iter):
+        total_iter = 0
+        for ti in range(test_iter):
             iter = 0
             obs = env.reset()
             done = False
+            logger_path = "./logger_csv"
+            capture_path = './captures'
+            os.makedirs(logger_path, exist_ok=True)
+            os.makedirs(capture_path, exist_ok=True)
+            if self.args.task == 'pickAndplace':
+                logger_name = "/log_pickAndplace_"+str(ti)+".csv"
+                label_string = 'Total_iter,Step,Picking,Placing,Pick-Reaching,Pick-Grasping,Place-Reaching,Place-Releasing'
+            elif self.args.task == 'picking':
+                logger_name = "/log_picking_"+str(ti)+".csv"
+                label_string = 'Total_iter,Step,Reaching,Grasping'
+            elif self.args.task == 'placing':
+                logger_name = "/log_placing_"+str(ti)+".csv"
+                label_string = 'Total_iter,Step,Reaching,Releasing'
+            file_logger = open(logger_path+logger_name, 'w')
+            file_logger.writelines(label_string+"\n")
             while not done:
+                total_iter += 1
                 iter += 1
                 if self.args.task in ['picking','placing','pickAndplace']:
                     action, subgoal, weight = self.model.predict_subgoal(obs, deterministic=True)
@@ -747,7 +763,24 @@ class RL_controller:
                     obs, reward, done, _ = env.step(action, log=False)
                 if algo == 'ppo':
                     done = True if done.any() == True else False
-                # print('reward: {0:2.3f}'.format(reward), end='\n')
+                if self.args.task == 'pickAndplace':
+                    pickAndplace = weight['level2_pickAndplace/weight'][0]
+                    pick = weight['level1_picking/weight'][0] * pickAndplace[0]
+                    place = weight['level1_placing/weight'][0] * pickAndplace[1]
+                    weight_string = "{0:3f},{1:3f},{2:3f},{3:3f},{4:3f},{5:3f}".format(pickAndplace[0], pickAndplace[1], pick[0], pick[1], place[0], place[1])
+                elif self.args.task == 'picking':
+                    pick = weight['level1_picking/weight'][0]
+                    weight_string = "{0:3f},{1:3f}".format(pick[0], pick[1])
+                elif self.args.task == 'placing':
+                    place = weight['level1_placing/weight'][0]
+                    weight_string = "{0:3f},{1:3f}".format(place[0], place[1])
+                log_string = "{0:4d},{0:4d},".format(total_iter,iter) + weight_string
+                print(log_string, type(log_string))
+                file_logger.writelines(log_string+"\n")
+                env.set_capture_path(capture_path+'/'+self.args.task+str(total_iter)+"_%07d.png")
+                if done:
+                    env.capture()
+            file_logger.close()
 
 
 if __name__ == "__main__":
