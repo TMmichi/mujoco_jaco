@@ -92,358 +92,31 @@ class RL_controller:
         self.args = args
         self.trial = 74
 
-
-    def train_from_scratch_PPO1(self):
-        print("Training from scratch called")
-        self.args.train_log = False
-        task_list = ['reaching', 'grasping', 'picking', 'carrying', 'releasing', 'placing', 'pushing']
-        self.args.task = task_list[1]
-        prefix = self.args.task+"_trained_at_" + str(time.localtime().tm_mon) + "_" + str(time.localtime().tm_mday)\
-            + "_" + str(time.localtime().tm_hour) + ":" + str(time.localtime().tm_min) + ":" + str(time.localtime().tm_sec)
-        model_dir = self.model_path + prefix + "_" + str(self.trial)
-        os.makedirs(model_dir, exist_ok=True)
-        print("\033[92m"+model_dir+"\033[0m")
-
-        self.args.log_dir = model_dir
-        self.args.robot_file = "jaco2_curtain_torque"
-        # self.args.robot_file = "jaco2_curtain_velocity"
-        self.args.controller = True
-        self.args.n_robots = 1
-        self.args.prev_action = False
-        env = JacoMujocoEnv(**vars(self.args))
-
-        net_arch = {'pi': model_configuration['layers']['policy'], 'vf': model_configuration['layers']['value']}
-        if self.args.task is 'reaching':
-            if self.args.controller:
-                obs_relativity = {'subtract':{'ref':[18,19,20],'tar':[1,2,3]}}
-                obs_index = [1,2,3,4,5,6, 18,19,20]
-            else:
-                obs_relativity = {'subtract':{'ref':[30,31,32,33,34,35],'tar':[13,14,15,16,17,18]}}
-                obs_index = [1,2,3,4,5,6, 7,8,9,10,11,12, 13,14,15,16,17,18, 30,31,32,33,34,35]
-        elif self.args.task in ['grasping','carrying']:
-            # obs_relativity = {'subtract':{'ref':[9,10,11],'tar':[1,2,3]}, 'leave':[2]}
-            # obs_relativity = {'subtract':{'ref':[9,10,11],'tar':[1,2]}, 'leave':[0,1,2]}
-            if self.args.controller:
-                obs_relativity = {}
-                # obs_index = [0, 1,2,3,4,5,6, 7,8,  9,10,11]
-                obs_index = [0, 1,2,3,4,5,6, 7, 8,9,10]
-            else:
-                obs_relativity = {}
-                obs_index = [0, 1,2,3,4,5,6, 7,8,9,10,11,12, 13,14,15,16,17,18, 19, 20,21,22, 26]
-        policy_kwargs = {'net_arch': [net_arch], 'obs_relativity':obs_relativity, 'obs_index':obs_index, 'squash':False}
-        policy_kwargs.update(model_configuration['policy_kwargs'])
-        model_dict = {'gamma': 0.99, 'clip_param': 0.02,
-                      'tensorboard_log': model_dir, 'policy_kwargs': policy_kwargs, 'verbose':1}
-        self.trainer = PPO1(MlpPolicy, env, **model_dict)
-        
-        self._write_log(model_dir, info)
-        print("\033[91mTraining Starts\033[0m")
-        self.num_timesteps = self.steps_per_batch * self.batches_per_episodes * self.num_episodes
-        self.trainer.learn(total_timesteps=self.num_timesteps, save_interval=50, save_path=model_dir)
-        print("\033[91mTrain Finished\033[0m")
-        self.trainer.save(model_dir+"/policy")
-
-    def train_from_scratch_PPO2(self):
-        print("Training from scratch called")
-        self.args.train_log = False
-        self.args.visualize = False
-        task_list = ['reaching', 'grasping', 'picking', 'carrying', 'releasing', 'placing', 'pushing']
-        self.args.task = task_list[1]
-        prefix = self.args.task+"_trained_at_" + str(time.localtime().tm_mon) + "_" + str(time.localtime().tm_mday)\
-            + "_" + str(time.localtime().tm_hour) + ":" + str(time.localtime().tm_min) + ":" + str(time.localtime().tm_sec)
-        prefix = 'PPOtest'
-        model_dir = self.model_path + prefix + "_" + str(self.trial)
-        os.makedirs(model_dir, exist_ok=True)
-        print("\033[92m"+model_dir+"\033[0m")
-
-        self.args.log_dir = model_dir
-        self.args.robot_file = "jaco2_curtain_torque"
-        self.args.n_robots = 1
-        
-        env_list = []
-        for i in range(1):
-            env_list.append(JacoMujocoEnv)
-        env = DummyVecEnv(env_list, dict(**vars(self.args)))
-        env = VecNormalize(env)
-        
-        net_arch = {'pi': model_configuration['layers']['policy'], 'vf': model_configuration['layers']['value']}
-        if self.args.task is 'reaching':
-            obs_relativity = {'subtract':{'ref':[23,24,25,26,27,28],'tar':[0,1,2,3,4,5]}}
-            obs_index = [0,1,2,3,4,5, 8,9,10,11,12,13, 23,24,25,26,27,28]
-        elif self.args.task in ['grasping','carrying']:
-            obs_relativity = {'subtract':{'ref':[14,15,16],'tar':[0,1,2]}, 'leave':[2]}
-            obs_index = [0,1,2,3,4,5, 6,7, 14,15,16]
-        policy_kwargs = {'net_arch': [net_arch], 'obs_relativity':obs_relativity, 'obs_index':obs_index}
-        policy_kwargs.update(model_configuration['policy_kwargs'])
-        model_dict = {'gamma': 0.99, 'tensorboard_log': model_dir, 'policy_kwargs': policy_kwargs}
-        self.trainer = PPO2(MlpPolicy, env, **model_dict)
-        
-        self._write_log(model_dir, info)
-        print("\033[91mTraining Starts\033[0m")
-        self.num_timesteps = self.steps_per_batch * self.batches_per_episodes * self.num_episodes
-        self.trainer.learn(total_timesteps=self.num_timesteps, save_interval=50, save_path=model_dir)
-        print("\033[91mTrain Finished\033[0m")
-        self.trainer.save(model_dir+"/policy")
-    
-    def train_from_scratch_SAC(self):
-        print("Training from scratch called")
-        self.args.train_log = False
-        self.args.visualize = True
-        task_list = ['reaching', 'grasping', 'carrying', 'releasing', 'pushing']
-        task_list_comp = ['picking', 'placing', 'pickAndplace']
-        # self.args.task = task_list[3]
-        self.args.task = task_list_comp[0]
-        prefix = self.args.task+"_trained_at_" + str(time.localtime().tm_mon) + "_" + str(time.localtime().tm_mday)\
-            + "_" + str(time.localtime().tm_hour) + ":" + str(time.localtime().tm_min) + ":" + str(time.localtime().tm_sec)
-        prefix="flat_comparison_picking"
-        model_dir = self.model_path + prefix + "_" + str(self.trial)
-        os.makedirs(model_dir, exist_ok=True)
-        print("\033[92m"+model_dir+"\033[0m")
-
-        self.args.log_dir = model_dir
-        self.args.robot_file = "jaco2_curtain_torque"
-        self.args.controller = True
-        self.args.n_robots = 1
-        self.args.prev_action = False
-        self.args.rulebased_subgoal = True
-        buffer = None
-
-        net_arch = {'pi': model_configuration['layers']['policy'], 'vf': model_configuration['layers']['value']}
-        if self.args.task is 'reaching':
-            traj_dict = np.load(self.model_path+'trajectories/'+self.args.task+".npz", allow_pickle=True)
-            self.args.init_buffer = np.array(traj_dict['obs'])
-            # obs_relativity = {'subtract':{'ref':[17,18,19,20,21,22],'tar':[1,2,3,4,5,6]}, 'leave':[1,2,3]}
-            obs_relativity = {'subtract':{'ref':[17,18,19,20,21,22],'tar':[1,2,3,4,5,6]}}
-            # obs_relativity = {}
-            obs_index = [1,2,3,4,5,6, 17,18,19,20,21,22]
-        elif self.args.task is 'grasping':
-            # buffer = self.create_buffer('trajectory_expert5_mod')
-            obs_relativity = {}
-            obs_index = [0, 1,2,3,4,5,6, 7, 8,9,10]
-        elif self.args.task is 'carrying':
-            obs_relativity = {}
-            obs_index =  [1,2,3,4,5,6, 8,9,10, 14,15,16]
-        elif self.args.task is 'releasing':
-            obs_relativity = {}
-            obs_index =  [0, 1,2,3,4,5,6, 7, 8,9,10, 14,15,16]
-        elif self.args.task is 'pushing':
-            obs_relativity = {}
-            obs_index = [0, 1,2,3,4,5,6, 8,9,10]
-        elif self.args.task is 'picking':
-            obs_relativity = {}
-            obs_index = [0, 1,2,3,4,5,6, 7, 8,9,10, 17,18,19,20,21,22]
-        elif self.args.task is 'placing':
-            obs_relativity = {}
-            obs_index = [0, 1,2,3,4,5,6, 7, 8,9,10, 14,15,16, 23,24,25]
-        elif self.args.task is 'pickAndplace':
-            obs_relativity = {}
-            obs_index = [0, 1,2,3,4,5,6, 7, 8,9,10, 17,18,19,20,21,22, 23,24,25]
-        
-        env = JacoMujocoEnv(**vars(self.args))
-
-        policy_kwargs = {'net_arch': [net_arch], 'obs_relativity':obs_relativity, 'obs_index':obs_index}
-        policy_kwargs.update(model_configuration['policy_kwargs'])
-        model_dict = {'gamma': 0.99, 'tensorboard_log': model_dir, 'policy_kwargs': policy_kwargs, 'verbose': 1, \
-                      'replay_buffer': buffer, 'learning_rate':_lr_scheduler}
-        self.trainer = SAC_MULTI(MlpPolicy_hpcsac, env, **model_dict)
-        
-        self._write_log(model_dir, info)
-        print("\033[91mTraining Starts\033[0m")
-        self.num_timesteps = self.steps_per_batch * self.batches_per_episodes * self.num_episodes
-        self.trainer.learn(total_timesteps=self.num_timesteps, save_interval=10000, save_path=model_dir)
-        print("\033[91mTrain Finished\033[0m")
-        self.trainer.save(model_dir+"/policy")
-
-    def train_continue(self):
-        self.args.train_log = False
-        task_list = ['reaching', 'grasping', 'picking', 'carrying', 'releasing', 'placing', 'pushing']
-        self.args.task = task_list[4]
-        self.args.visualize = True
-        self.args.prev_action = False
-        model_dir = self.model_path + 'releasing_trained_at_4_18_22:26:14_58/continue1/'
-        policy_dir = model_dir + '/policy_2070000.zip'
-        sub_dir = '/continue1'
-        print("\033[92m"+model_dir + sub_dir+"\033[0m")
-        
-        # buffer = self.create_buffer('trajectory_expert5')
-        buffer = None
-
-        self.args.log_dir = model_dir
-        self.args.robot_file = "jaco2_curtain_torque"
-        self.args.n_robots = 1
-        self.args.subgoal_obs = False
-        self.args.rulebased_subgoal = True
-        # traj_dict = np.load(self.model_path+'trajectories/'+self.args.task+"2.npz", allow_pickle=True)
-        # self.args.init_buffer = np.array(traj_dict['obs'])
-        env = JacoMujocoEnv(**vars(self.args))
-        
-        os.makedirs(model_dir+sub_dir, exist_ok=True)
-        self.trainer = SAC_MULTI.load(policy_dir, policy=MlpPolicy_hpcsac, env=env, replay_buffer=buffer, tensorboard_log=model_dir+sub_dir, \
-                                    learning_rate=_lr_scheduler, learning_starts=100, ent_coef='auto')
-        self.trainer.learn(total_time_step, save_interval=10000, save_path=model_dir+sub_dir)
-        print("Train Finished")
-        self.trainer.save(model_dir+sub_dir)
-
-    def train_from_expert(self, n_episodes=100):
-        print("Training from expert called")
-        self.args.train_log = False
-        task_list = ['reaching', 'grasping', 'picking', 'carrying', 'releasing', 'placing', 'pushing']
-        self.args.task = task_list[1]
-        prefix = self.args.task+"_trained_from_expert_at_" + str(time.localtime().tm_mon) + "_" + str(time.localtime().tm_mday)\
-            + "_" + str(time.localtime().tm_hour) + ":" + str(time.localtime().tm_min) + ":" + str(time.localtime().tm_sec)
-        model_dir = self.model_path + prefix + "_" + str(self.trial)
-        print("\033[92m"+model_dir+"\033[0m")
-
-        # self._open_connection()
-        self.args.robot_file = "jaco2_curtain_torque"
-        self.args.prev_action = False
-        # env = JacoMujocoEnv(**vars(self.args))        
-        traj_dict = np.load(self.model_path+'trajectories/'+self.args.task+"_trajectory_expert4.npz", allow_pickle=True)
-        dataset = ExpertDataset(traj_data=traj_dict, batch_size=16384)
-        buffer = ReplayBuffer(64)
-
-        net_arch = {'pi': model_configuration['layers']['policy'], 'vf': model_configuration['layers']['value']}
-        if self.args.task is 'reaching':
-            obs_relativity = {'subtract':{'ref':[18,19,20],'tar':[1,2,3]}}
-            obs_index = [1,2,3,4,5,6, 18,19,20]
-        elif self.args.task in ['grasping','carrying']:
-            # obs_relativity = {'subtract':{'ref':[9,10,11],'tar':[1,2,3]}, 'leave':[2]}
-            # obs_relativity = {'subtract':{'ref':[9,10,11],'tar':[1,2]}, 'leave':[0,1,2]}
-            obs_relativity = {}
-            # obs_index = [0, 1,2,3,4,5,6, 7,8,  9,10,11]
-            obs_index = [0, 1,2,3,4,5,6, 7, 8,9,10]
-        policy_kwargs = {'net_arch': [net_arch], 'obs_relativity':obs_relativity, 'obs_index':obs_index}
-        policy_kwargs.update(model_configuration['policy_kwargs'])
-        model_dict = {'gamma': 0.99, 'clip_param': 0.02,
-                      'tensorboard_log': model_dir, 'policy_kwargs': policy_kwargs, 'verbose':1}
-        self.trainer = PPO1(MlpPolicy, env, **model_dict)
-
-        # model_dir = self.model_path + 'grasping_trained_from_expert_at_12_8_12:15:5'
-        # policy_dir = model_dir + "/policy_19500.zip"
-        # sub_dir = '/continue_from_expert'
-        # model_dir += sub_dir
-        # self.trainer = PPO1.load(policy_dir, env=env)
-
-        print("\033[91mPretraining Starts\033[0m")
-        self.trainer.pretrain(dataset, **pretrain_configuration)
-        print("\033[91mPretraining Finished\033[0m")
-        del dataset
-        os.makedirs(model_dir, exist_ok=True)
-        
-        self._write_log(model_dir, info)
-        print("\033[91mTraining Starts\033[0m")
-        self.num_timesteps = self.steps_per_batch * self.batches_per_episodes * self.num_episodes
-        self.trainer.learn(total_time_step, save_interval=50, save_path=model_dir)
-        print("\033[91mTrain Finished\033[0m")
-        self.trainer.save(model_dir+"/policy")
-
-    def _expert_3d(self, _obs):
-        if sys.platform in ['linux', 'linux2']:
-            event = spacenav.poll()
-            if type(event) is spacenav.MotionEvent:
-                action = np.array([event.x, event.z, event.y, event.rx, -event.ry, event.rz, self.g_angle])/350*1.5
-                # action = np.array([event.x, event.z, event.y, event.rx, -event.ry, event.rz])/350*1.5
-            elif type(event) is spacenav.ButtonEvent:
-                if self.g_changed is not None:
-                    self.g_changed = not self.g_changed
-                else:
-                    self.g_changed = True
-                try:
-                    action = np.array([event.x, event.z, event.y, event.rx, -event.ry, event.rz, 0])/350*1.5
-                except Exception:
-                    action = [0,0,0,0,0,0,0]
-                self.pressed[event.button] = event.pressed
-            else:
-                action = [0,0,0,0,0,0,0]
-                # action = [0,0,0,0,0,0]
-            if self.pressed[0]:
-                self.g_angle = 0.5
-            elif self.pressed[1]:
-                self.g_angle = -0.5
-            else:
-                self.g_angle = 0
-            
-            action[6] = self.g_angle
-            spacenav.remove_events(1)
-            if self.g_changed is not None and not self.g_changed:
-                # print("Removed")
-                spacenav.remove_events(2)
-                self.g_changed = None
-            return action
-        else:
-            action = [0,0,0,0,0,0,0]
-            return action
-    
-    def generate_traj(self):
-        print("Trajectory Generating")
-        self.args.train_log = False
-        task_list = ['reaching', 'grasping', 'picking', 'carrying', 'releasing', 'placing', 'pushing']
-        self.args.task = task_list[4]
-
-        open_connection()
-        self.args.robot_file = "jaco2_curtain_torque"
-        env = JacoMujocoEnv(**vars(self.args))
-        # traj_dict = generate_expert_traj(self._expert_3d, self.model_path+'/trajectories/'+self.args.task+'_trajectory_expert1', env, n_episodes=100)
-        traj_dict = generate_expert_traj(self._expert_3d, self.model_path+'/trajectories/'+self.args.task+"2", env, n_episodes=100)
-        close_connection()
-
-    def create_buffer(self, name):
-        traj_dict = np.load(self.model_path+'trajectories/'+self.args.task+"_"+name+".npz", allow_pickle=True)
-        buffer = ReplayBuffer(50000, discard=True)
-        buff_arry = []
-        print("episodes: ", len(traj_dict['actions']))
-        for i in range(len(traj_dict['actions'])):
-            obs = np.array(traj_dict['obs'][i])
-            action = traj_dict['actions'][i]
-            reward = traj_dict['rewards'][i]
-            new_obs = traj_dict['next_obs'][i]
-            done = float(traj_dict['episode_starts'][i])
-            buff_arry.append((np.copy(obs), np.copy(action), np.copy(reward), np.copy(new_obs), np.copy(done)))
-            del obs, action, reward, new_obs, done
-        # print(buff_arry)
-        buffer.set_storate(buff_arry)
-        del traj_dict
-        return buffer
-
     def train_HPC(self):
         task_list = ['picking', 'placing', 'pickAndplace']
         composite_primitive_name = self.args.task = task_list[2]
-        algo_list = ['sac','ppo']
-        algo = algo_list[0]
 
         self.args.train_log = False
         self.args.visualize = True
-        self.args.robot_file = "jaco2_curtain_torque"
+        self.args.robot_file = "jaco2_dual_torque"
         self.args.controller = True
-        self.args.n_robots = 1
+        self.args.n_robots = 2
         self.args.subgoal_obs = False
         self.args.rulebased_subgoal = True
         self.args.auxiliary = False
         self.args.seed = self.trial
 
-        if algo == 'sac':
-            env = JacoMujocoEnv(**vars(self.args))
-            policy = MlpPolicy_hpcsac
-            self.model = SAC_MULTI(policy=policy, env=None, _init_setup_model=False, composite_primitive_name=composite_primitive_name)
-            save_interval = 10000
-            ent_coef = 1e-7
-        elif algo == 'ppo':
-            env_list = []
-            for i in range(2):
-                env_list.append(JacoMujocoEnv)
-            env = DummyVecEnv(env_list, dict(**vars(self.args)))
-            # env = SubprocVecEnv(env_list)
-            env = VecNormalize(env, norm_obs=False, norm_reward=False)
-            policy = MlpPolicy_hpcppo
-            self.model = HPCPPO(policy=policy, env=None, _init_setup_model=False, composite_primitive_name=composite_primitive_name)
-            save_interval = 100
-            ent_coef = 0
+        env = JacoMujocoEnv(**vars(self.args))
+        policy = MlpPolicy_hpcsac
+        self.model = SAC_MULTI(policy=policy, env=None, _init_setup_model=False, composite_primitive_name=composite_primitive_name)
+        save_interval = 10000
+        ent_coef = 1e-7
 
         if self.args.auxiliary:
             prefix = composite_primitive_name + "_trained_at_" + str(time.localtime().tm_year) + "_" + str(time.localtime().tm_mon) + "_" + str(
                     time.localtime().tm_mday) + "_" + str(time.localtime().tm_hour) + ":" + str(time.localtime().tm_min)
         else:
-            prefix = composite_primitive_name +'_'+algo+"_noaux_trained_at_" + str(time.localtime().tm_year) + "_" + str(time.localtime().tm_mon) + "_" + str(
+            prefix = composite_primitive_name +"_SAC_noaux_trained_at_" + str(time.localtime().tm_year) + "_" + str(time.localtime().tm_mon) + "_" + str(
                     time.localtime().tm_mday) + "_" + str(time.localtime().tm_hour) + ":" + str(time.localtime().tm_min)
         prefix = 'HPCcheck_noQ'
         model_dir = self.model_path + prefix + "_" + str(self.trial)
@@ -789,12 +462,6 @@ class RL_controller:
 
 if __name__ == "__main__":
     controller = RL_controller()
-    # controller.train_from_scratch_PPO1()  
-    # controller.train_from_scratch_PPO2()
-    # controller.train_from_scratch_SAC()
-    # controller.train_continue()
-    # controller.train_from_expert()
     # controller.train_HPC()
     # controller.train_HPC_continue()
-    # controller.generate_traj()
     controller.test()

@@ -19,11 +19,11 @@ axes[1].plot(df['Step'], df['Place-Reaching'], color='aqua', linestyle='-', line
 axes[1].plot(df['Step'], df['Place-Releasing'], color='yellow', linestyle='-', linewidth=1, label='Place-Releasing')
 
 
-axes[0].set_title('Weights of level 2 tasks')
-axes[1].set_title('Weights of level 1 tasks')
-axes[0].set_ylabel('Weights', fontsize=13)
+axes[0].set_title('Intents of level 2 tasks')
+axes[1].set_title('Intents of level 1 tasks')
+axes[0].set_ylabel('Intents', fontsize=13)
 axes[1].set_xlabel('Step', fontsize=13)
-axes[1].set_ylabel('Weights', fontsize=13)
+axes[1].set_ylabel('Intents', fontsize=13)
 axes[1].set_xticks(np.arange(0,len(df['Step'])+1, 10))
 axes[0].grid(axis='y', alpha=0.5, linestyle='--')
 axes[1].grid(axis='y', alpha=0.5, linestyle='--')

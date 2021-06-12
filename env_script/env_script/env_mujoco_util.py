@@ -22,7 +22,6 @@ class JacoMujocoEnvUtil:
         self.seed(kwargs.get('seed', None))
         self.n_robots = kwargs.get('n_robots', 1)
         robot_file = kwargs.get('robot_file', "jaco2_curtain_torque")
-        # robot_file = kwargs.get('robot_file', "jaco2_torque")
         if robot_file == None:
             n_robot_postfix = ['', '_dual', '_tri']    
             try:
@@ -34,6 +33,7 @@ class JacoMujocoEnvUtil:
         self.jaco = MujocoConfig(xml_name, n_robots=self.n_robots)
         self.interface = Mujoco(self.jaco, dt=0.001, visualize=kwargs.get('visualize', False), create_offscreen_rendercontext=False)
         self.interface.connect()
+
         self.skip_frames = 50
         self.base_position = self.__get_property('link1', 'position')
         self.gripper_angle_1 = 0.5
@@ -82,35 +82,19 @@ class JacoMujocoEnvUtil:
 
     def _step_simulation(self):
         fb = self.interface.get_feedback()
-        if self.controller:
-            u = self.__controller_generate(fb)
-            if self.action_in:
-                self.interface.send_forces(
-                    np.hstack([u, 
-                            [
-                                self.gripper_angle_1_array[self.gripper_iter], 
-                                self.gripper_angle_1_array[self.gripper_iter],
-                                self.gripper_angle_1_array[self.gripper_iter]
-                            ]]))
-            else:
-                self.interface.send_forces(
-                    np.hstack([u, [self.gripper_angle_1, self.gripper_angle_1, self.gripper_angle_1]]))
-            self.gripper_iter += 1
+        u = self.__controller_generate(fb)
+        if self.action_in:
+            self.interface.send_forces(
+                np.hstack([u, 
+                        [
+                            self.gripper_angle_1_array[self.gripper_iter], 
+                            self.gripper_angle_1_array[self.gripper_iter],
+                            self.gripper_angle_1_array[self.gripper_iter]
+                        ]]))
         else:
-            if self.ctrl_type == "torque":
-                self.interface.send_signal(np.hstack([self.target_signal, [0, 0, 0]]))
-            elif self.ctrl_type == "velocity":
-                # print('sent vel: ',self.target_signal)
-                self.interface.send_signal(
-                    np.hstack([fb['q'], self.target_signal, 
-                                [
-                                    self.gripper_angle_1_array[self.gripper_iter], 
-                                    self.gripper_angle_1_array[self.gripper_iter],
-                                    self.gripper_angle_1_array[self.gripper_iter]
-                                ]]))
-                # print('vel: ',self.interface.sim.data.qvel[self.interface.joint_vel_addrs])
-            elif self.ctrl_type == "position":
-                self.interface.send_signal(np.hstack([fb['q'] + self.target_signal, fb['dq'], [0, 0, 0]]))
+            self.interface.send_forces(
+                np.hstack([u, [self.gripper_angle_1, self.gripper_angle_1, self.gripper_angle_1]]))
+        self.gripper_iter += 1
 
     def __controller_generate(self, fb):
         return self.ctr.generate(
@@ -193,7 +177,7 @@ class JacoMujocoEnvUtil:
             self.target_pos = np.reshape(np.hstack([self.reaching_goal]),(-1))
         obs = self._get_observation()
         return obs[0]
-                 
+
     def _create_init_angle(self):
         if self.task in ['reaching', 'picking', 'pickAndplace']:
             random_init_angle = [uniform(0.7, 2.5), uniform(3.8,4), uniform(
@@ -243,82 +227,60 @@ class JacoMujocoEnvUtil:
         return np.array(reach_goal), np.array(obj_goal), np.array(dest_goal)
 
     def _get_observation(self):
-        if self.state_gen == None:
-            self.__get_gripper_pose()
-            self.touch_index = self._get_touch()
-            observation = []
-            for i in range(self.n_robots):
-                xyz = self.interface.get_xyz('object_body') - self.gripper_pose[0][:3]
-                obj_diff = np.linalg.norm(xyz)
-                if self.controller:
-                    if self.subgoal_obs:
-                        observation.append(np.hstack([
-                            self.touch_index,
-                            self.gripper_pose[i][:3],
-                            self.gripper_pose[i][3:]/np.pi,
-                            # [(self.gripper_angle_1-0.65)/0.35],
-                            [(self.gripper_angle_1-0.8)/0.2],
-                            self.__get_property('object_body','pose')[0][:3],
-                            # self.__get_property('object_body','pose')[0][3:]/np.pi,
-                            [0,0,0],
-                            self.dest_goal[i], 
-                            self.gripper_pose[i][:3],
-                            self.gripper_pose[i][3:]/np.pi,
-                        ]))
-                    elif self.rulebased_subgoal:
-                        pos, ori = self._get_rulebased_subgoal()
-                        observation.append(np.hstack([
-                            self.touch_index,
-                            self.gripper_pose[i][:3],
-                            self.gripper_pose[i][3:]/np.pi,
-                            [(self.gripper_angle_1-0.8)/0.2],
-                            self.__get_property('object_body','pose')[0][:3],
-                            # self.__get_property('object_body','pose')[0][3:]/np.pi,
-                            [0,0,0],
-                            self.dest_goal[i], 
-                            pos,
-                            ori/np.pi,
-                            #########################
-                            [0,np.pi/2,0]
-                        ]))
-                    else:
-                        # Observation dimensions: 
-                        # touchidx     proprio          object       destination        reaching
-                        #    0,    1,2,3,4,5,6, 7,  8,9,10,11,12,13,  14,15,16,     17,18,19,20,21,22
-                        observation.append(np.hstack([
-                            self.touch_index,
-                            self.gripper_pose[i][:3],
-                            self.gripper_pose[i][3:]/np.pi,
-                            # [(self.gripper_angle_1-0.65)/0.35],
-                            [(self.gripper_angle_1-0.8)/0.2],
-                            self.__get_property('object_body','pose')[0][:3],
-                            # self.__get_property('object_body','pose')[0][3:]/np.pi,
-                            [0,0,0],
-                            self.dest_goal[i], 
-                            self.reaching_goal[i][:3],
-                            self.reaching_goal[i][3:]/np.pi,
-                            [0,np.pi/2,0]
-                        ]))
-                    
-                else:
-                    observation.append(np.hstack([
-                        self.touch_index,
-                        self.interface.sim.data.qpos[self.interface.joint_pos_addrs],
-                        self.interface.sim.data.qvel[self.interface.joint_vel_addrs],
-                        self.gripper_pose[i][:3],
-                        self.gripper_pose[i][3:]/np.pi,
-                        [(self.gripper_angle_1-0.8)/0.2],
-                        self.__get_property('object_body','pose')[0][:3],
-                        self.__get_property('object_body','pose')[0][3:]/np.pi,
-                        obj_diff,
-                        self.dest_goal[i], 
-                        self.reaching_goal[i][:3],
-                        self.reaching_goal[i][3:]/np.pi
-                    ]))
-        else:
-            image, depth = self._get_camera()
-            data = [image, depth]
-            observation = self.state_gen.generate(data)
+        self.__get_gripper_pose()
+        self.touch_index = self._get_touch()
+        observation = []
+        for i in range(self.n_robots):
+            xyz = self.interface.get_xyz('object_body') - self.gripper_pose[0][:3]
+            obj_diff = np.linalg.norm(xyz)
+            if self.subgoal_obs:
+                observation.append(np.hstack([
+                    self.touch_index,
+                    self.gripper_pose[i][:3],
+                    self.gripper_pose[i][3:]/np.pi,
+                    # [(self.gripper_angle_1-0.65)/0.35],
+                    [(self.gripper_angle_1-0.8)/0.2],
+                    self.__get_property('object_body','pose')[0][:3],
+                    # self.__get_property('object_body','pose')[0][3:]/np.pi,
+                    [0,0,0],
+                    self.dest_goal[i], 
+                    self.gripper_pose[i][:3],
+                    self.gripper_pose[i][3:]/np.pi,
+                ]))
+            elif self.rulebased_subgoal:
+                pos, ori = self._get_rulebased_subgoal()
+                observation.append(np.hstack([
+                    self.touch_index,
+                    self.gripper_pose[i][:3],
+                    self.gripper_pose[i][3:]/np.pi,
+                    [(self.gripper_angle_1-0.8)/0.2],
+                    self.__get_property('object_body','pose')[0][:3],
+                    # self.__get_property('object_body','pose')[0][3:]/np.pi,
+                    [0,0,0],
+                    self.dest_goal[i], 
+                    pos,
+                    ori/np.pi,
+                    #########################
+                    [0,np.pi/2,0]
+                ]))
+            else:
+                # Observation dimensions: 
+                # touchidx     proprio          object       destination        reaching
+                #    0,    1,2,3,4,5,6, 7,  8,9,10,11,12,13,  14,15,16,     17,18,19,20,21,22
+                observation.append(np.hstack([
+                    self.touch_index,
+                    self.gripper_pose[i][:3],
+                    self.gripper_pose[i][3:]/np.pi,
+                    # [(self.gripper_angle_1-0.65)/0.35],
+                    [(self.gripper_angle_1-0.8)/0.2],
+                    self.__get_property('object_body','pose')[0][:3],
+                    # self.__get_property('object_body','pose')[0][3:]/np.pi,
+                    [0,0,0],
+                    self.dest_goal[i], 
+                    self.reaching_goal[i][:3],
+                    self.reaching_goal[i][3:]/np.pi,
+                    [0,np.pi/2,0]
+                ]))
         return np.array(observation, dtype=np.float32)
     
     def _get_rulebased_subgoal(self):
@@ -348,7 +310,10 @@ class JacoMujocoEnvUtil:
         rpy_real[0] -= pi/2
         subgoal_ori = rpy_real + np.array([(np.random.uniform()-0.5)/10 for _ in range(3)])
 
-        return subgoal_pos, subgoal_ori
+        if self.task == 'placing':
+            return np.array(self.dest_goal[0]), np.array([0,np.pi/2,0])
+        else:
+            return subgoal_pos, subgoal_ori
 
     def _get_camera(self):
         self.interface.offscreen.render(width=640, height=480, camera_id=0)
@@ -678,72 +643,10 @@ class JacoMujocoEnvUtil:
         self.action_in = True
         self.gripper_iter = 0
         self.__get_gripper_pose()
-        weight_reach1 = 0
-        weight_grasp = 0
-        weight_reach2 = 0
-        weight_release = 0
-        weight_pick = 0
-        weight_place = 0
-        weight_aux = 0
-
-        if type(weight) == dict:
-            weight_layer = 'level1_'+self.task+'/weight'
-            # print(weight)
-            if self.task == 'picking':
-                if self.auxiliary:
-                    weight_aux = weight[weight_layer][0][0]
-                    weight_reach1 = weight[weight_layer][0][1]
-                    weight_grasp = weight[weight_layer][0][2]
-                else:
-                    weight_reach1 = weight[weight_layer][0][0]
-                    weight_grasp = weight[weight_layer][0][1]
-            elif self.task == 'placing':
-                if self.auxiliary:
-                    weight_aux = weight[weight_layer][0][0]
-                    weight_reach2 = weight[weight_layer][0][1]
-                    weight_release = weight[weight_layer][0][2]
-                else:
-                    weight_reach2 = weight[weight_layer][0][0]
-                    weight_release = weight[weight_layer][0][1]
-            elif self.task == 'pickAndplace':
-                weight_pick_layer = 'level1_picking/weight'
-                weight_place_layer = 'level1_placing/weight'
-                weight_pickAndplace_layer = 'level2_pickAndplace/weight'
-                if self.auxiliary:
-                    weight_aux = weight[weight_pickAndplace_layer][0][0]
-                    weight_pick = weight[weight_pickAndplace_layer][0][1]
-                    weight_place = weight[weight_pickAndplace_layer][0][2]
-                    weight_reach1 = weight_pick * weight[weight_pick_layer][0][0]
-                    weight_grasp = weight_pick * weight[weight_pick_layer][0][1]
-                    weight_reach2 = weight_place * weight[weight_place_layer][0][0]
-                    weight_release = weight_place * weight[weight_place_layer][0][1]
-                else:
-                    weight_pick = weight[weight_pickAndplace_layer][0][0]
-                    weight_place = weight[weight_pickAndplace_layer][0][1]
-                    weight_reach1 = weight_pick * weight[weight_pick_layer][0][0]
-                    weight_grasp = weight_pick * weight[weight_pick_layer][0][1]
-                    weight_reach2 = weight_place * weight[weight_place_layer][0][0]
-                    weight_release = weight_place * weight[weight_place_layer][0][1]
-            if id is not None:
-                if id[0] == 0:
-                    self.interface.set_mocap_xyz("id_reach", [-0.26,0.14,-0.1 + 1*0.1])
-                    self.interface.set_mocap_xyz("id_grasp", [-0.22,0.14,-0.1 + 0])
-                else:
-                    self.interface.set_mocap_xyz("id_reach", [-0.26,0.14,-0.1 + 0])
-                    self.interface.set_mocap_xyz("id_grasp", [-0.22,0.14,-0.1 + 1*0.1])
-            
-            self.interface.set_mocap_xyz("weight_reach", [-0.26,0.1,-0.1 + weight_reach1*0.1])
-            self.interface.set_mocap_xyz("weight_grasp", [-0.22,0.1,-0.1 + weight_grasp*0.1])
-            self.interface.set_mocap_xyz("weight_reach2", [-0.18,0.1,-0.1 + weight_reach2*0.1])
-            self.interface.set_mocap_xyz("weight_release", [-0.14,0.1,-0.1 + weight_release*0.1])
-            self.interface.set_mocap_xyz("weight_aux", [-0.1,0.1,-0.1 + weight_aux*0.1])
-            self.interface.set_mocap_xyz("weight_pick", [-0.26,0.06,-0.1 + weight_pick*0.1])
-            self.interface.set_mocap_xyz("weight_place", [-0.22,0.06,-0.1 + weight_place*0.1])
             
         if self.rulebased_subgoal:
             subpos, subori = self._get_rulebased_subgoal()
             subgoal_reach = np.append(subpos, subori)
-            # subgoal_reach = np.hstack([self.dest_goal[0],[0,np.pi/2,0]])
         else:
             subgoal_reach = subgoal['level1_reaching/level0'][0] + self.target_pos
         
@@ -753,53 +656,36 @@ class JacoMujocoEnvUtil:
 
         if np.any(np.isnan(np.array(a))):
             print("WARNING, nan in action", a)
-        if self.controller:
-            # Action: Gripper Pose Increments (m,rad)
-            # Action scaled to 0.01m, 0.05 rad
-            # self.target_pos = self.gripper_pose[0] + np.hstack([a[:3]/100, a[3:6]/20])
-            self.target_pos = self.gripper_pose[0] + np.hstack([a[:3]/25, a[3:6]/5])
-            if abs(self.target_pos[5]) > pi:
-                self.target_pos[5] += -np.sign(self.target_pos[5])*2*pi
-            if len(a) == 8:
-                prev1 = self.gripper_angle_1
-                prev2 = self.gripper_angle_2
-                self.gripper_angle_1 += a[6]
-                self.gripper_angle_2 += a[7]
-                self.gripper_angle_1 = max(min(self.gripper_angle_1,1),0.3)
-                self.gripper_angle_2 = max(min(self.gripper_angle_2,1),0.3)
-                self.gripper_angle_1_array = np.linspace(prev1, self.gripper_angle_1, self.skip_frames)
-                self.gripper_angle_2_array = np.linspace(prev2, self.gripper_angle_2, self.skip_frames)
-            elif len(a) == 7:
-                prev1 = self.gripper_angle_1
-                self.gripper_angle_1 += a[6]/10
-                self.gripper_angle_1 = max(min(self.gripper_angle_1,1),0.6)
-                self.gripper_angle_1_array = np.linspace(prev1, self.gripper_angle_1, self.skip_frames)
-            elif len(a) == 6:
-                self.gripper_angle_1 = 0.5
-                self.gripper_angle_2 = 0.5
-            self.interface.set_mocap_xyz("hand", self.target_pos[:3])
-            self.interface.set_mocap_orientation("hand", transformations.quaternion_from_euler(
-                self.target_pos[3], self.target_pos[4], self.target_pos[5], axes="rxyz"))
-        else:
-            if len(a) == 8:
-                self.target_signal = a[:6]/0.8
-                prev1 = self.gripper_angle_1
-                prev2 = self.gripper_angle_2
-                self.gripper_angle_1 += a[6]
-                self.gripper_angle_2 += a[7]
-                self.gripper_angle_1 = max(min(self.gripper_angle_1,1),0.3)
-                self.gripper_angle_2 = max(min(self.gripper_angle_2,1),0.3)
-                self.gripper_angle_1_array = np.linspace(prev1, self.gripper_angle_1, self.skip_frames)
-                self.gripper_angle_2_array = np.linspace(prev2, self.gripper_angle_2, self.skip_frames)
-            elif len(a) == 7:
-                self.target_signal = a[:6]/0.8
-                prev1 = self.gripper_angle_1
-                self.gripper_angle_1 += a[6]/10
-                self.gripper_angle_1 = max(min(self.gripper_angle_1,1),0.3)
-                self.gripper_angle_1_array = np.linspace(prev1, self.gripper_angle_1, self.skip_frames)
-            elif len(a) == 6:
-                self.target_signal = a[:6]/0.8
+        # Action: Gripper Pose Increments (m,rad)
+        # Action scaled to 0.01m, 0.05 rad
+        # self.target_pos = self.gripper_pose[0] + np.hstack([a[:3]/100, a[3:6]/20])
+        self.target_pos = self.gripper_pose[0] + np.hstack([a[:3]/25, a[3:6]/5])
+        if abs(self.target_pos[5]) > pi:
+            self.target_pos[5] += -np.sign(self.target_pos[5])*2*pi
+        elif len(a) == 7:
+            prev1 = self.gripper_angle_1
+            self.gripper_angle_1 += a[6]/10
+            self.gripper_angle_1 = max(min(self.gripper_angle_1,1),0.6)
+            self.gripper_angle_1_array = np.linspace(prev1, self.gripper_angle_1, self.skip_frames)
+        elif len(a) == 6:
+            self.gripper_angle_1 = 0.5
+        elif len(a) == 14:
+            prev1 = self.gripper_angle_1
+            self.gripper_angle_1 += a[6]/10
+            self.gripper_angle_1 = max(min(self.gripper_angle_1,1),0.6)
+            self.gripper_angle_1_array = np.linspace(prev1, self.gripper_angle_1, self.skip_frames)
+            prev2 = self.gripper_angle_2
+            self.gripper_angle_2 += a[6]/10
+            self.gripper_angle_2 = max(min(self.gripper_angle_2,1),0.6)
+            self.gripper_angle_2_array = np.linspace(prev2, self.gripper_angle_2, self.skip_frames)
+        elif len(a) == 12:
+            self.gripper_angle_1 = 0.5
+            self.gripper_angle_2 = 0.5
+        self.interface.set_mocap_xyz("hand", self.target_pos[:3])
+        self.interface.set_mocap_orientation("hand", transformations.quaternion_from_euler(
+            self.target_pos[3], self.target_pos[4], self.target_pos[5], axes="rxyz"))
                 
+
     def __get_property(self, subject, prop):
         out = []
         for i in range(self.n_robots):
