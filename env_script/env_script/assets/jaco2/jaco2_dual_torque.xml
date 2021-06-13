@@ -1,6 +1,6 @@
 <mujoco model="jaco2_dual">
     <size njmax="8000" nconmax="4000"/>
-    <compiler angle="radian" meshdir="meshes" balanceinertia="true"/>
+    <compiler angle="radian" meshdir="meshes" balanceinertia="true" convexhull="true"/>
 
     <default>
         <light castshadow="false" diffuse="1 1 1" />
@@ -10,7 +10,6 @@
     <custom>
         <numeric name="START_ANGLES" data="2.0 3.14 1.57 4.71 0.0 3.04" />
         <numeric name="N_GRIPPER_JOINTS" data="3" />
-        <text name="google_id" data="1doam-DgkW7OSPnwWZQM84edzX84ot-GK" />
     </custom>
 
     <asset>
@@ -26,52 +25,38 @@
         <mesh file="ring_big_joint0.stl"/>
         <mesh file="ring_small.STL"/>
 
-        <texture name="floor_tile" file="meshes/floor_tile.png" width="3000" height="3000" type="2d"/>
-        <material name="tile" texture="floor_tile" specular="0" shininess="0" reflectance="0" emission="1" />
-
         <material name="carbon" specular="1" shininess="1" reflectance="1" rgba="0.05 0.05 0.05 1" emission="1" />
         <material name="grey_plastic" specular="0.5" shininess="0" reflectance="0" rgba="0.12 0.14 0.14 1" emission="1" />
 
-        <texture name="foam_blocks" file="meshes/foam_blocks.png" width="2744" height="2744" type="2d"/>
-        <material name="foam" texture="foam_blocks" specular="0" shininess="0" reflectance="0" emission="1" />
+        <texture name="floor_wood" file="meshes/floor_wood.png" width="1200" height="1200" type="2d"/>
+        <material name="wood" texture="floor_wood" specular="0" shininess="0" reflectance="0" emission="1" texrepeat="5 5"/>
 
         <texture name="texcarpet" type="2d" file="meshes/carpet.png"/>
         <material name="matcarpet" texture="texcarpet"/>
+
+        <texture name="texdice" type="cube" fileright="meshes/dice1.png" fileleft="meshes/dice6.png" fileup="meshes/dice2.png" filedown="meshes/dice5.png" filefront="meshes/dice3.png" fileback="meshes/dice4.png" rgb1="1 1 1" />
+        <material name="matdice" texture="texdice"/>
+
     </asset>
 
     <worldbody> 
+        <light directional="true" pos="-0.5 0.5 3" dir="0 0 -1" />
         <!-- ###############  ORDER DOES MATTER  ############### -->
-        <geom name="floor_foam_block" pos="0 0 0" size="0.5 0.5 0.05" type="plane" rgba="1 0.83 0.61 1" material="foam"/>
-        <geom name="floor_grey_tile" pos="0 0 -0.001" size="0.75 0.75 0.05" type="plane" material="tile"/>
+        <geom name="floor_wood" pos="0 0 0" size="1 1 0.05" type="plane" material="wood"/>
 
         <!--############ JACO ############-->
         <include file="jaco2_ind_1.xml"/>
         <include file="jaco2_ind_2.xml"/>
         <!--##############################-->
-        <body name="target" pos="0 0 -0.15" mocap="true">
-            <geom name="target" type="sphere" size="0.025" rgba=".9 0 0 .5" contype="4" conaffinity="4"/>
-        </body>
-        <!--############ VISOION BLOCKER ############-->
-        <!-- Holder -->
-        <body name="Holder_left" pos="-0.5 0.5 0.5">
-            <geom type="cylinder" size=".01 0.5" density="100"/>
-        </body>
-        <body name="Holder_right" pos="0.5 0.5 0.5">
-            <geom type="cylinder" size=".01 0.5" density="100"/>
-        </body>
-        <body name="Holder_up" pos="0 0.5 1">
-            <geom type="cylinder" size=".01 0.5" zaxis="1 0 0" density="100"/>
-        </body>
 
-        <!-- Cloth -->
-        <body name="B10_0" pos="0 0.5 1" zaxis="0 1 0">
-            <composite type="cloth" count="21 15 1" spacing="0.05" flatinertia="0.001">
-                <joint kind="main" damping="0.001"/>
-                <skin material="matcarpet" texcoord="true" inflate="0.005" subgrid="2"/>
-                <geom type="capsule" size="0.005 0.005" rgba=".8 .2 .1 1"/>
-            </composite>
+        <body name="object_body_1" pos="1 1.2 1">
+            <freejoint></freejoint>
+            <geom type="sphere" size=".04" density="30" solimp="0.998 0.998 0.001" friction="1 0.5 0.1" solref="0.001 1" pos="0 0 0" rgba="0 0 0.5 0.8"></geom>
         </body>
-        <!--#########################################-->
+        <body name="object_body_2" pos="1 1.2 1">
+            <freejoint></freejoint>
+            <geom type="box" size=".027 0.027 0.03" density="100" solimp="0.998 0.998 0.001" friction="0.95 0.3 0.1" solref="0.001 1" pos="0 0 0" rgba="0 0 0.5 0.8"></geom>
+        </body>
 
         <!--################ CAMERA ################-->
         <!-- Camera 0 -->
@@ -79,31 +64,37 @@
         <!--#########################################-->
     </worldbody>
 
-    
-    <equality>
-        <connect name="const1" body1="B0_0" body2="Holder_up" anchor="0 0 0"/>
-        <connect name="const2" body1="B10_0" body2="Holder_up" anchor="0 0 0"/>
-        <connect name="const3" body1="B20_0" body2="Holder_up" anchor="0 0 0"/>
-    </equality>
+    <tendon>
+        <fixed name='finger_1'>
+            <joint joint='joint_thumb_1' coef='2'/>
+            <joint joint='joint_index_1' coef='1'/>
+            <joint joint='joint_pinky_1' coef='1'/>
+        </fixed>
+        <fixed name='finger_2'>
+            <joint joint='joint_thumb_2' coef='2'/>
+            <joint joint='joint_index_2' coef='1'/>
+            <joint joint='joint_pinky_2' coef='1'/>
+        </fixed>
+    </tendon>
 
     <actuator>
-        <motor name="joint0_motor_1" joint="joint0_1"/>
-        <motor name="joint1_motor_1" joint="joint1_1"/>
-        <motor name="joint2_motor_1" joint="joint2_1"/>
-        <motor name="joint3_motor_1" joint="joint3_1"/>
-        <motor name="joint4_motor_1" joint="joint4_1"/>
-        <motor name="joint5_motor_1" joint="joint5_1"/>
-        <motor name="joint_thumb_motor_1" joint="joint_thumb_1"/>
-        <motor name="joint_index_motor_1" joint="joint_index_1"/>
-        <motor name="joint_pinky_motor_1" joint="joint_pinky_1"/>
-        <motor name="joint0_motor_2" joint="joint0_2"/>
-        <motor name="joint1_motor_2" joint="joint1_2"/>
-        <motor name="joint2_motor_2" joint="joint2_2"/>
-        <motor name="joint3_motor_2" joint="joint3_2"/>
-        <motor name="joint4_motor_2" joint="joint4_2"/>
-        <motor name="joint5_motor_2" joint="joint5_2"/>
-        <motor name="joint_thumb_motor_2" joint="joint_thumb_2"/>
-        <motor name="joint_index_motor_2" joint="joint_index_2"/>
-        <motor name="joint_pinky_motor_2" joint="joint_pinky_2"/>
+        <motor name="joint0_motor_1" joint="joint0_1" forcelimited="true" forcerange="-30 30"/>
+        <motor name="joint1_motor_1" joint="joint1_1" forcelimited="true" forcerange="-30 30"/>
+        <motor name="joint2_motor_1" joint="joint2_1" forcelimited="true" forcerange="-30 30"/>
+        <motor name="joint3_motor_1" joint="joint3_1" forcelimited="true" forcerange="-15 15"/>
+        <motor name="joint4_motor_1" joint="joint4_1" forcelimited="true" forcerange="-15 15"/>
+        <motor name="joint5_motor_1" joint="joint5_1" forcelimited="true" forcerange="-15 15"/>
+        <position name='thumb_1' ctrllimited="true" kp="20" joint='joint_thumb_1' ctrlrange='0 1.51' forcelimited="true" forcerange="-0.3 0.3" />
+        <position name='index_1' ctrllimited="true" kp="20" joint='joint_index_1' ctrlrange='0 1.51' forcelimited="true" forcerange="-0.3 0.3" />
+        <position name='pinky_1'  ctrllimited="true" kp="20" joint='joint_pinky_1' ctrlrange='0 1.51' forcelimited="true" forcerange="-0.3 0.3" />
+        <motor name="joint0_motor_2" joint="joint0_2" forcelimited="true" forcerange="-30 30"/>
+        <motor name="joint1_motor_2" joint="joint1_2" forcelimited="true" forcerange="-30 30"/>
+        <motor name="joint2_motor_2" joint="joint2_2" forcelimited="true" forcerange="-30 30"/>
+        <motor name="joint3_motor_2" joint="joint3_2" forcelimited="true" forcerange="-15 15"/>
+        <motor name="joint4_motor_2" joint="joint4_2" forcelimited="true" forcerange="-15 15"/>
+        <motor name="joint5_motor_2" joint="joint5_2" forcelimited="true" forcerange="-15 15"/>
+        <position name='thumb_2' ctrllimited="true" kp="20" joint='joint_thumb_2' ctrlrange='0 1.51' forcelimited="true" forcerange="-0.3 0.3" />
+        <position name='index_2' ctrllimited="true" kp="20" joint='joint_index_2' ctrlrange='0 1.51' forcelimited="true" forcerange="-0.3 0.3" />
+        <position name='pinky_2'  ctrllimited="true" kp="20" joint='joint_pinky_2' ctrlrange='0 1.51' forcelimited="true" forcerange="-0.3 0.3" />
     </actuator>
 </mujoco>

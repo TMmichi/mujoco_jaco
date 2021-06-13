@@ -3,7 +3,6 @@
     <compiler angle="radian" meshdir="meshes" balanceinertia="true" convexhull="true"/>
     <!-- <compiler angle="radian" meshdir="meshes" balanceinertia="true" convexhull="false"/> -->
 
-
     <default>
         <light castshadow="false" diffuse="1 1 1" />
         <!-- Camera -1 -->
@@ -343,6 +342,7 @@
         <!-- <inertial pos="0 0 0.07" mass="0.01" diaginertia="0.2 0.2 0.2"></inertial> -->
         <!--#########################################-->
     </worldbody>
+    
 <!--
     <equality>
         <connect name="const1" body1="B0_0" body2="Holder_up" anchor="0 0 0"/>
