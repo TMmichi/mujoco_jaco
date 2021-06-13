@@ -57,16 +57,16 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
         dest_ori_max = [1]*3
         if self.ctrl_type == 'torque':
             obs_max = np.hstack([
-                touch_index,                        #[0]
-                end_effector_position_max,          #[1:4]
-                end_effector_orientation_max,       #[4:7]
-                gripper_angle_max,                  #[7:8]
-                obj_position_max,                   #[8:11]
-                obj_orientation_max,                #[11:14]
-                dest_max,                           #[14:17]
-                reach_position_max,                 #[17:20]
-                reach_orientation_max,              #[20:23]
-                dest_ori_max])                      #[24:27]
+                touch_index,                            #[0]
+                end_effector_position_max,              #[1:4]
+                end_effector_orientation_max,           #[4:7]
+                gripper_angle_max,                      #[7:8]
+                obj_position_max,                       #[8:11]
+                obj_orientation_max,                    #[11:14]
+                dest_max,                               #[14:17]
+                reach_position_max,                     #[17:20]
+                reach_orientation_max,                  #[20:23]
+                dest_ori_max]).repeat(self.n_robots)    #[24:27]
         elif self.ctrl_type == 'velocity':
             obs_max = np.hstack([
                 touch_index,                        #[0]
@@ -103,12 +103,12 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
             pose_act = np.array([self.pose_action_space_max]*6)             # x,y,z,r,p,y
             self.act_max = pose_act
             self.act_min = -pose_act
-        elif self.task in ['grasping', 'carrying', 'picking', 'releasing', 'placing', 'pickAndplace']:
+        elif self.task in ['grasping', 'carrying', 'picking', 'releasing', 'placing', 'pickAndplace', 'bimanipulation']:
             pose_act = np.array([self.pose_action_space_max]*6)             # x,y,z,r,p,y
             gripper_act_max = np.array([self.gripper_action_space_max])     # g
             gripper_act_min = np.array([self.gripper_action_space_min])
-            self.act_max = np.hstack([pose_act, gripper_act_max])
-            self.act_min = np.hstack([-pose_act, gripper_act_min])
+            self.act_max = np.hstack([pose_act, gripper_act_max]).repeat(self.n_robots)
+            self.act_min = np.hstack([-pose_act, gripper_act_min]).repeat(self.n_robots)
 
         self.action_space = spaces.Box(self.act_min, self.act_max, dtype=np.float32)
         self.wb = 0

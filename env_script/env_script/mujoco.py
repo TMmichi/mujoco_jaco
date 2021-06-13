@@ -59,11 +59,14 @@ class Mujoco:
 
         if joint_names is None:
             joint_ids, joint_names = self.get_joints_in_ee_kinematic_tree()
-            # print(joint_ids, joint_names)
         else:
             joint_ids = [model.joint_name2id(name) for name in joint_names]
         self.joint_pos_addrs = [model.get_joint_qpos_addr(name) for name in joint_names]
         self.joint_vel_addrs = [model.get_joint_qvel_addr(name) for name in joint_names]
+        joint_pos_addrs_vert = np.array(self.joint_pos_addrs).reshape((self.robot_config.N_ROBOTS,-1))
+        tiled = np.tile(joint_pos_addrs_vert[:,-1].reshape((-1,1)),3)
+        adds = np.tile(np.arange(1,4),self.robot_config.N_ROBOTS).reshape((self.robot_config.N_ROBOTS,-1))
+        self.joint_pos_addrs_fing = np.hstack([joint_pos_addrs_vert,tiled+adds]).flatten()
 
         # Need to also get the joint rows of the Jacobian, inertia matrix, and
         # gravity vector. This is trickier because if there's a quaternion in
@@ -102,7 +105,6 @@ class Mujoco:
             if camera_id > -1:
                 self.viewer.cam.type = const.CAMERA_FIXED
                 self.viewer.cam.fixedcamid = camera_id
-
         print("MuJoCo session created")
 
     def disconnect(self):
@@ -209,15 +211,17 @@ class Mujoco:
     
     def get_obj_vel(self):
         old_state = self.sim.get_state()
-        return old_state.qvel.copy()[9:12]
+        idx_start = len(self.joint_pos_addrs_fing)
+        return old_state.qvel.copy()[idx_start:idx_start+3]
     
-    def set_obj_xyz(self, xyz, quat=[0,0,0,0]):
+    def set_obj_xyz(self, xyz, quat=[0,0,0,0], idx=1):
         old_state = self.sim.get_state()
         new_qpos = old_state.qpos.copy()
         new_qvel = old_state.qvel.copy()
-        new_qpos[9:12] = xyz
-        new_qpos[12:16] = quat
-        new_qvel[9:] = 0
+        idx_start = len(self.joint_pos_addrs_fing)
+        new_qpos[idx_start+7*idx:idx_start+3+7*idx] = xyz
+        new_qpos[idx_start+3+7*idx:idx_start+7+7*idx] = quat
+        new_qvel[idx_start+7*idx:] = 0
         new_state = mjp.MjSimState(old_state.time, new_qpos, new_qvel, old_state.act, old_state.udd_state)
         self.sim.set_state(new_state)
         self.sim.forward()
@@ -231,12 +235,12 @@ class Mujoco:
         new_state = mjp.MjSimState(old_state.time, new_qpos, new_qvel, old_state.act, old_state.udd_state)
         self.sim.set_state(new_state)
         self.sim.forward()
-
     
     def stop_obj(self):
         old_state = self.sim.get_state()
         new_qvel = old_state.qvel.copy()
-        new_qvel[9:] = 0
+        idx_start = len(self.joint_pos_addrs_fing)
+        new_qvel[idx_start:] = 0
         new_state = mjp.MjSimState(old_state.time, old_state.qpos, new_qvel, old_state.act, old_state.udd_state)
         self.sim.set_state(new_state)
         self.sim.forward()
@@ -319,8 +323,10 @@ class Mujoco:
         q: np.array
             configuration to move to [radians]
         """
-
-        self.sim.data.qpos[self.joint_pos_addrs] = np.copy(q)
+        if len(q) == len(self.joint_pos_addrs):
+            self.sim.data.qpos[self.joint_pos_addrs] = np.copy(q)
+        else:
+            self.sim.data.qpos[self.joint_pos_addrs_fing] = np.copy(q)
         self.sim.forward()
 
     def set_joint_state(self, q, dq):
@@ -333,10 +339,10 @@ class Mujoco:
         dq: np.array
             joint velocities [rad/s]
         """
-        if len(q) == 6:
+        if len(q) == len(self.joint_pos_addrs):
             self.sim.data.qpos[self.joint_pos_addrs] = np.copy(q)
-        elif len(q) == 9:
-            self.sim.data.qpos[self.joint_pos_addrs + [6, 7, 8]] = np.copy(q)
+        else:
+            self.sim.data.qpos[self.joint_pos_addrs_fing] = np.copy(q)
         self.sim.data.qvel[self.joint_vel_addrs] = np.copy(dq)
         self.sim.forward()
 

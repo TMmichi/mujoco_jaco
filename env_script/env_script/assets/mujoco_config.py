@@ -133,7 +133,7 @@ class MujocoConfig:
                     for ii in self.joint_dyn_addrs[self.N_JOINTS*i:self.N_JOINTS*(i+1)]]
                 ]
             ) """
-            vac = 12 * i
+            vac = 9 * i
             self.M_indices = np.hstack(
                 [
                     self.M_indices,
@@ -322,10 +322,13 @@ class MujocoConfig:
         #print("self._MNN_vector (decomposed): ")
         #print("self._MNN_vector: ",self._MNN_vector)
         #print("length M_indices, _MNN_vector: ",len(self.M_indices), len(self._MNN_vector))
-        M = self._MNN_vector[self.M_indices]
-        M = M.reshape((self.N_ROBOTS, self.N_JOINTS, self.N_JOINTS))
+        raw_M = self._MNN_vector[self.M_indices]
+        M = raw_M.reshape((self.N_ROBOTS, self.N_JOINTS, self.N_JOINTS))
         if debug:
+            for i, item in enumerate(self._MNN_vector):
+                print(i, item)
             print("M: ",M)
+            print("raw_M: ", raw_M)
         if not self.use_sim_state and q is not None:
             self._load_state(old_q, old_dq, old_u)
         

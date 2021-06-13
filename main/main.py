@@ -654,14 +654,14 @@ class RL_controller:
     def test(self):
         print("Testing called")
         self.args.train_log = False
-        self.args.visualize = False
+        self.args.visualize = True
         self.args.robot_file = "jaco2_curtain_torque"
         self.args.n_robots = 1
         self.args.seed = 42
 
         #                 0           1          2          3            4           5          6             7
         task_list = ['reaching', 'grasping', 'picking', 'carrying', 'releasing', 'placing', 'pushing', 'pickAndplace']
-        self.args.task = task_list[1]
+        self.args.task = task_list[7]
         self.args.subgoal_obs = False
         self.args.rulebased_subgoal = True
         
@@ -675,7 +675,7 @@ class RL_controller:
 
         ##### Grasping #####
         # Upper grasp
-        prefix = self.args.task + '_trained_at_12_28_17:26:27_15/continue1/policy_2330000.zip'
+        # prefix = self.args.task + '_trained_at_12_28_17:26:27_15/continue1/policy_2330000.zip'
         # Side grasp (better)
         # prefix = 'comparison_observation_range_sym_discard_0/policy_8070000.zip'
         # Side grasp
@@ -700,7 +700,7 @@ class RL_controller:
         # prefix = 'policies/'+self.args.task + '/policy_120000.zip'
     
         ##### pickAndplace #####
-        # prefix = self.args.task + '_sac_noaux_trained_at_2021_4_23_16:3_74/policy_8220000.zip'
+        prefix = self.args.task + '_sac_noaux_trained_at_2021_4_23_16:3_74/policy_8220000.zip'
 
 
         model_dir = self.model_path + prefix

@@ -49,13 +49,20 @@
         <include file="jaco2_ind_2.xml"/>
         <!--##############################-->
 
-        <body name="object_body_1" pos="1 1.2 1">
+        <body name="object_body_1" pos="-0.5 1.2 1">
             <freejoint></freejoint>
             <geom type="sphere" size=".04" density="30" solimp="0.998 0.998 0.001" friction="1 0.5 0.1" solref="0.001 1" pos="0 0 0" rgba="0 0 0.5 0.8"></geom>
         </body>
-        <body name="object_body_2" pos="1 1.2 1">
+        <body name="object_holder_1" pos="-0.5 0.6 0">
+            <geom type="box" size=".15 .15 .1" density="100" pos="0 0 .07" rgba=".5 .5 .5 1"></geom>
+        </body>
+
+        <body name="object_body_2" pos="0.5 1.2 1">
             <freejoint></freejoint>
             <geom type="box" size=".027 0.027 0.03" density="100" solimp="0.998 0.998 0.001" friction="0.95 0.3 0.1" solref="0.001 1" pos="0 0 0" rgba="0 0 0.5 0.8"></geom>
+        </body>
+        <body name="object_holder_2" pos="0.5 0.6 0">
+            <geom type="box" size=".15 .15 .1" density="100" pos="0 0 .07" rgba=".5 .5 .5 1"></geom>
         </body>
 
         <!--################ CAMERA ################-->
@@ -84,6 +91,9 @@
         <motor name="joint3_motor_1" joint="joint3_1" forcelimited="true" forcerange="-15 15"/>
         <motor name="joint4_motor_1" joint="joint4_1" forcelimited="true" forcerange="-15 15"/>
         <motor name="joint5_motor_1" joint="joint5_1" forcelimited="true" forcerange="-15 15"/>
+        <!-- <motor name="joint_thumb_motor_1" joint="joint_thumb_1"/>
+        <motor name="joint_index_motor_1" joint="joint_index_1"/>
+        <motor name="joint_pinky_motor_1" joint="joint_pinky_1"/> -->
         <position name='thumb_1' ctrllimited="true" kp="20" joint='joint_thumb_1' ctrlrange='0 1.51' forcelimited="true" forcerange="-0.3 0.3" />
         <position name='index_1' ctrllimited="true" kp="20" joint='joint_index_1' ctrlrange='0 1.51' forcelimited="true" forcerange="-0.3 0.3" />
         <position name='pinky_1'  ctrllimited="true" kp="20" joint='joint_pinky_1' ctrlrange='0 1.51' forcelimited="true" forcerange="-0.3 0.3" />
@@ -93,8 +103,54 @@
         <motor name="joint3_motor_2" joint="joint3_2" forcelimited="true" forcerange="-15 15"/>
         <motor name="joint4_motor_2" joint="joint4_2" forcelimited="true" forcerange="-15 15"/>
         <motor name="joint5_motor_2" joint="joint5_2" forcelimited="true" forcerange="-15 15"/>
+        <!-- <motor name="joint_thumb_motor_2" joint="joint_thumb_2"/>
+        <motor name="joint_index_motor_2" joint="joint_index_2"/>
+        <motor name="joint_pinky_motor_2" joint="joint_pinky_2"/> -->
         <position name='thumb_2' ctrllimited="true" kp="20" joint='joint_thumb_2' ctrlrange='0 1.51' forcelimited="true" forcerange="-0.3 0.3" />
         <position name='index_2' ctrllimited="true" kp="20" joint='joint_index_2' ctrlrange='0 1.51' forcelimited="true" forcerange="-0.3 0.3" />
         <position name='pinky_2'  ctrllimited="true" kp="20" joint='joint_pinky_2' ctrlrange='0 1.51' forcelimited="true" forcerange="-0.3 0.3" />
     </actuator>
+
+    <sensor>
+        <touch name="EE_touch_1" site ="EE_touch_1"/>
+        <touch name="0_touch_1" site ="0_touch_1"/>
+        <touch name="1_touch_1" site ="1_touch_1"/>
+        <touch name="2_touch_1" site ="2_touch_1"/>
+        <touch name="3_touch_1" site ="3_touch_1"/>
+        <touch name="4_touch_1" site ="4_touch_1"/>
+        <touch name="5_touch_1" site ="5_touch_1"/>
+        <touch name="6_touch_1" site ="6_touch_1"/>
+        <touch name="7_touch_1" site ="7_touch_1"/>
+        <touch name="8_touch_1" site ="8_touch_1"/>
+        <touch name="9_touch_1" site ="9_touch_1"/>
+        <touch name="10_touch_1" site ="10_touch_1"/>
+        <touch name="11_touch_1" site ="11_touch_1"/>
+        <touch name="12_touch_1" site ="12_touch_1"/>
+        <touch name="13_touch_1" site ="13_touch_1"/>
+        <touch name="14_touch_1" site ="14_touch_1"/>
+        <touch name="15_touch_1" site ="15_touch_1"/>
+        <touch name="16_touch_1" site ="16_touch_1"/>
+        <touch name="17_touch_1" site ="17_touch_1"/>
+        <touch name="18_touch_1" site ="18_touch_1"/>
+        <touch name="EE_touch_2" site ="EE_touch_2"/>
+        <touch name="0_touch_2" site ="0_touch_2"/>
+        <touch name="1_touch_2" site ="1_touch_2"/>
+        <touch name="2_touch_2" site ="2_touch_2"/>
+        <touch name="3_touch_2" site ="3_touch_2"/>
+        <touch name="4_touch_2" site ="4_touch_2"/>
+        <touch name="5_touch_2" site ="5_touch_2"/>
+        <touch name="6_touch_2" site ="6_touch_2"/>
+        <touch name="7_touch_2" site ="7_touch_2"/>
+        <touch name="8_touch_2" site ="8_touch_2"/>
+        <touch name="9_touch_2" site ="9_touch_2"/>
+        <touch name="10_touch_2" site ="10_touch_2"/>
+        <touch name="11_touch_2" site ="11_touch_2"/>
+        <touch name="12_touch_2" site ="12_touch_2"/>
+        <touch name="13_touch_2" site ="13_touch_2"/>
+        <touch name="14_touch_2" site ="14_touch_2"/>
+        <touch name="15_touch_2" site ="15_touch_2"/>
+        <touch name="16_touch_2" site ="16_touch_2"/>
+        <touch name="17_touch_2" site ="17_touch_2"/>
+        <touch name="18_touch_2" site ="18_touch_2"/>
+    </sensor>
 </mujoco>

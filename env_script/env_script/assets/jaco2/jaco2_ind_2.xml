@@ -17,7 +17,7 @@
         <geom type="box" size=".001 .001 .02" pos="0 0 0.02" rgba=".0 0 9 .9" contype="8" conaffinity="8"/>
     </body>
 
-    <body name="base_link_2" pos="0 0 0">
+    <body name="base_link_2" pos="0.5 0 0">
             <geom name="link0_2" type="mesh" mesh="link0" pos="0 0 0" material="carbon"/>
             <inertial pos="0.000000 0.000000 0.125500" mass="1.226" diaginertia="0.25 0.25 0.25"/>
             <geom type="sphere" size="0.025" pos="0.000000 0.000000 0.125500" rgba="1 0.5 0 1"/>

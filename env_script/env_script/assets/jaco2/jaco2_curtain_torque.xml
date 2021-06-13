@@ -99,31 +99,6 @@
             <geom type="box" size=".02 .02 .1" rgba=".3 .7 .1 1" contype="8" conaffinity="8"/>
         </body>
         <!--#########################################-->
-
-        <!--############ VISOION BLOCKER ############-->
-        <!-- <body name="blocker" pos="0 0.35 0">
-            HOLDER
-            <body name="Holder_left" pos="-0.5 0 0.4">
-                <site type="sphere" size="0.015" pos="0 0 0.4"/>
-                <geom type="cylinder" size=".01 0.4" density="100"/>
-            </body>
-            <body name="Holder_right" pos="0.5 0 0.4">
-                <site type="sphere" size="0.015" pos="0 0 0.4"/>
-                <geom type="cylinder" size=".01 0.4" density="100"/>
-            </body>
-            <body name="Holder_up" pos="0 0 0.8">
-                <geom type="cylinder" size=".01 0.5" zaxis="1 0 0" density="100"/>
-                CLOTH 
-                    <body name="B10_0" pos="0 0 0" zaxis="0 1 0">
-                    <composite type="cloth" count="21 11 1" spacing="0.049" flatinertia="0.001">
-                        <joint kind="main" damping="0.001"/>
-                        <skin material="matcarpet" texcoord="true" inflate="0.005" subgrid="2"/>
-                        <geom type="capsule" size="0.005 0.005" rgba=".8 .2 .1 1"/>
-                    </composite>
-                </body>
-            </body>
-        </body> -->
-        <!--#########################################-->
         
         <!--################# JACO #################-->
         <body name="base_link" pos="0 0 0">

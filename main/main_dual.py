@@ -1,49 +1,21 @@
 #!/usr/bin/env python
 
-import os, sys
-import time
+import os, time
 import path_config
 from pathlib import Path
 from configuration import model_configuration, pretrain_configuration, info, total_time_step
-try:
-    import spacenav, atexit
-except Exception:
-    pass
 
 import tensorflow as tf
 import numpy as np
 
 import stable_baselines.common.tf_util as tf_util
-from stable_baselines.ppo1 import PPO1
-from stable_baselines.ppo2 import PPO2
-from stable_baselines.common.policies import MlpPolicy
-from stable_baselines.sac import SAC
 from stable_baselines.sac_multi import SAC_MULTI
 from stable_baselines.sac_multi.policies import MlpPolicy as MlpPolicy_hpcsac
-from stable_baselines.hpcppo import HPCPPO
-from stable_baselines.hpcppo.policies import MlpPolicy as MlpPolicy_hpcppo
-from stable_baselines.gail import generate_expert_traj, ExpertDataset
-from stable_baselines.common.buffers import ReplayBuffer
-from stable_baselines.common.vec_env.dummy_vec_env import DummyVecEnv
-from stable_baselines.common.vec_env.subproc_vec_env import SubprocVecEnv
-from stable_baselines.common.vec_env.vec_normalize import VecNormalize
 
 from env_script.env_mujoco import JacoMujocoEnv
-from state_gen.state_generator import State_generator
 
 from argparser import ArgParser
 
-def open_connection():
-    try:            
-        print("Opening connection to SpaceNav driver ...")
-        spacenav.open()
-        print("... connection established.")
-    except Exception:
-        print("No connection to the SpaceNav driver. Is spacenavd running?")
-
-def close_connection():
-    atexit.register(spacenav.close)
-    
 
 default_lr = model_configuration['learning_rate']
 def _lr_scheduler(frac):
@@ -61,23 +33,6 @@ class RL_controller:
 
         self.sess_SRL = tf_util.single_threaded_session()
         args.sess = self.sess_SRL
-        args.visualize = True
-
-        # State Generation Module defined here
-        # self.stateGen = State_generator(**vars(args))
-        # args.stateGen = self.stateGen
-
-        # Reward Generation
-        # self.reward_method = None
-        # self.reward_module = None
-        # args.reward_method = self.reward_method
-        # args.reward_module = self.reward_module
-
-        # Action
-        self.g_angle = 0
-        self.g_changed = None
-        # 0:Left - Open, 1:Right - Close
-        self.pressed = {0:False, 1:False}
 
         # If resume training on pre-trained models with episodes, else None
         package_path = str(Path(__file__).resolve().parent.parent)
@@ -93,8 +48,8 @@ class RL_controller:
         self.trial = 74
 
     def train_HPC(self):
-        task_list = ['picking', 'placing', 'pickAndplace']
-        composite_primitive_name = self.args.task = task_list[2]
+        task_list = ['picking', 'placing', 'pickAndplace', 'bimanipulation']
+        composite_primitive_name = self.args.task = task_list[3]
 
         self.args.train_log = False
         self.args.visualize = True
@@ -107,6 +62,7 @@ class RL_controller:
         self.args.seed = self.trial
 
         env = JacoMujocoEnv(**vars(self.args))
+        env.reset()
         policy = MlpPolicy_hpcsac
         self.model = SAC_MULTI(policy=policy, env=None, _init_setup_model=False, composite_primitive_name=composite_primitive_name)
         save_interval = 10000
@@ -121,7 +77,7 @@ class RL_controller:
         prefix = 'HPCcheck_noQ'
         model_dir = self.model_path + prefix + "_" + str(self.trial)
         self.args.log_dir = model_dir
-        os.makedirs(model_dir, exist_ok=True)
+        # os.makedirs(model_dir, exist_ok=True)
         print("\033[92m"+model_dir+"\033[0m")
 
         # Obs for Picking
@@ -193,33 +149,63 @@ class RL_controller:
         #                                 loaded_policy=SAC_MULTI._load_from_file(policy_zip_path), 
         #                                 load_value=False)
 
-        prim_name = 'picking'
-        policy_zip_path = self.model_path+'picking_sac_noaux_trained_at_2021_4_2_21:41_54/policy_4200000.zip'
-        self.model.construct_primitive_info(name=prim_name, freeze=True, level=2,
-                                        obs_range=None, obs_index=[0, 1,2,3,4,5,6, 7, 8,9,10, 17,18,19,20,21,22], 
+        # prim_name = 'picking'
+        # policy_zip_path = self.model_path+'picking_sac_noaux_trained_at_2021_4_2_21:41_54/policy_4200000.zip'
+        # self.model.construct_primitive_info(name=prim_name, freeze=True, level=2,
+        #                                 obs_range=None, obs_index=[0, 1,2,3,4,5,6, 7, 8,9,10, 17,18,19,20,21,22], 
+        #                                 act_range=None, act_index=[0,1,2,3,4,5, 6], act_scale=1,
+        #                                 obs_relativity={},
+        #                                 layer_structure=None,
+        #                                 loaded_policy=SAC_MULTI._load_from_file(policy_zip_path), 
+        #                                 load_value=False)
+
+        # prim_name = 'placing'
+        # policy_zip_path = self.model_path+'placing_sac_noaux_trained_at_2021_4_22_16:15_59/policy_120000.zip'
+        # self.model.construct_primitive_info(name=prim_name, freeze=True, level=2,
+        #                                 obs_range=None, obs_index=[0, 1,2,3,4,5,6, 7, 8,9,10, 14,15,16, 23,24,25], 
+        #                                 act_range=None, act_index=[0,1,2,3,4,5, 6], act_scale=1,
+        #                                 obs_relativity={},
+        #                                 layer_structure=None,
+        #                                 loaded_policy=SAC_MULTI._load_from_file(policy_zip_path), 
+        #                                 load_value=False)
+        
+        prim_name = 'pickAndplace_left'
+        policy_zip_path = self.model_path+'pickAndplace_sac_noaux_trained_at_2021_4_23_16:3_74/policy_8220000.zip'
+        self.model.construct_primitive_info(name=prim_name, freeze=True, level=3,
+                                        obs_range=None, obs_index=[0, 1,2,3,4,5,6, 7, 8,9,10, 17,18,19,20,21,22, 23,24,25], 
                                         act_range=None, act_index=[0,1,2,3,4,5, 6], act_scale=1,
                                         obs_relativity={},
                                         layer_structure=None,
                                         loaded_policy=SAC_MULTI._load_from_file(policy_zip_path), 
                                         load_value=False)
-
-        prim_name = 'placing'
-        policy_zip_path = self.model_path+'placing_sac_noaux_trained_at_2021_4_22_16:15_59/policy_120000.zip'
-        self.model.construct_primitive_info(name=prim_name, freeze=True, level=2,
-                                        obs_range=None, obs_index=[0, 1,2,3,4,5,6, 7, 8,9,10, 14,15,16, 23,24,25], 
-                                        act_range=None, act_index=[0,1,2,3,4,5, 6], act_scale=1,
+        
+        prim_name = 'grasping_right'
+        policy_zip_path = self.model_path+'comparison_observation_range_sym_discard_0/policy_8070000.zip'
+        self.model.construct_primitive_info(name=prim_name, freeze=True, level=3,
+                                        obs_range=None, obs_index=[26, 27,28,29,30,31,32, 33, 34,35,36], 
+                                        act_range=None, act_index=[7,8,9,10,11,12, 13], act_scale=1,
                                         obs_relativity={},
                                         layer_structure=None,
                                         loaded_policy=SAC_MULTI._load_from_file(policy_zip_path), 
+                                        load_value=False)
+        
+        prim_name = 'reaching_right'
+        policy_zip_path = self.model_path+'reaching_trained_at_1_13_17:47:15_31/continue1/policy_3860000.zip'
+        self.model.construct_primitive_info(name=prim_name, freeze=True, level=3,
+                                        obs_range=None, obs_index=[27,28,29,30,31,32, 43,44,45,46,47,48],
+                                        act_range=None, act_index=[7,8,9,10,11,12], act_scale=1,
+                                        obs_relativity={'subtract':{'ref':[43,44,45,46,47,48],'tar':[27,28,29,30,31,32]}},
+                                        layer_structure=None,
+                                        loaded_policy=SAC_MULTI._load_from_file(policy_zip_path),
                                         load_value=False)
 
         # Weight definition
-        number_of_primitives = 3 if self.args.auxiliary else 2
+        number_of_primitives = 4 if self.args.auxiliary else 3
         if self.args.rulebased_subgoal:
             subgoal_dict = None
         else:
             subgoal_dict = {'level1_reaching/level0':[17,18,19,20,21,22]}
-        self.model.construct_primitive_info(name='weight', freeze=False, level=2,
+        self.model.construct_primitive_info(name='weight', freeze=False, level=3,
                                         obs_range=0, obs_index=obs_idx,
                                         act_range=0, act_index=list(range(number_of_primitives)), act_scale=None,
                                         obs_relativity={},
@@ -462,6 +448,6 @@ class RL_controller:
 
 if __name__ == "__main__":
     controller = RL_controller()
-    # controller.train_HPC()
+    controller.train_HPC()
     # controller.train_HPC_continue()
-    controller.test()
+    # controller.test()

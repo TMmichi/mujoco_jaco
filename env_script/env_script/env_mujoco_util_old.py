@@ -26,26 +26,25 @@ class JacoMujocoEnvUtil:
             try:
                 xml_name = 'jaco2'+n_robot_postfix[self.n_robots-1]
             except Exception:
-                raise NotImplementedError(
-                    "\n\t\033[91m[ERROR]: xml_file of the given number of robots doesn't exist\033[0m")
+                raise NotImplementedError("\n\t\033[91m[ERROR]: xml_file of the given number of robots doesn't exist\033[0m")
         else:
             xml_name = robot_file
         self.jaco = MujocoConfig(xml_name, n_robots=self.n_robots)
-        self.interface = Mujoco(self.jaco, 
-                                dt=0.001, 
-                                visualize=kwargs.get('visualize', True), 
-                                create_offscreen_rendercontext=False)
+        self.interface = Mujoco(self.jaco, dt=0.001, visualize=kwargs.get('visualize', False), create_offscreen_rendercontext=False)
         self.interface.connect()
 
         self.skip_frames = 50
         self.base_position = self.__get_property('link1', 'position')
-        self.gripper_angle = np.ones(self.n_robots)*0.6
-        self.gripper_angle_array = np.zeros((self.n_robots, self.skip_frames))
+        self.gripper_angle_1 = 0.5
+        self.gripper_angle_2 = 0.5
+        self.gripper_angle_1_array = np.zeros(self.skip_frames)
+        self.gripper_angle_2_array = np.zeros(self.skip_frames)
         self.gripper_iter = 0
         self.object_z = 0.1898
         self.action_in = False
         self.ctrl_type = self.jaco.ctrl_type
         print("control type: ", self.ctrl_type)
+        self.target_signal = [0,0,0,0,0,0]
         self.task = kwargs.get('task', None)
         self.num_episodes = 0
         self.goal_buffer = kwargs.get('init_buffer', None)
@@ -65,10 +64,14 @@ class JacoMujocoEnvUtil:
         self.data_buff = []
 
         ### ------------  CONTROLLER SETUP  ------------ ###
-        ctrl_dof = [True, True, True, True, True, True]
-        self.ctr = OSC(self.jaco, kp=50, ko=180, kv=20, vmax=[0.4, 1.0472], ctrlr_dof=ctrl_dof)
-        self._reset()
-        self.target_pos = self.gripper_pose[0]
+        self.controller = controller
+        if self.controller:
+            ctrl_dof = [True, True, True, True, True, True]
+            self.ctr = OSC(self.jaco, kp=50, ko=180, kv=20, vmax=[0.4, 1.0472], ctrlr_dof=ctrl_dof)
+            self._reset()
+            self.target_pos = self.gripper_pose[0]
+        else:
+            _ = self._reset()
 
         ### ------------  REWARD  ------------ ###
         self.reward_method = kwargs.get('reward_method', None)
@@ -78,14 +81,17 @@ class JacoMujocoEnvUtil:
     def _step_simulation(self):
         fb = self.interface.get_feedback()
         u = self.__controller_generate(fb)
-        force_signal = np.array([])
-        for i in range(self.n_robots):
-            if self.action_in:
-                griper_angle = [self.gripper_angle_array[i][self.gripper_iter]]*3
-            else:
-                griper_angle = [self.gripper_angle[i]]*3
-            force_signal = np.hstack([force_signal, u[6*i:6*(i+1)], griper_angle])
-        self.interface.send_forces(force_signal)
+        if self.action_in:
+            self.interface.send_forces(
+                np.hstack([u, 
+                        [
+                            self.gripper_angle_1_array[self.gripper_iter], 
+                            self.gripper_angle_1_array[self.gripper_iter],
+                            self.gripper_angle_1_array[self.gripper_iter]
+                        ]]))
+        else:
+            self.interface.send_forces(
+                np.hstack([u, [self.gripper_angle_1, self.gripper_angle_1, self.gripper_angle_1]]))
         self.gripper_iter += 1
 
     def __controller_generate(self, fb):
@@ -102,111 +108,71 @@ class JacoMujocoEnvUtil:
         self.gripper_iter = 0
         self.touch_index = 0
         self.action_in = False
-        self.gripper_angle = np.ones(self.n_robots)*0.6
-
+        self.gripper_angle_1 = 0.6
+        self.gripper_angle_2 = 0.6
+        # self.interface.viewer._paused = True
         init_angle = self._create_init_angle()
         self.interface.set_joint_state(init_angle, [0]*6*self.n_robots)
         self.reaching_goal, self.obj_goal, self.dest_goal = self.__sample_goal()
+        print('sampled obj_goal: ', self.obj_goal)
 
-        # Reaching Init
-        if self.task == 'reaching':
-            self.interface.set_mocap_xyz("target_reach", self.reaching_goal[0][:3])
-            self.interface.set_mocap_orientation("target_reach", transformations.quaternion_from_euler(
-                self.reaching_goal[0][3], self.reaching_goal[0][4], self.reaching_goal[0][5], axes="rxyz"))
-            self.target_pos = np.reshape(np.hstack([self.reaching_goal]),(-1))
-        # Object in the Gripper
-        elif self.task in ['releasing', 'placing']:
+        # Place objects 
+        if self.task in ['carrying', 'releasing', 'placing']:
+            pos = self.__get_property('EE_obj', 'pose')[0]
+            quat = transformations.quaternion_from_euler(pos[3], pos[4], pos[5], axes='rxyz')
+            del_pos = self._get_rotation(pos[3], pos[4], pos[5], [-0.04,0,0])
+            pos[:3] += del_pos
+            self.interface.set_obj_xyz(pos[:3], quat)
+            self.__get_gripper_pose()
+            self.target_pos = self.gripper_pose[0]
             for _ in range(150):
-                for i in range(self.n_robots):
-                    pos = self.__get_property('EE_obj', 'pose')[i]
-                    quat = transformations.quaternion_from_euler(pos[3], pos[4], pos[5], axes='rxyz')
-                    del_pos = self._get_rotation(pos[3], pos[4], pos[5], [-0.04, 0, 0])
-                    pos[:3] += del_pos
-                    self.interface.set_obj_xyz(pos[:3], quat, idx=i)
-                    self.__get_gripper_pose()
-                    self.target_pos = self.gripper_pose.flatten()
-                    self.gripper_angle_array[i] = np.zeros(self.skip_frames)
-                    self._step_simulation()
-                    self.interface.set_obj_xyz(pos[:3], quat, idx=i)
+                self.gripper_angle_1_array = np.ones(150) * 0
+                self._step_simulation()
+                self.interface.set_obj_xyz(pos[:3], quat)
         else:
-            for i in range(self.n_robots):
-                self.interface.set_obj_xyz(self.obj_goal[i], [0,0,0,0], idx=i)
+            quat = [0,0,0,0]
+            if not self.task is 'reaching':
+                self.interface.set_obj_xyz(self.obj_goal[0],quat)
 
-        # Grasping Init
-        if self.task is 'grasping':
+        if self.task in ['grasping', 'carrying']:
             self.__get_gripper_pose()
-            self.target_pos = np.array([])
-            for i in range(self.n_robots):
-                x,y,z = self.obj_goal[i] - self.gripper_pose[i][:3]
-                alpha = -np.arcsin(y / np.sqrt(y**2+z**2)) * np.sign(x)
-                beta = np.arccos(x / np.linalg.norm([x,y,z])) * np.sign(x)
-                gamma = uniform(-0.1, 0.1)
-                self.target_pos = np.hstack([self.target_pos, self.obj_goal[i], [alpha, beta, gamma]])
-            while True:
-                self.interface.stop_obj()
-                self._step_simulation()
-                self.__get_gripper_pose()
-                dist_diff = np.zeros(self.n_robots)
-                ang_diff = np.zeros(self.n_robots)
-                for i in range(self.n_robots):
-                    dist_diff[i] = np.linalg.norm(self.gripper_pose[i][:3] - self.obj_goal[i])
-                    grip = transformations.unit_vector(
-                        transformations.quaternion_from_euler(
-                            self.gripper_pose[i][3], self.gripper_pose[i][4], self.gripper_pose[i][5], axes="rxyz"))
-                    tar = transformations.unit_vector(
-                        transformations.quaternion_from_euler(
-                            self.reaching_goal[i][3], self.reaching_goal[i][4], self.reaching_goal[i][5], axes="rxyz"))
-                    angle_diff = grip-tar
-                    ang_diff[i] = np.linalg.norm(angle_diff)
-                if np.all(dist_diff[dist_diff<0.2]):
-                    self.target_pos = np.array([])
-                    for i in range(self.n_robots):
-                        self.target_pos = np.hstack([self.target_pos, self.gripper_pose[i][:3], [alpha, beta, gamma]])
-                    break
-                if np.all(ang_diff[ang_diff>np.pi/6]):
-                    break
-            while True:
-                self._step_simulation()
-                self.__get_gripper_pose()
-                # self.target_pos = np.reshape(np.hstack([self.obj_goal,np.repeat([ori_toward],self.n_robots,axis=0)]),(-1))
-                self.target_pos = np.hstack([self.target_pos, self.obj_goal[i], [alpha, beta, gamma]])
-                dist_diff = np.linalg.norm(self.gripper_pose[0][:3] - self.obj_goal[0])
-                if dist_diff < 0.15:
-                    break
-        elif self.task == "bimanipulation":
-            self.__get_gripper_pose()
-            x,y,z = self.obj_goal[1] - self.gripper_pose[1][:3]
+            x,y,z = self.obj_goal[0] - self.gripper_pose[0][:3]
             alpha = -np.arcsin(y / np.sqrt(y**2+z**2)) * np.sign(x)
             beta = np.arccos(x / np.linalg.norm([x,y,z])) * np.sign(x)
             gamma = uniform(-0.1, 0.1)
             reach_goal_ori = np.array([alpha, beta, gamma], dtype=np.float16)
-            self.target_pos = np.hstack([self.gripper_pose[0], self.obj_goal[1], reach_goal_ori])
-            while True:
-                dist_reached = False
-                self.interface.stop_obj()
-                self._step_simulation()
-                self.__get_gripper_pose()
-                dist_diff = np.linalg.norm(self.gripper_pose[1][:3] - self.obj_goal[1])
-                grip = transformations.unit_vector(
+            self.target_pos = np.reshape(np.hstack([self.obj_goal,np.repeat([reach_goal_ori],self.n_robots,axis=0)]),(-1))
+            if self.controller:
+                while True:
+                    self.interface.stop_obj()
+                    self._step_simulation()
+                    self.__get_gripper_pose()
+                    dist_diff = np.linalg.norm(self.gripper_pose[0][:3] - self.obj_goal[0])
+                    grip = transformations.unit_vector(
+                        transformations.quaternion_from_euler(
+                            self.gripper_pose[0][3], self.gripper_pose[0][4], self.gripper_pose[0][5], axes="rxyz"))
+                    tar = transformations.unit_vector(
                     transformations.quaternion_from_euler(
-                        self.gripper_pose[1][3], self.gripper_pose[1][4], self.gripper_pose[1][5], axes="rxyz"))
-                tar = transformations.unit_vector(
-                transformations.quaternion_from_euler(
-                    self.reaching_goal[1][3], self.reaching_goal[1][4], self.reaching_goal[1][5], axes="rxyz"))
-                angle_diff = grip-tar
-                ang_diff = np.linalg.norm(angle_diff)
-                if dist_diff < 0.2:
-                    self.target_pos = np.hstack([self.gripper_pose[0], self.gripper_pose[1][:3], reach_goal_ori])
-                    break
-                if ang_diff < np.pi/6 and dist_reached:
-                    break
-            while True:
-                self._step_simulation()
-                self.__get_gripper_pose()
-                self.target_pos = np.hstack([self.gripper_pose[0], self.obj_goal[1], reach_goal_ori])
-                dist_diff = np.linalg.norm(self.gripper_pose[1][:3] - self.obj_goal[1])
-                if dist_diff < 0.15:
-                    break
+                        self.reaching_goal[0][3], self.reaching_goal[0][4], self.reaching_goal[0][5], axes="rxyz"))
+                    angle_diff = grip-tar
+                    ang_diff = np.linalg.norm(angle_diff)
+                    if dist_diff < 0.2:
+                        self.target_pos = np.reshape(np.hstack([[self.gripper_pose[0][:3]],np.repeat([reach_goal_ori],self.n_robots,axis=0)]),(-1))
+                        break
+                    if ang_diff < np.pi/6:
+                        break
+                while True:
+                    self._step_simulation()
+                    self.__get_gripper_pose()
+                    self.target_pos = np.reshape(np.hstack([self.obj_goal,np.repeat([reach_goal_ori],self.n_robots,axis=0)]),(-1))
+                    dist_diff = np.linalg.norm(self.gripper_pose[0][:3] - self.obj_goal[0])
+                    if dist_diff < 0.15:
+                        break
+        elif self.task == 'reaching':
+            self.interface.set_mocap_xyz("target_reach", self.reaching_goal[0][:3])
+            self.interface.set_mocap_orientation("target_reach", transformations.quaternion_from_euler(
+                self.reaching_goal[0][3], self.reaching_goal[0][4], self.reaching_goal[0][5], axes="rxyz"))
+            self.target_pos = np.reshape(np.hstack([self.reaching_goal]),(-1))
         obs = self._get_observation()
         return obs[0]
 
@@ -214,17 +180,17 @@ class JacoMujocoEnvUtil:
         if self.task in ['reaching', 'picking', 'pickAndplace']:
             random_init_angle = [uniform(0.7, 2.5), uniform(3.8,4), uniform(
                     1, 1.7), uniform(1.8, 2.5), uniform(1, 2.5), uniform(0.8, 2.3)]
+            random_init_angle *= self.n_robots
         elif self.task in ['carrying', 'grasping', 'placing']:
             angle0 = np.random.choice([uniform(3*pi/8,pi/2), uniform(pi/2,5*pi/8)])
             random_init_angle = [angle0, 3.85, uniform(
                     1, 1.1), uniform(2, 2.1), uniform(0.8, 2.3), uniform(-1.2, -1.1)]
+            random_init_angle *= self.n_robots
         elif self.task is 'releasing':
             random_init_angle = [uniform(1.9, 2), uniform(3.3,3.6), uniform(
                     0.5, 0.8), uniform(1.8, 2.5), uniform(1.3, 2), uniform(-0.4, -0.9), 0.6, 0.6, 0.6]
-        elif self.task is 'bimanipulation':
-            random_init_angle = [uniform(1.9, 2), uniform(3.3,3.6), uniform(
-                    0.5, 0.8), uniform(1.8, 2.5), uniform(1.3, 2), uniform(-0.4, -0.9)]
-        random_init_angle *= self.n_robots
+                    # 0.5, 0.8), uniform(1.8, 2.5), uniform(1.3, 2), uniform(-0.4, -0.9), 0, 0, 0]
+            random_init_angle *= self.n_robots
         return random_init_angle
 
     def __sample_goal(self):
@@ -232,9 +198,8 @@ class JacoMujocoEnvUtil:
         obj_goal = []
         dest_goal = []
         for i in range(self.n_robots):
-            # Reaching Goal
             if self.goal_buffer is None:
-                print("Sample goal from None")
+                print("sample goal from None")
                 reach_goal_pos = np.array([uniform(0.3, 0.42) * choice([-1, 1])
                             for _ in range(2)] + [uniform(0.3, 0.5)])
                 xyz = reach_goal_pos - self.base_position[i]
@@ -245,19 +210,17 @@ class JacoMujocoEnvUtil:
                 gamma = uniform(-0.1, 0.1)
                 reach_goal_ori = np.array([alpha, beta, gamma], dtype=np.float16)
             else:
-                print("Sample goal from buffer")
+                print("sample goal from buffer")
                 random_idx = np.random.randint(0,len(self.goal_buffer)-1)
                 reach_goal_pos = self.goal_buffer[random_idx][1:4]
                 reach_goal_ori = self.goal_buffer[random_idx][4:7]
+
             reach_goal.append(np.hstack([reach_goal_pos, reach_goal_ori]))
-            # Obj goal
-            if i is 0:
-                obj_goal_pos = [uniform(-0.6,-0.4), 0.65+uniform(-0.08,0.02), self.object_z]
-            elif i is 1:
-                obj_goal_pos = [uniform(0.4,0.6), 0.65+uniform(-0.08,0.02), self.object_z]
+            obj_goal_pos = [uniform(-0.1,0.1), 0.65+uniform(-0.08,0.02), self.object_z]
             obj_goal.append(obj_goal_pos)
-            # Dest goal
             dest_goal_pos = np.array([0.4+uniform(-0.05,0.05), 0.3+uniform(-0.05,0.05), 0.3468])
+            self.interface.set_mocap_xyz("dest_marker", dest_goal_pos)
+            self.interface.set_dest_xyz(dest_goal_pos[:2])
             dest_goal.append(dest_goal_pos)
         return np.array(reach_goal), np.array(obj_goal), np.array(dest_goal)
 
@@ -266,53 +229,52 @@ class JacoMujocoEnvUtil:
         self.touch_index = self._get_touch()
         observation = []
         for i in range(self.n_robots):
+            xyz = self.interface.get_xyz('object_body') - self.gripper_pose[0][:3]
+            obj_diff = np.linalg.norm(xyz)
             if self.subgoal_obs:
                 observation.append(np.hstack([
-                    self.touch_index[i],
+                    self.touch_index,
                     self.gripper_pose[i][:3],
                     self.gripper_pose[i][3:]/np.pi,
                     # [(self.gripper_angle_1-0.65)/0.35],
-                    [(self.gripper_angle[i]-0.8)/0.2],
+                    [(self.gripper_angle_1-0.8)/0.2],
                     self.__get_property('object_body','pose')[0][:3],
                     # self.__get_property('object_body','pose')[0][3:]/np.pi,
                     [0,0,0],
                     self.dest_goal[i], 
                     self.gripper_pose[i][:3],
                     self.gripper_pose[i][3:]/np.pi,
-                    [0,np.pi/2,0]
                 ]))
             elif self.rulebased_subgoal:
-                # Observation dimensions: 
-                # touchidx     proprio          object       destination        reaching         destination_ori
-                #    0,    1,2,3,4,5,6, 7,  8,9,10,11,12,13,  14,15,16,     17,18,19,20,21,22        23,24,25
                 pos, ori = self._get_rulebased_subgoal()
                 observation.append(np.hstack([
-                    self.touch_index[i],
+                    self.touch_index,
                     self.gripper_pose[i][:3],
                     self.gripper_pose[i][3:]/np.pi,
-                    [(self.gripper_angle[i]-0.8)/0.2],
+                    [(self.gripper_angle_1-0.8)/0.2],
                     self.__get_property('object_body','pose')[0][:3],
                     # self.__get_property('object_body','pose')[0][3:]/np.pi,
                     [0,0,0],
                     self.dest_goal[i], 
                     pos,
                     ori/np.pi,
+                    #########################
                     [0,np.pi/2,0]
                 ]))
             else:
                 # Observation dimensions: 
-                # touchidx     proprio          object       destination        reaching         destination_ori
-                #    0,    1,2,3,4,5,6, 7,  8,9,10,11,12,13,  14,15,16,     17,18,19,20,21,22        23,24,25
+                # touchidx     proprio          object       destination        reaching
+                #    0,    1,2,3,4,5,6, 7,  8,9,10,11,12,13,  14,15,16,     17,18,19,20,21,22
                 observation.append(np.hstack([
-                    self.touch_index[i],
+                    self.touch_index,
                     self.gripper_pose[i][:3],
                     self.gripper_pose[i][3:]/np.pi,
                     # [(self.gripper_angle_1-0.65)/0.35],
-                    [(self.gripper_angle[i]-0.8)/0.2],
+                    [(self.gripper_angle_1-0.8)/0.2],
                     self.__get_property('object_body','pose')[0][:3],
                     # self.__get_property('object_body','pose')[0][3:]/np.pi,
                     [0,0,0],
-                    self.dest_goal[i],
+                    self.dest_goal[i], 
                     self.reaching_goal[i][:3],
                     self.reaching_goal[i][3:]/np.pi,
                     [0,np.pi/2,0]
@@ -496,8 +458,6 @@ class JacoMujocoEnvUtil:
                 return 0
             elif self.task == 'pickAndplace':
                 return 0
-            elif self.task == 'bimanipulation':
-                return 0
         elif self.reward_method is not None:
             return self.reward_module(self.gripper_pose, self.reaching_goal)
         else:
@@ -529,34 +489,26 @@ class JacoMujocoEnvUtil:
 
     def _get_touch(self):
         slicenum = 13
-        touch_array = np.zeros((self.n_robots, 20))
-        touch_idx = np.zeros(self.n_robots)
-        for i in range(self.n_robots):
-            for j in range(19):
-                touch_sensor_name = str(j)+"_touch"
-                palm_sensor_name = "EE_touch"
-                if self.n_robots is not 1:
-                    touch_sensor_name += "_" + str(i+1)
-                    palm_sensor_name += "_" + str(i+1)
-                touch_array[i][j] = self.interface.sim.data.get_sensor(touch_sensor_name)
-            touch_array[i][-1] = self.interface.sim.data.get_sensor(palm_sensor_name)
-
-            thumb = 1 if np.any(touch_array[i][1:5][touch_array[i][1:5]>0.001]) else 0
-            index = 1 if np.any(touch_array[i][5:9][touch_array[i][5:9]>0.001]) else 0
-            pinky = 1 if np.any(touch_array[i][9:13][touch_array[i][9:13]>0.001]) else 0
-            # Grasped
-            if (thumb and index) == 1 or (thumb and pinky) == 1:
-                touch_idx[i] = 3
-            # Inner Touch
-            if np.any(touch_array[i][:slicenum][touch_array[i][:slicenum]>0.001]):
-                touch_idx[i] = 1
-            # Outer Touch
-            elif np.any(touch_array[i][slicenum:][touch_array[i][slicenum:]>0.001]):
-                touch_idx[i] = 2
-            # Else
-            else:
-                touch_idx[i] = 0
-        return touch_idx
+        touch_array = np.zeros(20)
+        for i in range(19):
+            touch_array[i] = self.interface.sim.data.get_sensor(str(i)+"_touch")
+        touch_array[-1] = self.interface.sim.data.get_sensor("EE_touch")
+        # print(touch_array)
+        thumb = 1 if np.any(touch_array[1:5][touch_array[1:5]>0.001]) else 0
+        index = 1 if np.any(touch_array[5:9][touch_array[5:9]>0.001]) else 0
+        pinky = 1 if np.any(touch_array[9:13][touch_array[9:13]>0.001]) else 0
+        # Grasped
+        if (thumb and index) == 1 or (thumb and pinky) == 1:
+            return 3
+        # Inner Touch
+        if np.any(touch_array[:slicenum][touch_array[:slicenum]>0.001]):
+            return 1
+        # Outer Touch
+        elif np.any(touch_array[slicenum:][touch_array[slicenum:]>0.001]):
+            return 2
+        # Else
+        else:
+            return 0
 
     def _get_terminal_inspection(self):
         self.num_episodes += 1
@@ -684,59 +636,54 @@ class JacoMujocoEnvUtil:
                     return True, -20, wb
                 else:
                     return False, 0, wb
-            elif self.task == 'bimanipulation':
-                pass
 
     def _take_action(self, a, weight=None, subgoal=None, id=None):
         self.action_in = True
         self.gripper_iter = 0
         self.__get_gripper_pose()
-
+            
         if self.rulebased_subgoal:
             subpos, subori = self._get_rulebased_subgoal()
             subgoal_reach = np.append(subpos, subori)
         else:
             subgoal_reach = subgoal['level1_reaching/level0'][0] + self.target_pos
         
-        # self.interface.set_mocap_xyz("subgoal_reach", subgoal_reach[:3])
-        # self.interface.set_mocap_orientation("subgoal_reach", transformations.quaternion_from_euler(
-        #     subgoal_reach[3], subgoal_reach[4], subgoal_reach[5], axes="rxyz"))
+        self.interface.set_mocap_xyz("subgoal_reach", subgoal_reach[:3])
+        self.interface.set_mocap_orientation("subgoal_reach", transformations.quaternion_from_euler(
+            subgoal_reach[3], subgoal_reach[4], subgoal_reach[5], axes="rxyz"))
 
         if np.any(np.isnan(np.array(a))):
             print("WARNING, nan in action", a)
         # Action: Gripper Pose Increments (m,rad)
         # Action scaled to 0.01m, 0.05 rad
         # self.target_pos = self.gripper_pose[0] + np.hstack([a[:3]/100, a[3:6]/20])
-        self.target_pos = self.gripper_pose.flatten() + np.hstack([a[:3]/25, a[3:6]/5, a[7:10]/25, a[10:13]/5])
+        self.target_pos = self.gripper_pose[0] + np.hstack([a[:3]/25, a[3:6]/5])
         if abs(self.target_pos[5]) > pi:
             self.target_pos[5] += -np.sign(self.target_pos[5])*2*pi
-        if abs(self.target_pos[12]) > pi:
-            self.target_pos[12] += -np.sign(self.target_pos[12])*2*pi
         elif len(a) == 7:
-            prev1 = self.gripper_angle[0]
-            self.gripper_angle[0] += a[6]/10
-            self.gripper_angle[0] = max(min(self.gripper_angle[0],1),0.6)
-            self.gripper_angle_array[0] = np.linspace(prev1, self.gripper_angle[0], self.skip_frames)
+            prev1 = self.gripper_angle_1
+            self.gripper_angle_1 += a[6]/10
+            self.gripper_angle_1 = max(min(self.gripper_angle_1,1),0.6)
+            self.gripper_angle_1_array = np.linspace(prev1, self.gripper_angle_1, self.skip_frames)
+        elif len(a) == 6:
+            self.gripper_angle_1 = 0.5
         elif len(a) == 14:
-            prev1 = self.gripper_angle[0]
-            self.gripper_angle[0] += a[6]/10
-            self.gripper_angle[0] = max(min(self.gripper_angle[0],1),0.6)
-            self.gripper_angle_array[0] = np.linspace(prev1, self.gripper_angle[0], self.skip_frames)
-            prev1 = self.gripper_angle[1]
-            self.gripper_angle[1] += a[13]/10
-            self.gripper_angle[1] = max(min(self.gripper_angle[1],1),0.6)
-            self.gripper_angle_array[1] = np.linspace(prev1, self.gripper_angle[1], self.skip_frames)
-        
-        if self.n_robots == 1:
-            self.interface.set_mocap_xyz("hand", self.target_pos[:3])
-            self.interface.set_mocap_orientation("hand", transformations.quaternion_from_euler(
-                self.target_pos[3], self.target_pos[4], self.target_pos[5], axes="rxyz"))
-        else:
-            for i in range(self.n_robots):
-                self.interface.set_mocap_xyz("hand_"+str(i+1), self.target_pos[:3])
-                self.interface.set_mocap_orientation("hand_"+str(i+1), transformations.quaternion_from_euler(
-                    self.target_pos[3], self.target_pos[4], self.target_pos[5], axes="rxyz"))
+            prev1 = self.gripper_angle_1
+            self.gripper_angle_1 += a[6]/10
+            self.gripper_angle_1 = max(min(self.gripper_angle_1,1),0.6)
+            self.gripper_angle_1_array = np.linspace(prev1, self.gripper_angle_1, self.skip_frames)
+            prev2 = self.gripper_angle_2
+            self.gripper_angle_2 += a[6]/10
+            self.gripper_angle_2 = max(min(self.gripper_angle_2,1),0.6)
+            self.gripper_angle_2_array = np.linspace(prev2, self.gripper_angle_2, self.skip_frames)
+        elif len(a) == 12:
+            self.gripper_angle_1 = 0.5
+            self.gripper_angle_2 = 0.5
+        self.interface.set_mocap_xyz("hand", self.target_pos[:3])
+        self.interface.set_mocap_orientation("hand", transformations.quaternion_from_euler(
+            self.target_pos[3], self.target_pos[4], self.target_pos[5], axes="rxyz"))
                 
+
     def __get_property(self, subject, prop):
         out = []
         for i in range(self.n_robots):
@@ -776,9 +723,6 @@ class JacoMujocoEnvUtil:
 
     def set_capture_path(self, path):
         self.interface.viewer._image_path = path
-    
-    def capture(self):
-        pass
 
 if __name__ == "__main__":
     sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../abr_control')))
@@ -792,7 +736,7 @@ if __name__ == "__main__":
         pos = False
         vel = False
         torque = True
-        dual = True and torque
+        dual = False and torque
         controller = True
         if pos:
             jaco = MujocoConfig('jaco2_position')
@@ -810,9 +754,9 @@ if __name__ == "__main__":
         if controller:
             ctrl_dof = [True, True, True, True, True, True]
             ctr = OSC(jaco, kp=50, ko=180, kv=20, vmax=[0.3, 0.7854], ctrlr_dof=ctrl_dof)
+            #ctr = OSC(jaco, kp=50, ko=180, kv=20, vmax=[2, 5.236], ctrlr_dof=ctrl_dof)
             if dual:
-                interface.set_joint_state([1.5, 2, 1.1, 1, 1, 1, 1.5, 2, 1.1, 1, 1, 1], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
-                interface.viewer._paused = True
+                interface.set_joint_state([1.5, 2, 1.1, 1, 1, 1, 1, 1.1, 1, 1.5, 1, 1], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
             else:
                 interface.set_joint_state([1, 2, 1, 1, 1, 1], [0, 0, 0, 0, 0, 0])
             for _ in range(2):
@@ -833,30 +777,24 @@ if __name__ == "__main__":
             if dual:
                 target_pos1 = interface.get_xyz('EE_1')
                 target_pos2 = interface.get_xyz('EE_2')
-                orientation_quat1 = interface.get_orientation('EE_1')
-                target_or1 = transformations.euler_from_quaternion(orientation_quat1, 'rxyz')
-                orientation_quat2 = interface.get_orientation('EE_2')
-                target_or2 = transformations.euler_from_quaternion(orientation_quat2, 'rxyz')
             else:
                 #target_pos = interface.get_xyz('EE') + np.array([0.1, 0.1, 0.1])
                 target_pos = np.array([0.4, 0.4, 0.4])
             rand_pos = np.array([uniform(0.3, 0.4) * choice([-1.2, 1.2]) for i in range(2)] + [uniform(0.3, 0.5)])
-            target_or = [0,0,0]
-
-            # x,y,z = rand_pos - interface.get_xyz('link1')
-            # alpha = -np.arcsin(y / np.sqrt(y**2+z**2)) * np.sign(x)
-            # beta = np.arccos(x / np.linalg.norm([x,y,z])) * np.sign(x)
-            # target_or = np.array([alpha, beta, uniform(-0.1, 0.1)], dtype=np.float16)
-            # print(target_or)
-            # quat = transformations.quaternion_from_euler(target_or[0], target_or[1], target_or[2], axes='rxyz')
-            # interface.set_mocap_xyz("hand", np.array(rand_pos))
-            # interface.set_mocap_orientation("hand", quat)
+            x,y,z = rand_pos - interface.get_xyz('link1')
+            alpha = -np.arcsin(y / np.sqrt(y**2+z**2)) * np.sign(x)
+            beta = np.arccos(x / np.linalg.norm([x,y,z])) * np.sign(x)
+            target_or = np.array([alpha, beta, uniform(-0.1, 0.1)], dtype=np.float16)
+            print(target_or)
+            quat = transformations.quaternion_from_euler(target_or[0], target_or[1], target_or[2], axes='rxyz')
+            interface.set_mocap_xyz("hand", np.array(rand_pos))
+            interface.set_mocap_orientation("hand", quat)
             target_pos = rand_pos
-            for _ in range(30):
+            for _ in range(10):
                 while True:
                     fb = interface.get_feedback()
                     if dual:
-                        target = np.hstack([target_pos1, target_or1, target_pos2, target_or2])
+                        target = np.hstack([target_pos1, target_or, target_pos2, target_or])
                     else:
                         target = np.hstack([target_pos, target_or])
                     u = ctr.generate(
@@ -869,6 +807,7 @@ if __name__ == "__main__":
                         a2 = interface.get_xyz('EE_2')
                         interface.send_forces(np.hstack([u[:6], [0, 0, 0], u[6:], [0, 0, 0]]))
                         if np.linalg.norm(a1[:] - target_pos1[:]) < 0.01 and np.linalg.norm(a2[:] - target_pos2[:]):
+                            print("Reached")
                             break
                     else:
                         a = interface.get_xyz('EE')
@@ -886,6 +825,36 @@ if __name__ == "__main__":
                     #target_pos += np.array([0.03, 0.03, 0.03])
                     pass
                 #target_or += np.array([0.1, 0.1, 0.1])
+        else:
+            interface.set_joint_state([1, 2, 1.5, 1.5, 1.5, 1.5], [0, 0, 0, 0, 0, 0])
+            fb = interface.get_feedback()
+            if vel:
+                inc = .1
+                fb['dq'] += np.array([inc] * 6)
+                print(fb['dq'])
+                mod = True
+                fb_new = np.array([0]*6)
+                while True:
+                    fb_pos = interface.get_feedback()
+                    interface.send_signal(np.hstack([fb_pos['q'], fb['dq'], [0, 0, 0]]))
+                    if mod == False:
+                        fb_new += np.array(interface.get_feedback()['dq'])
+                        print(fb_new/2)
+                    else:
+                        fb_new = np.array(interface.get_feedback()['dq'])
+                    mod = not mod
+            elif pos:
+                inc = 0.1
+                fb['q'] += np.array([inc] * 6)
+                print(fb['q'])
+                iter = 0
+                while True:
+                    iter += 1
+                    interface.send_signal(np.hstack([fb['q'], fb['dq'], [0, 0, 0]]))
+                    if np.linalg.norm(fb['q'] - interface.get_feedback()['q']) < 0.1:
+                        print(iter * 0.005)
+                        break
+                        # print(interface.get_feedback()['q'])
 
     else:
         jaco = MujocoConfig('mobilejaco')
