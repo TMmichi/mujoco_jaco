@@ -214,7 +214,7 @@ class Mujoco:
         idx_start = len(self.joint_pos_addrs_fing)
         return old_state.qvel.copy()[idx_start:idx_start+3]
     
-    def set_obj_xyz(self, xyz, quat=[0,0,0,0], idx=1):
+    def set_obj_xyz(self, xyz, quat=[0,0,0,0], idx=0):
         old_state = self.sim.get_state()
         new_qpos = old_state.qpos.copy()
         new_qvel = old_state.qvel.copy()

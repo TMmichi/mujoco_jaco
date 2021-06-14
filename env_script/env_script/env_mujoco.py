@@ -144,8 +144,8 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
         reward_val = self._get_reward()
         done, additional_reward, self.wb = self.terminal_inspection()
         total_reward = reward_val + additional_reward
-        if self.current_steps % 10 == 0:
-            self.logging(obs, self.prev_obs, action, self.wb, total_reward) if log else None
+        # if self.current_steps % 10 == 0:
+        #     self.logging(obs, self.prev_obs, action, self.wb, total_reward) if log else None
         self.prev_obs = obs
         if np.any(np.isnan(obs)) or np.any(np.isnan(total_reward)):
             print("WARNING: NAN in obs, resetting.")
@@ -186,7 +186,7 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
             return True, -1, 0
 
     def make_observation(self):
-        obs = self._get_observation()[0]
+        obs = self._get_observation()
         assert self.state_shape == obs.shape[0], \
             "State shape from state generator ({0}) and observations ({1}) differs. Possible test code error. You should fix it.".format(
                 self.state_shape, obs.shape[0])

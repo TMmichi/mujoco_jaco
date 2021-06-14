@@ -52,7 +52,7 @@ class RL_controller:
         composite_primitive_name = self.args.task = task_list[3]
 
         self.args.train_log = False
-        self.args.visualize = False
+        self.args.visualize = True
         self.args.robot_file = "jaco2_dual_torque"
         self.args.controller = True
         self.args.n_robots = 2
@@ -74,7 +74,7 @@ class RL_controller:
         else:
             prefix = composite_primitive_name +"_SAC_noaux_trained_at_" + str(time.localtime().tm_year) + "_" + str(time.localtime().tm_mon) + "_" + str(
                     time.localtime().tm_mday) + "_" + str(time.localtime().tm_hour) + ":" + str(time.localtime().tm_min)
-        prefix = 'HPCcheck_noQ'
+        # prefix = 'HPCcheck_noQ'
         model_dir = self.model_path + prefix + "_" + str(self.trial)
         self.args.log_dir = model_dir
         # os.makedirs(model_dir, exist_ok=True)
@@ -91,16 +91,18 @@ class RL_controller:
         # obs_idx = [ 0,  1, 2, 3, 4, 5, 6,  7,  8, 9,10, 14,15,16, 23,24,25]
 
         # Obs for pickAndplace
-        obs_min = [-3, -1,-1,-1,-1,-1,-1, -1, -1,-1,-1, -1,-1,-1, -1,-1,-1,-1,-1,-1, -1,-1,-1]
-        obs_max = [ 3,  1, 1, 1, 1, 1, 1,  1,  1, 1, 1,  1, 1, 1,  1, 1, 1, 1, 1, 1,  1, 1, 1]
-        obs_idx = [ 0,  1, 2, 3, 4, 5, 6,  7,  8, 9,10, 14,15,16, 17,18,19,20,21,22, 23,24,25]
-
+        obs_min = [-3, -1,-1,-1,-1,-1,-1, -1, -1,-1,-1, -1,-1,-1, -1,-1,-1,-1,-1,-1, -1,-1,-1] * 2
+        obs_max = [ 3,  1, 1, 1, 1, 1, 1,  1,  1, 1, 1,  1, 1, 1,  1, 1, 1, 1, 1, 1,  1, 1, 1] * 2
+        obs_idx = [ 0,  1, 2, 3, 4, 5, 6,  7,  8, 9,10, 14,15,16, 17,18,19,20,21,22, 23,24,25, 
+                   26, 27,28,29,30,31,32, 33, 34,35,36, 40,41,42, 43,44,45,46,47,48, 49,50,51]
         # Action
         act_min = [-1,-1,-1,-1,-1,-1, -1]
         act_max = [ 1, 1, 1, 1, 1, 1,  1]
         act_idx = [ 0, 1, 2, 3, 4, 5,  6]
+        number_of_primitives = 0
 
         if self.args.auxiliary:
+            number_of_primitives += 1
             self.model.construct_primitive_info(name='aux1', freeze=False, level=0,
                                             obs_range={'min': obs_min, 'max': obs_max}, obs_index=obs_idx, 
                                             act_range={'min': act_min, 'max': act_max}, act_index=act_idx, act_scale=0.1,
@@ -169,7 +171,8 @@ class RL_controller:
         #                                 loaded_policy=SAC_MULTI._load_from_file(policy_zip_path), 
         #                                 load_value=False)
         
-        prim_name = 'pickAndplace_left'
+        prim_name = 'pickAndplace'
+        number_of_primitives += 1
         policy_zip_path = self.model_path+'pickAndplace_sac_noaux_trained_at_2021_4_23_16:3_74/policy_8220000.zip'
         self.model.construct_primitive_info(name=prim_name, freeze=True, level=3,
                                         obs_range=None, obs_index=[0, 1,2,3,4,5,6, 7, 8,9,10, 17,18,19,20,21,22, 23,24,25], 
@@ -179,7 +182,8 @@ class RL_controller:
                                         loaded_policy=SAC_MULTI._load_from_file(policy_zip_path), 
                                         load_value=False)
         
-        prim_name = 'grasping_right'
+        prim_name = 'grasping'
+        number_of_primitives += 1
         policy_zip_path = self.model_path+'comparison_observation_range_sym_discard_0/policy_8070000.zip'
         self.model.construct_primitive_info(name=prim_name, freeze=True, level=3,
                                         obs_range=None, obs_index=[26, 27,28,29,30,31,32, 33, 34,35,36], 
@@ -189,7 +193,8 @@ class RL_controller:
                                         loaded_policy=SAC_MULTI._load_from_file(policy_zip_path), 
                                         load_value=False)
         
-        prim_name = 'reaching_right'
+        prim_name = 'reaching'
+        number_of_primitives += 1
         policy_zip_path = self.model_path+'reaching_trained_at_1_13_17:47:15_31/continue1/policy_3860000.zip'
         self.model.construct_primitive_info(name=prim_name, freeze=True, level=3,
                                         obs_range=None, obs_index=[27,28,29,30,31,32, 43,44,45,46,47,48],
@@ -200,7 +205,6 @@ class RL_controller:
                                         load_value=False)
 
         # Weight definition
-        number_of_primitives = 4 if self.args.auxiliary else 3
         if self.args.rulebased_subgoal:
             subgoal_dict = None
         else:
@@ -211,6 +215,8 @@ class RL_controller:
                                         obs_relativity={},
                                         layer_structure={'policy':[256, 256, 256],'value':[256, 256, 256]},
                                         subgoal=subgoal_dict)
+        
+        # print(self.model.primitives)
 
         self.num_timesteps = self.steps_per_batch * self.batches_per_episodes * self.num_episodes 
         model_dict = {'gamma': 0.99, 'tensorboard_log': model_dir,'verbose': 1, 'seed': self.args.seed, \
@@ -313,14 +319,14 @@ class RL_controller:
     def test(self):
         print("Testing called")
         self.args.train_log = False
-        self.args.visualize = False
+        self.args.visualize = True
         self.args.robot_file = "jaco2_curtain_torque"
         self.args.n_robots = 1
         self.args.seed = 42
 
         #                 0           1          2          3            4           5          6             7
         task_list = ['reaching', 'grasping', 'picking', 'carrying', 'releasing', 'placing', 'pushing', 'pickAndplace']
-        self.args.task = task_list[1]
+        self.args.task = task_list[7]
         self.args.subgoal_obs = False
         self.args.rulebased_subgoal = True
         
@@ -334,7 +340,7 @@ class RL_controller:
 
         ##### Grasping #####
         # Upper grasp
-        prefix = self.args.task + '_trained_at_12_28_17:26:27_15/continue1/policy_2330000.zip'
+        # prefix = self.args.task + '_trained_at_12_28_17:26:27_15/continue1/policy_2330000.zip'
         # Side grasp (better)
         # prefix = 'comparison_observation_range_sym_discard_0/policy_8070000.zip'
         # Side grasp
@@ -359,7 +365,7 @@ class RL_controller:
         # prefix = 'policies/'+self.args.task + '/policy_120000.zip'
     
         ##### pickAndplace #####
-        # prefix = self.args.task + '_sac_noaux_trained_at_2021_4_23_16:3_74/policy_8220000.zip'
+        prefix = self.args.task + '_sac_noaux_trained_at_2021_4_23_16:3_74/policy_8220000.zip'
 
 
         model_dir = self.model_path + prefix

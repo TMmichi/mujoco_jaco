@@ -36,9 +36,10 @@ class JacoMujocoEnvUtil:
                                 visualize=kwargs.get('visualize', True), 
                                 create_offscreen_rendercontext=False)
         self.interface.connect()
+        self.manipulator_name = ['Left','Right']
 
         self.skip_frames = 50
-        self.base_position = self.__get_property('link1', 'position')
+        self.base_position = self.__get_property('base_link', 'position')
         self.gripper_angle = np.ones(self.n_robots)*0.6
         self.gripper_angle_array = np.zeros((self.n_robots, self.skip_frames))
         self.gripper_iter = 0
@@ -98,6 +99,8 @@ class JacoMujocoEnvUtil:
     def _reset(self):
         self.interface.sim.reset()
         self.picked = False
+        self.picked_arr = [False] * self.n_robots
+        self.r_reached = False
         self.num_episodes = 0
         self.gripper_iter = 0
         self.touch_index = 0
@@ -208,23 +211,26 @@ class JacoMujocoEnvUtil:
                 if dist_diff < 0.15:
                     break
         obs = self._get_observation()
-        return obs[0]
+        return obs
 
     def _create_init_angle(self):
         if self.task in ['reaching', 'picking', 'pickAndplace']:
             random_init_angle = [uniform(0.7, 2.5), uniform(3.8,4), uniform(
-                    1, 1.7), uniform(1.8, 2.5), uniform(1, 2.5), uniform(0.8, 2.3)]
+                    1, 1.7), uniform(1.8, 2.5), uniform(1, 2.5), uniform(0.8, 2.3)] * self.n_robots
         elif self.task in ['carrying', 'grasping', 'placing']:
             angle0 = np.random.choice([uniform(3*pi/8,pi/2), uniform(pi/2,5*pi/8)])
             random_init_angle = [angle0, 3.85, uniform(
-                    1, 1.1), uniform(2, 2.1), uniform(0.8, 2.3), uniform(-1.2, -1.1)]
+                    1, 1.1), uniform(2, 2.1), uniform(0.8, 2.3), uniform(-1.2, -1.1)] * self.n_robots
         elif self.task is 'releasing':
             random_init_angle = [uniform(1.9, 2), uniform(3.3,3.6), uniform(
-                    0.5, 0.8), uniform(1.8, 2.5), uniform(1.3, 2), uniform(-0.4, -0.9), 0.6, 0.6, 0.6]
+                    0.5, 0.8), uniform(1.8, 2.5), uniform(1.3, 2), uniform(-0.4, -0.9), 0.6, 0.6, 0.6] * self.n_robots
         elif self.task is 'bimanipulation':
-            random_init_angle = [uniform(1.9, 2), uniform(3.3,3.6), uniform(
-                    0.5, 0.8), uniform(1.8, 2.5), uniform(1.3, 2), uniform(-0.4, -0.9)]
-        random_init_angle *= self.n_robots
+            grip_1 = [uniform(0.7, 2.5), uniform(3.8,4), uniform(
+                    1, 1.7), uniform(1.8, 2.5), uniform(1, 2.5), uniform(0.8, 2.3)]
+            angle0 = np.random.choice([uniform(3*pi/8,pi/2), uniform(pi/2,5*pi/8)])
+            grip_2 = [angle0, 3.85, uniform(
+                    1, 1.1), uniform(2, 2.1), uniform(0.8, 2.3), uniform(-1.2, -1.1)]
+            random_init_angle = np.concatenate([grip_1, grip_2])
         return random_init_angle
 
     def __sample_goal(self):
@@ -234,7 +240,6 @@ class JacoMujocoEnvUtil:
         for i in range(self.n_robots):
             # Reaching Goal
             if self.goal_buffer is None:
-                print("Sample goal from None")
                 reach_goal_pos = np.array([uniform(0.3, 0.42) * choice([-1, 1])
                             for _ in range(2)] + [uniform(0.3, 0.5)])
                 xyz = reach_goal_pos - self.base_position[i]
@@ -245,19 +250,15 @@ class JacoMujocoEnvUtil:
                 gamma = uniform(-0.1, 0.1)
                 reach_goal_ori = np.array([alpha, beta, gamma], dtype=np.float16)
             else:
-                print("Sample goal from buffer")
                 random_idx = np.random.randint(0,len(self.goal_buffer)-1)
                 reach_goal_pos = self.goal_buffer[random_idx][1:4]
                 reach_goal_ori = self.goal_buffer[random_idx][4:7]
             reach_goal.append(np.hstack([reach_goal_pos, reach_goal_ori]))
             # Obj goal
-            if i is 0:
-                obj_goal_pos = [uniform(-0.6,-0.4), 0.65+uniform(-0.08,0.02), self.object_z]
-            elif i is 1:
-                obj_goal_pos = [uniform(0.4,0.6), 0.65+uniform(-0.08,0.02), self.object_z]
+            obj_goal_pos = np.array([uniform(-0.1,0.1), 0.65+uniform(-0.08,0.02), self.object_z]) + self.base_position[i]
             obj_goal.append(obj_goal_pos)
             # Dest goal
-            dest_goal_pos = np.array([0.4+uniform(-0.05,0.05), 0.3+uniform(-0.05,0.05), 0.3468])
+            dest_goal_pos = np.array([0.4+uniform(-0.05,0.05), 0.3+uniform(-0.05,0.05), 0.3468]) + self.base_position[i]
             dest_goal.append(dest_goal_pos)
         return np.array(reach_goal), np.array(obj_goal), np.array(dest_goal)
 
@@ -269,87 +270,96 @@ class JacoMujocoEnvUtil:
             if self.subgoal_obs:
                 observation.append(np.hstack([
                     self.touch_index[i],
-                    self.gripper_pose[i][:3],
+                    self.gripper_pose[i][:3] - self.base_position[i],
                     self.gripper_pose[i][3:]/np.pi,
                     # [(self.gripper_angle_1-0.65)/0.35],
                     [(self.gripper_angle[i]-0.8)/0.2],
-                    self.__get_property('object_body','pose')[0][:3],
+                    self.__get_property('object_body','pose')[i][:3] - self.base_position[i],
                     # self.__get_property('object_body','pose')[0][3:]/np.pi,
                     [0,0,0],
-                    self.dest_goal[i], 
+                    self.dest_goal[i] - self.base_position[i],
                     self.gripper_pose[i][:3],
                     self.gripper_pose[i][3:]/np.pi,
                     [0,np.pi/2,0]
                 ]))
             elif self.rulebased_subgoal:
-                # Observation dimensions: 
-                # touchidx     proprio          object       destination        reaching         destination_ori
-                #    0,    1,2,3,4,5,6, 7,  8,9,10,11,12,13,  14,15,16,     17,18,19,20,21,22        23,24,25
                 pos, ori = self._get_rulebased_subgoal()
                 observation.append(np.hstack([
+                    # Touch idx: 0 | 26
                     self.touch_index[i],
-                    self.gripper_pose[i][:3],
+                    # Proprio (End-Effector): 1,2,3,4,5,6 | 27,28,29,30,31,32
+                    self.gripper_pose[i][:3] - self.base_position[i],
                     self.gripper_pose[i][3:]/np.pi,
+                    # Proprio (Gripper angle): 7 | 33
                     [(self.gripper_angle[i]-0.8)/0.2],
-                    self.__get_property('object_body','pose')[0][:3],
+                    # Object pose: 8,9,10,11,12,13 | 34,35,36,37,38,39
+                    self.__get_property('object_body','pose')[i][:3] - self.base_position[i],
                     # self.__get_property('object_body','pose')[0][3:]/np.pi,
                     [0,0,0],
-                    self.dest_goal[i], 
-                    pos,
-                    ori/np.pi,
-                    [0,np.pi/2,0]
+                    # Destination position: 14,15,16 | 40,41,42
+                    self.dest_goal[i] - self.base_position[i],
+                    # Reaching Target pose: 17,18,19,20,21,22 | 43,44,45,46,47,48
+                    pos[i] - self.base_position[i],
+                    ori[i]/np.pi,
+                    # Destination Orientation: 23,24,25 | 49,50,51
+                    np.array([0,np.pi/2,0])
                 ]))
             else:
                 # Observation dimensions: 
                 # touchidx     proprio          object       destination        reaching         destination_ori
                 #    0,    1,2,3,4,5,6, 7,  8,9,10,11,12,13,  14,15,16,     17,18,19,20,21,22        23,24,25
+                #   26,    1,2,3,4,5,6, 7,  8,9,10,11,12,13,  14,15,16,     17,18,19,20,21,22        23,24,25
                 observation.append(np.hstack([
                     self.touch_index[i],
-                    self.gripper_pose[i][:3],
+                    self.gripper_pose[i][:3] - self.base_position[i],
                     self.gripper_pose[i][3:]/np.pi,
                     # [(self.gripper_angle_1-0.65)/0.35],
                     [(self.gripper_angle[i]-0.8)/0.2],
-                    self.__get_property('object_body','pose')[0][:3],
+                    self.__get_property('object_body','pose')[i][:3] - self.base_position[i],
                     # self.__get_property('object_body','pose')[0][3:]/np.pi,
                     [0,0,0],
                     self.dest_goal[i],
-                    self.reaching_goal[i][:3],
+                    self.reaching_goal[i][:3] - self.base_position[i],
                     self.reaching_goal[i][3:]/np.pi,
                     [0,np.pi/2,0]
                 ]))
-        return np.array(observation, dtype=np.float32)
+        return np.array(observation, dtype=np.float32).flatten()
     
     def _get_rulebased_subgoal(self):
         # NOTE: rulebased subgoal
         # location: 0.15(m) away from the obj_goal with a direction of a vector from obj_goal to EE
         # orientation: direction of a vector from subgoal location to the obj_goal
-        D = self.gripper_pose[0][:3] - self.obj_goal[0]
-        subgoal_pos = D/np.linalg.norm(D) * 0.12 + self.obj_goal[0] + np.array([(np.random.uniform()-0.5)/25 for _ in range(3)])
-        if subgoal_pos[2] < self.object_z+0.1:
-            subgoal_pos[2] = self.object_z+0.1
-        if subgoal_pos[1] > self.__get_property('object_body','pose')[0][1]-0.15:
-            subgoal_pos[1] = self.__get_property('object_body','pose')[0][1]-0.15 
-        # subgoal_pos = np.copy(self.obj_goal[0])
-        # print('gripper_pose: ', self.gripper_pose[0][:3])
-        # print('obj_goal: ',self.obj_goal[0][:3])
-        # print('subgoal_pos at rulebased: ', subgoal_pos)
-        xyz = np.copy(-D)
-        obj_diff = np.linalg.norm(xyz)
-        xyz /= obj_diff
-        x,y,z = xyz
-        quatpi = np.sqrt(2)/2
-        quat_vec = np.array([quatpi, quatpi*x, quatpi*y, quatpi*z])
-        quat_dummy = np.array([np.sqrt(3)/2,0.5*x,0.5*y,0.5*z])
-        rpy_vec = np.array(transformations.euler_from_quaternion(quat_vec, 'rxyz'))
-        rpy_dummy = np.array(transformations.euler_from_quaternion(quat_dummy, 'rxyz'))
-        rpy_real = np.cross(rpy_vec, rpy_dummy)
-        rpy_real[0] -= pi/2
-        subgoal_ori = rpy_real + np.array([(np.random.uniform()-0.5)/10 for _ in range(3)])
-
+        subgoal_pos_arr = []
+        subgoal_ori_arr = []
+        for i in range(self.n_robots):
+            if i == 0:
+                D = self.gripper_pose[i][:3] - self.obj_goal[i]
+                subgoal_pos = D/np.linalg.norm(D) * 0.12 + self.obj_goal[i] + np.array([(np.random.uniform()-0.5)/25 for _ in range(3)])
+                if subgoal_pos[2] < self.object_z+0.1:
+                    subgoal_pos[2] = self.object_z+0.1
+                if subgoal_pos[1] > self.__get_property('object_body','pose')[i][1]-0.15:
+                    subgoal_pos[1] = self.__get_property('object_body','pose')[i][1]-0.15 
+                xyz = np.copy(-D)
+                obj_diff = np.linalg.norm(xyz)
+                xyz /= obj_diff
+                x,y,z = xyz
+                quatpi = np.sqrt(2)/2
+                quat_vec = np.array([quatpi, quatpi*x, quatpi*y, quatpi*z])
+                quat_dummy = np.array([np.sqrt(3)/2,0.5*x,0.5*y,0.5*z])
+                rpy_vec = np.array(transformations.euler_from_quaternion(quat_vec, 'rxyz'))
+                rpy_dummy = np.array(transformations.euler_from_quaternion(quat_dummy, 'rxyz'))
+                rpy_real = np.cross(rpy_vec, rpy_dummy)
+                rpy_real[0] -= pi/2
+                subgoal_ori = rpy_real + np.array([(np.random.uniform()-0.5)/10 for _ in range(3)])
+            elif i == 1:
+                subgoal_pos = self.dest_goal[0]
+                subgoal_ori = np.array([0, -np.pi/2, 0])
+            subgoal_pos_arr.append(subgoal_pos)
+            subgoal_ori_arr.append(subgoal_ori)
         if self.task == 'placing':
             return np.array(self.dest_goal[0]), np.array([0,np.pi/2,0])
         else:
-            return subgoal_pos, subgoal_ori
+            return subgoal_pos_arr, subgoal_ori_arr
 
     def _get_camera(self):
         self.interface.offscreen.render(width=640, height=480, camera_id=0)
@@ -560,45 +570,64 @@ class JacoMujocoEnvUtil:
 
     def _get_terminal_inspection(self):
         self.num_episodes += 1
-        obj_position = self.interface.get_xyz('object_body')
+        # obj_position = self.interface.get_xyz('object_body_1')
+        obj_position = self.__get_property('object_body', 'position')
         obj_velocity = np.linalg.norm(self.interface.get_obj_vel())
         dist_diff = np.linalg.norm(self.gripper_pose[0][:3] - self.reaching_goal[0][:3])
-        obj_diff = np.linalg.norm(self.gripper_pose[0][:3] - obj_position)
-        dest_diff = np.linalg.norm(self.dest_goal[0][:2] - obj_position[:2])
+        obj_diff = np.linalg.norm(self.gripper_pose[0][:3] - obj_position[0])
+        dest_diff = np.linalg.norm(self.dest_goal[0][:2] - obj_position[0][:2])
         relx, rely, relz = self.__get_property('EE', 'position')[0] - self.base_position[0]
         wb = np.linalg.norm(self.__get_property('EE', 'position')[0] - self.base_position[0])
-        if pi - 0.1 < self.interface.get_feedback()['q'][2] < pi + 0.1:
-            print("\033[91m \nUn wanted joint angle - possible singular state \033[0m")
-            return True, -1, wb
+        if len(self.target_pos) < 9:
+            if pi - 0.1 < self.interface.get_feedback()['q'][2] < pi + 0.1:
+            # print("\033[91m \nUn wanted joint angle - possible singular state \033[0m")
+            # return True, -1, wb
+                return False, 0, wb
         else:
-            if self.task == 'reaching':
-                grip = transformations.unit_vector(
-                    transformations.quaternion_from_euler(
-                        self.gripper_pose[0][3], self.gripper_pose[0][4], self.gripper_pose[0][5], axes="rxyz"))
-                tar = transformations.unit_vector(
-                    transformations.quaternion_from_euler(
-                        self.reaching_goal[0][3], self.reaching_goal[0][4], self.reaching_goal[0][5], axes="rxyz"))
-                # angle_diff = grip-tar
-                # ang_diff = np.linalg.norm(angle_diff)
-                grip_euler = transformations.euler_from_quaternion(grip,'rxyz')
-                tar_euler = transformations.euler_from_quaternion(tar,'rxyz')
-                ang_diff = np.linalg.norm(np.array(grip_euler) - np.array(tar_euler))
-                if ang_diff > np.pi:
-                    ang_diff = 2*np.pi - ang_diff
-                if dist_diff < 0.025 and ang_diff < np.pi/6: 
-                    print("\033[92m Target Reached \033[0m")
-                    return True, 200 - (self.num_episodes*0.1), wb
-                else:
-                    return False, 0, wb
-            elif self.task == 'grasping':
-                # Too Far
-                if obj_diff > 0.2:
-                    print("\033[91m \nGripper too far away from the object \033[0m")
-                    return True, -20, wb
-                # Grasped
+            if pi - 0.1 < self.interface.get_feedback()['q'][2] < pi + 0.1 or pi - 0.1 < self.interface.get_feedback()['q'][8] < pi + 0.1:
+                return False, 0, wb
+
+        if self.task == 'reaching':
+            grip = transformations.unit_vector(
+                transformations.quaternion_from_euler(
+                    self.gripper_pose[0][3], self.gripper_pose[0][4], self.gripper_pose[0][5], axes="rxyz"))
+            tar = transformations.unit_vector(
+                transformations.quaternion_from_euler(
+                    self.reaching_goal[0][3], self.reaching_goal[0][4], self.reaching_goal[0][5], axes="rxyz"))
+            # angle_diff = grip-tar
+            # ang_diff = np.linalg.norm(angle_diff)
+            grip_euler = transformations.euler_from_quaternion(grip,'rxyz')
+            tar_euler = transformations.euler_from_quaternion(tar,'rxyz')
+            ang_diff = np.linalg.norm(np.array(grip_euler) - np.array(tar_euler))
+            if ang_diff > np.pi:
+                ang_diff = 2*np.pi - ang_diff
+            if dist_diff < 0.025 and ang_diff < np.pi/6: 
+                print("\033[92m Target Reached \033[0m")
+                return True, 200 - (self.num_episodes*0.1), wb
+            else:
+                return False, 0, wb
+        elif self.task == 'grasping':
+            # Too Far
+            if obj_diff > 0.2:
+                print("\033[91m \nGripper too far away from the object \033[0m")
+                return True, -20, wb
+            # Grasped
+            if (self.interface.get_xyz('object_body')[2] > self.object_z + 0.07) and self.touch_index in [1,3]:
+            # if (self.interface.get_xyz('object_body')[2] > self.object_z + 0.12) and self.touch_index in [1,3]:
+                print("\033[92m Grasping Succeeded \033[0m")
+                return True, 200 - (self.num_episodes*0.1), wb
+            # Dropped
+            elif self.interface.get_xyz('object_body')[2] < 0.1:
+                print("\033[91m Dropped \033[0m")
+                return True, -20, wb
+            # Else
+            else:
+                return False, 0, wb
+        elif self.task == 'picking':
+            if not self.binary:
+                # Picked
                 if (self.interface.get_xyz('object_body')[2] > self.object_z + 0.07) and self.touch_index in [1,3]:
-                # if (self.interface.get_xyz('object_body')[2] > self.object_z + 0.12) and self.touch_index in [1,3]:
-                    print("\033[92m Grasping Succeeded \033[0m")
+                    print("\033[92m Picking Succeeded \033[0m")
                     return True, 200 - (self.num_episodes*0.1), wb
                 # Dropped
                 elif self.interface.get_xyz('object_body')[2] < 0.1:
@@ -607,85 +636,91 @@ class JacoMujocoEnvUtil:
                 # Else
                 else:
                     return False, 0, wb
-            elif self.task == 'picking':
-                if not self.binary:
-                    # Picked
-                    if (self.interface.get_xyz('object_body')[2] > self.object_z + 0.07) and self.touch_index in [1,3]:
-                        print("\033[92m Picking Succeeded \033[0m")
-                        return True, 200 - (self.num_episodes*0.1), wb
-                    # Dropped
-                    elif self.interface.get_xyz('object_body')[2] < 0.1:
-                        print("\033[91m Dropped \033[0m")
-                        return True, -20, wb
-                    # Else
-                    else:
-                        return False, 0, wb
-                else:
-                    # Picked
-                    if (self.interface.get_xyz('object_body')[2] > self.object_z + 0.07) and self.touch_index in [1,3]:
-                        print("\033[92m Picking Succeeded \033[0m")
-                        return True, 10, wb
-                    # Dropped
-                    elif self.interface.get_xyz('object_body')[2] < 0.1:
-                        print("\033[91m Dropped \033[0m")
-                        return True, -1, wb
-                    # Else
-                    else:
-                        return False, 0, wb
-            elif self.task == 'carrying':
-                return True, 0, wb
-            elif self.task == 'releasing':
-                # Dropped
-                if obj_position[2] < 0.1:
-                    print("\033[91m Dropped \033[0m")
-                    return True, -20, wb
-                # Released Success
-                elif dest_diff < 0.04 and self.touch_index == 0 and obj_position[2] < 0.35 and obj_velocity < 0.01:
-                    print("\033[92m Releasing Succeeded \033[0m")
-                    return True, 200 - (self.num_episodes*0.1), wb
-                # Released Wrong
-                elif dest_diff > 0.04 and self.touch_index == 0 and obj_position[2] < 0.20:
-                    print("\033[91m Released at the wrong position \033[0m")
-                    return True, -20, wb
-                # Else
-                else:
-                    return False, 0, wb
-            elif self.task == 'placing':
-                # Dropped
-                if obj_position[2] < 0.1:
-                    print("\033[91m Dropped \033[0m")
-                    return True, -20, wb
-                # Released Success
-                elif dest_diff < 0.04 and self.touch_index == 0 and obj_position[2] < 0.35:
-                    print("\033[92m Placing Succeeded \033[0m")
-                    return True, 200 - (self.num_episodes*0.1), wb
-                # Released Wrong
-                elif dest_diff > 0.04 and self.touch_index == 0 and obj_position[2] < 0.20:
-                    print("\033[91m Released at the wrong position \033[0m")
-                    return True, -20, wb
-                # Else
-                else:
-                    return False, 0, wb
-            elif self.task == 'pushing':
-                return True, 0, wb
-            elif self.task == 'pickAndplace':
+            else:
                 # Picked
-                if (self.interface.get_xyz('object_body')[2] > self.object_z + 0.07) and self.touch_index in [1,3] and not self.picked:
-                    print("\033[92m Picked \033[0m")
-                    self.picked = True
-                    return False, 20, wb
-                # Released Success
-                elif dest_diff < 0.04 and self.touch_index == 0 and obj_position[2] < 0.35:
-                    print("\033[92m pickAndplace Succeeded \033[0m")
-                    return True, 180, wb
+                if (self.interface.get_xyz('object_body')[2] > self.object_z + 0.07) and self.touch_index in [1,3]:
+                    print("\033[92m Picking Succeeded \033[0m")
+                    return True, 10, wb
                 # Dropped
-                elif obj_position[2] < 0.1:
+                elif self.interface.get_xyz('object_body')[2] < 0.1:
                     print("\033[91m Dropped \033[0m")
-                    return True, -20, wb
+                    return True, -1, wb
+                # Else
                 else:
                     return False, 0, wb
-            elif self.task == 'bimanipulation':
-                pass
+        elif self.task == 'carrying':
+            return True, 0, wb
+        elif self.task == 'releasing':
+            # Dropped
+            if obj_position[2] < 0.1:
+                print("\033[91m Dropped \033[0m")
+                return True, -20, wb
+            # Released Success
+            elif dest_diff < 0.04 and self.touch_index == 0 and obj_position[2] < 0.35 and obj_velocity < 0.01:
+                print("\033[92m Releasing Succeeded \033[0m")
+                return True, 200 - (self.num_episodes*0.1), wb
+            # Released Wrong
+            elif dest_diff > 0.04 and self.touch_index == 0 and obj_position[2] < 0.20:
+                print("\033[91m Released at the wrong position \033[0m")
+                return True, -20, wb
+            # Else
+            else:
+                return False, 0, wb
+        elif self.task == 'placing':
+            # Dropped
+            if obj_position[2] < 0.1:
+                print("\033[91m Dropped \033[0m")
+                return True, -20, wb
+            # Released Success
+            elif dest_diff < 0.04 and self.touch_index == 0 and obj_position[2] < 0.35:
+                print("\033[92m Placing Succeeded \033[0m")
+                return True, 200 - (self.num_episodes*0.1), wb
+            # Released Wrong
+            elif dest_diff > 0.04 and self.touch_index == 0 and obj_position[2] < 0.20:
+                print("\033[91m Released at the wrong position \033[0m")
+                return True, -20, wb
+            # Else
+            else:
+                return False, 0, wb
+        elif self.task == 'pushing':
+            return True, 0, wb
+        elif self.task == 'pickAndplace':
+            # Picked
+            # if (self.__get_property('object_body', 'position')[0][2] > self.object_z + 0.07) and self.touch_index[0] in [1,3] and not self.picked:
+            if obj_position[0][2] > self.object_z + 0.07 and self.touch_index[0] in [1,3] and not self.picked:
+                print("\033[92m Picked \033[0m")
+                self.picked = True
+                return False, 20, wb
+            # Released Success
+            elif dest_diff < 0.04 and self.touch_index[0] == 0 and obj_position[0][2] < 0.35:
+                print("\033[92m pickAndplace Succeeded \033[0m")
+                return True, 180, wb
+            # Dropped
+            elif obj_position[0][2] < 0.1:
+                print("\033[91m Dropped \033[0m")
+                return True, -20, wb
+            else:
+                return False, 0, wb
+        elif self.task == 'bimanipulation':
+            for i in range(self.n_robots):
+                if obj_position[i][2] > self.object_z + 0.07 and self.touch_index[i] in [1,3] and not self.picked_arr[i]:
+                    print("\033[92m"+self.manipulator_name[i]+" Picked \033[0m")
+                    self.picked_arr[i] = True
+                    return False, 20, wb
+                if self.picked_arr[1] and np.linalg.norm(obj_position[1]-self.dest_goal[0])<0.1 and not self.r_reached:
+                    self.r_reached = True
+                    print("\033[92m"+self.manipulator_name[i]+" Reached to the desired location \033[0m")
+                    return False, 20, wb
+                if self.r_reached and np.linalg.norm(obj_position[1]-self.dest_goal[0])>0.1:
+                    print("\033[91m Right manipulator out of the location \033[0m")
+                    return True, -20, wb
+                if np.linalg.norm(obj_position[0] - obj_position[1]) < 0.02:
+                    print("\033[92m bimanipulation Succeeded \033[0m")
+                    return True, 200, wb
+                if obj_position[i][2] < 0.1:
+                    print("\033[91m Dropped \033[0m")
+                    return True, -20, wb
+            return False, 0, wb
 
     def _take_action(self, a, weight=None, subgoal=None, id=None):
         self.action_in = True
@@ -704,15 +739,20 @@ class JacoMujocoEnvUtil:
 
         if np.any(np.isnan(np.array(a))):
             print("WARNING, nan in action", a)
+            a = np.zeros_like(a)
         # Action: Gripper Pose Increments (m,rad)
         # Action scaled to 0.01m, 0.05 rad
-        # self.target_pos = self.gripper_pose[0] + np.hstack([a[:3]/100, a[3:6]/20])
-        self.target_pos = self.gripper_pose.flatten() + np.hstack([a[:3]/25, a[3:6]/5, a[7:10]/25, a[10:13]/5])
-        if abs(self.target_pos[5]) > pi:
-            self.target_pos[5] += -np.sign(self.target_pos[5])*2*pi
-        if abs(self.target_pos[12]) > pi:
-            self.target_pos[12] += -np.sign(self.target_pos[12])*2*pi
-        elif len(a) == 7:
+        if len(a) < 9:
+            self.target_pos = self.gripper_pose[0] + np.hstack([a[:3]/100, a[3:6]/20])
+        else:
+            self.target_pos = self.gripper_pose.flatten() + np.hstack([a[:3]/25, a[3:6]/5, a[7:10]/25, a[10:13]/5])
+        if len(self.target_pos) < 9:
+            if abs(self.target_pos[5]) > pi:
+                self.target_pos[5] += -np.sign(self.target_pos[5])*2*pi
+        else:
+            if abs(self.target_pos[11]) > pi:
+                self.target_pos[11] += -np.sign(self.target_pos[11])*2*pi
+        if len(a) == 7:
             prev1 = self.gripper_angle[0]
             self.gripper_angle[0] += a[6]/10
             self.gripper_angle[0] = max(min(self.gripper_angle[0],1),0.6)

@@ -174,7 +174,7 @@ class JacoMujocoEnvUtil:
                 self.reaching_goal[0][3], self.reaching_goal[0][4], self.reaching_goal[0][5], axes="rxyz"))
             self.target_pos = np.reshape(np.hstack([self.reaching_goal]),(-1))
         obs = self._get_observation()
-        return obs[0]
+        return obs
 
     def _create_init_angle(self):
         if self.task in ['reaching', 'picking', 'pickAndplace']:
@@ -279,7 +279,7 @@ class JacoMujocoEnvUtil:
                     self.reaching_goal[i][3:]/np.pi,
                     [0,np.pi/2,0]
                 ]))
-        return np.array(observation, dtype=np.float32)
+        return np.array(observation, dtype=np.float32).flatten()
     
     def _get_rulebased_subgoal(self):
         # NOTE: rulebased subgoal
