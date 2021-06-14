@@ -60,7 +60,12 @@
 
         <body name="object_body_2" pos="0.5 1.2 1">
             <freejoint></freejoint>
-            <geom type="box" size=".030 0.030 0.04" density="50" solimp="0.998 0.998 0.001" friction="0.95 0.3 0.1" solref="0.001 1" pos="0 0 0" rgba="0 0 0.5 0.8"></geom>
+            <geom type="box" size=".027 0.027 0.03" density="50" solimp="0.998 0.998 0.001" friction="0.95 0.3 0.1" solref="0.001 1" pos="0 0 0" rgba="0 0 0.5 0.8"></geom>
+            <geom type="box" size=".1 .05 0.005" density="1" solimp="0.998 0.998 0.001" friction="0.95 0.3 0.1" solref="0.001 1" pos="-0.072 0 -0.025" rgba="0 0.1 0.4 1"></geom>
+            <geom type="box" size=".1 .005 0.007" density="1" solimp="0.998 0.998 0.001" friction="0.95 0.3 0.1" solref="0.001 1" pos="-0.072 0.05 -0.015" rgba="0 0.1 0.4 1"></geom>
+            <geom type="box" size=".1 .005 0.007" density="1" solimp="0.998 0.998 0.001" friction="0.95 0.3 0.1" solref="0.001 1" pos="-0.072 -0.05 -0.015" rgba="0 0.1 0.4 1"></geom>
+            <geom type="box" size=".005 .05 0.007" density="1" solimp="0.998 0.998 0.001" friction="0.95 0.3 0.1" solref="0.001 1" pos="-0.172 0 -0.015" rgba="0 0.1 0.4 1"></geom>
+            <geom type="box" size=".005 .05 0.007" density="1" solimp="0.998 0.998 0.001" friction="0.95 0.3 0.1" solref="0.001 1" pos="0.023 0 -0.015" rgba="0 0.1 0.4 1"></geom>
         </body>
         <body name="object_holder_2" pos="0.5 0.6 0">
             <geom type="box" size=".15 .15 .1" density="100" pos="0 0 .07" rgba=".5 .5 .5 1"></geom>

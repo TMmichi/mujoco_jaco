@@ -738,7 +738,7 @@ class JacoMujocoEnvUtil:
                     self.loose_grap[i] = True
                     print("\033[91m Loose Grap \033[0m")
                     return False, -20, wb
-                if not np.any(self.picked_arr) and np.linalg.norm(self.gripper_pose[0]-self.gripper_pose[1])<0.1:
+                if not np.any(self.picked_arr) and np.linalg.norm(self.gripper_pose[0][:3]-self.gripper_pose[1][:3])<0.2:
                     print("\033[91m Too close \033[0m")
                     return True, -30, wb
             return False, 0, wb
