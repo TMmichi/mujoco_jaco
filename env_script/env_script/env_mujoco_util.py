@@ -510,10 +510,10 @@ class JacoMujocoEnvUtil:
             elif self.task == 'bimanipulation':
                 if np.all(self.picked_arr):
                     dist_coef = 5
-                    dist_th = 1
+                    dist_th = 0.5
                     obj_position = self.__get_property('object_body', 'position')
                     dist_diff = np.linalg.norm(obj_position[0] - obj_position[1])
-                    reward = dist_coef*np.exp(-1/dist_th*dist_diff)/2
+                    reward = dist_coef*np.exp(-1/dist_th*dist_diff)
                     return reward * 0.05
                 else:
                     return 0
@@ -589,12 +589,12 @@ class JacoMujocoEnvUtil:
         wb = np.linalg.norm(self.__get_property('EE', 'position')[0] - self.base_position[0])
         if len(self.target_pos) < 9:
             if pi - 0.1 < self.interface.get_feedback()['q'][2] < pi + 0.1:
-            # print("\033[91m \nUn wanted joint angle - possible singular state \033[0m")
-            # return True, -1, wb
-                return False, 0, wb
+                print("\033[91m \nUn wanted joint angle - possible singular state \033[0m")
+                return True, -1, wb
         else:
             if pi - 0.1 < self.interface.get_feedback()['q'][2] < pi + 0.1 or pi - 0.1 < self.interface.get_feedback()['q'][8] < pi + 0.1:
-                return True, -10, wb
+                print("\033[91m \nUn wanted joint angle - possible singular state \033[0m")
+                return True, -20, wb
 
         if self.task == 'reaching':
             grip = transformations.unit_vector(
@@ -716,15 +716,8 @@ class JacoMujocoEnvUtil:
                     print("\033[92m"+self.manipulator_name[i]+" Picked \033[0m")
                     self.picked_arr[i] = True
                     self.loose_grap[i] = False
-                    return False, 20, wb
-                if self.picked_arr[1] and np.linalg.norm(obj_position[1]-self.dest_goal[0])<0.1 and not self.r_reached:
-                    self.r_reached = True
-                    print("\033[92m"+self.manipulator_name[i]+" Reached to the desired location \033[0m")
-                    return False, 40, wb
-                if self.r_reached and np.linalg.norm(obj_position[1]-self.dest_goal[0])>0.1:
-                    print("\033[91m Right manipulator out of the location \033[0m")
-                    return True, -20, wb
-                if np.linalg.norm(obj_position[0] - obj_position[1]) < 0.02:
+                    return False, 10, wb
+                if np.linalg.norm(obj_position[0] - obj_position[1]) < 0.03:
                     print("\033[92m bimanipulation Succeeded \033[0m")
                     return True, 200, wb
                 if obj_position[i][2] < 0.1:
@@ -737,10 +730,23 @@ class JacoMujocoEnvUtil:
                     self.picked_arr[i] = False
                     self.loose_grap[i] = True
                     print("\033[91m Loose Grap \033[0m")
-                    return False, -20, wb
-                if not np.any(self.picked_arr) and np.linalg.norm(self.gripper_pose[0][:3]-self.gripper_pose[1][:3])<0.2:
-                    print("\033[91m Too close \033[0m")
-                    return True, -30, wb
+                    return False, -10, wb
+            if self.gripper_pose[1][0]-self.base_position[1][0] < -0.2 and not self.picked_arr[1]:
+                print("\033[91m Gripper nothing at hand \033[0m")
+                return True, -10, wb
+            if self.gripper_pose[1][0]-self.base_position[1][0] > 0.2:
+                print("\033[91m Gripper wrong way \033[0m")
+                return True, -10, wb
+            if not np.any(self.picked_arr) and np.linalg.norm(self.gripper_pose[0][:3]-self.gripper_pose[1][:3])<0.3:
+                print("\033[91m Too close \033[0m")
+                return True, -10, wb
+            if self.picked_arr[1] and np.linalg.norm(obj_position[1]-self.dest_goal[0])<0.1 and not self.r_reached:
+                self.r_reached = True
+                print("\033[92m Right arm reached to the desired location with the object \033[0m")
+                return False, 40, wb
+            if self.r_reached and np.linalg.norm(obj_position[1]-self.dest_goal[0])>0.1:
+                print("\033[91m Right arm out of the location \033[0m")
+                return True, -40, wb
             return False, 0, wb
 
     def _take_action(self, a, weight=None, subgoal=None, id=None):
