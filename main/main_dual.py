@@ -52,7 +52,7 @@ class RL_controller:
         composite_primitive_name = self.args.task = task_list[3]
 
         self.args.train_log = False
-        self.args.visualize = True
+        self.args.visualize = False
         self.args.robot_file = "jaco2_dual_torque"
         self.args.controller = True
         self.args.n_robots = 2
