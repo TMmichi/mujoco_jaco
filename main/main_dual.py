@@ -77,7 +77,7 @@ class RL_controller:
         # prefix = 'HPCcheck_noQ'
         model_dir = self.model_path + prefix + "_" + str(self.trial)
         self.args.log_dir = model_dir
-        # os.makedirs(model_dir, exist_ok=True)
+        os.makedirs(model_dir, exist_ok=True)
         print("\033[92m"+model_dir+"\033[0m")
 
         # Obs for Picking

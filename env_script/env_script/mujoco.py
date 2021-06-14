@@ -209,7 +209,7 @@ class Mujoco:
 
         return np.copy(xyz)
     
-    def get_obj_vel(self):
+    def get_obj_vel(self, idx=0):
         old_state = self.sim.get_state()
         idx_start = len(self.joint_pos_addrs_fing)
         return old_state.qvel.copy()[idx_start:idx_start+3]

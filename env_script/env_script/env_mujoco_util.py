@@ -710,7 +710,7 @@ class JacoMujocoEnvUtil:
                 if self.picked_arr[1] and np.linalg.norm(obj_position[1]-self.dest_goal[0])<0.1 and not self.r_reached:
                     self.r_reached = True
                     print("\033[92m"+self.manipulator_name[i]+" Reached to the desired location \033[0m")
-                    return False, 20, wb
+                    return False, 40, wb
                 if self.r_reached and np.linalg.norm(obj_position[1]-self.dest_goal[0])>0.1:
                     print("\033[91m Right manipulator out of the location \033[0m")
                     return True, -20, wb
@@ -720,6 +720,10 @@ class JacoMujocoEnvUtil:
                 if obj_position[i][2] < 0.1:
                     print("\033[91m Dropped \033[0m")
                     return True, -20, wb
+                if self.picked_arr[i] and (obj_position[i][2] < self.object_z + 0.01 and self.touch_index[i] in [0]):
+                    self.picked_arr[i] = False
+                    print("\033[91m Loose Grap \033[0m")
+                    return False, -20, wb
             return False, 0, wb
 
     def _take_action(self, a, weight=None, subgoal=None, id=None):
