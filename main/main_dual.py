@@ -45,7 +45,7 @@ class RL_controller:
         args.batches_per_episodes = self.batches_per_episodes
         self.num_episodes = 20000
         self.args = args
-        self.trial = 74
+        self.trial = 75
 
     def train_HPC(self):
         task_list = ['picking', 'placing', 'pickAndplace', 'bimanipulation']

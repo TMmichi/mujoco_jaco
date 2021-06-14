@@ -100,6 +100,7 @@ class JacoMujocoEnvUtil:
         self.interface.sim.reset()
         self.picked = False
         self.picked_arr = [False] * self.n_robots
+        self.loose_grap = [False] * self.n_robots
         self.r_reached = False
         self.num_episodes = 0
         self.gripper_iter = 0
@@ -507,7 +508,15 @@ class JacoMujocoEnvUtil:
             elif self.task == 'pickAndplace':
                 return 0
             elif self.task == 'bimanipulation':
-                return 0
+                if np.all(self.picked_arr):
+                    dist_coef = 5
+                    dist_th = 1
+                    obj_position = self.__get_property('object_body', 'position')
+                    dist_diff = np.linalg.norm(obj_position[0] - obj_position[1])
+                    reward = dist_coef*np.exp(-1/dist_th*dist_diff)/2
+                    return reward * 0.05
+                else:
+                    return 0
         elif self.reward_method is not None:
             return self.reward_module(self.gripper_pose, self.reaching_goal)
         else:
@@ -585,7 +594,7 @@ class JacoMujocoEnvUtil:
                 return False, 0, wb
         else:
             if pi - 0.1 < self.interface.get_feedback()['q'][2] < pi + 0.1 or pi - 0.1 < self.interface.get_feedback()['q'][8] < pi + 0.1:
-                return False, 0, wb
+                return True, -10, wb
 
         if self.task == 'reaching':
             grip = transformations.unit_vector(
@@ -706,6 +715,7 @@ class JacoMujocoEnvUtil:
                 if obj_position[i][2] > self.object_z + 0.07 and self.touch_index[i] in [1,3] and not self.picked_arr[i]:
                     print("\033[92m"+self.manipulator_name[i]+" Picked \033[0m")
                     self.picked_arr[i] = True
+                    self.loose_grap[i] = False
                     return False, 20, wb
                 if self.picked_arr[1] and np.linalg.norm(obj_position[1]-self.dest_goal[0])<0.1 and not self.r_reached:
                     self.r_reached = True
@@ -719,11 +729,18 @@ class JacoMujocoEnvUtil:
                     return True, 200, wb
                 if obj_position[i][2] < 0.1:
                     print("\033[91m Dropped \033[0m")
-                    return True, -20, wb
+                    if self.loose_grap[i]:
+                        return True, 0, wb
+                    else:
+                        return True, -20, wb
                 if self.picked_arr[i] and (obj_position[i][2] < self.object_z + 0.01 and self.touch_index[i] in [0]):
                     self.picked_arr[i] = False
+                    self.loose_grap[i] = True
                     print("\033[91m Loose Grap \033[0m")
                     return False, -20, wb
+                if not np.any(self.picked_arr) and np.linalg.norm(self.gripper_pose[0]-self.gripper_pose[1])<0.1:
+                    print("\033[91m Too close \033[0m")
+                    return True, -30, wb
             return False, 0, wb
 
     def _take_action(self, a, weight=None, subgoal=None, id=None):

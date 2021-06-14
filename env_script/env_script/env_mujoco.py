@@ -112,6 +112,7 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
 
         self.action_space = spaces.Box(self.act_min, self.act_max, dtype=np.float32)
         self.wb = 0
+        self.accum_rew = 0
         self.metadata = None
 
         ### ------------  LOGGING  ------------ ###
@@ -120,6 +121,7 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
 
     def reset(self):
         self.current_steps = 0
+        self.accum_rew = 0
         return self._reset()
 
     def get_state_shape(self):
@@ -147,11 +149,15 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
         # if self.current_steps % 10 == 0:
         #     self.logging(obs, self.prev_obs, action, self.wb, total_reward) if log else None
         self.prev_obs = obs
+        self.accum_rew += total_reward
+
         if np.any(np.isnan(obs)) or np.any(np.isnan(total_reward)):
             print("WARNING: NAN in obs, resetting.")
             self.obs = self.reset()
             total_reward = 0
             done = True
+        if done:
+            print(self.accum_rew)
         return obs, total_reward, done, {0: 0}
     
     def get_wb(self):
