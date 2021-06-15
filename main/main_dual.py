@@ -3,6 +3,7 @@
 import os, time
 import path_config
 from pathlib import Path
+import matplotlib.pyplot as plt
 from configuration import model_configuration, pretrain_configuration, info, total_time_step
 
 import tensorflow as tf
@@ -229,52 +230,40 @@ class RL_controller:
         self.model.save(model_dir+"/policy", hierarchical=True)
 
     def train_HPC_continue(self):
-        task_list = ['picking', 'placing', 'pickAndplace']
-        composite_primitive_name = self.args.task = task_list[1]
+        task_list = ['picking', 'placing', 'pickAndplace', 'bimanipulation']
+        composite_primitive_name = self.args.task = task_list[3]
         algo_list = ['sac','ppo']
         algo = algo_list[0]
 
         self.args.train_log = False
         self.args.visualize = True
-        self.args.robot_file = "jaco2_curtain_torque"
+        self.args.robot_file = "jaco2_dual_torque"
         self.args.controller = True
-        self.args.n_robots = 1
+        self.args.n_robots = 2
         self.args.subgoal_obs = False
         self.args.rulebased_subgoal = True
         self.args.auxiliary = False
         self.args.seed = self.trial
 
-        if algo == 'sac':
-            env = JacoMujocoEnv(**vars(self.args))
-            policy = MlpPolicy_hpcsac
-            self.model = SAC_MULTI(policy=policy, env=None, _init_setup_model=False, composite_primitive_name=composite_primitive_name)
-            save_interval = 10000
-            ent_coef = 1e-7
-            # ent_coef = 'auto'
-        elif algo == 'ppo':
-            env_list = []
-            for i in range(2):
-                env_list.append(JacoMujocoEnv)
-            env = DummyVecEnv(env_list, dict(**vars(self.args)))
-            # env = SubprocVecEnv(env_list)
-            env = VecNormalize(env, norm_obs=False, norm_reward=False)
-            policy = MlpPolicy_hpcppo
-            self.model = HPCPPO(policy=policy, env=None, _init_setup_model=False, composite_primitive_name=composite_primitive_name)
-            save_interval = 100
-            ent_coef = 0
+        env = JacoMujocoEnv(**vars(self.args))
+        policy = MlpPolicy_hpcsac
+        self.model = SAC_MULTI(policy=policy, env=None, _init_setup_model=False, composite_primitive_name=composite_primitive_name)
+        save_interval = 10000
+        ent_coef = 1e-7
 
-        model_dir = self.model_path + 'HPCtest_46/SACS_1e-7'
+        model_dir = self.model_path + 'bimanipulation_SAC_noaux_trained_at_2021_6_14_20:19_75'
         self.args.log_dir = model_dir
-        sub_dir = '/finetune1'
+        sub_dir = '/finetune4'
         print("\033[92m"+model_dir + sub_dir+"\033[0m")
         os.makedirs(model_dir+sub_dir, exist_ok=True)
 
 
         # Weight definition
-        obs_idx = [0, 1,2,3,4,5,6, 7, 8,9,10, 17,18,19,20,21,22]
-        act_idx = [0,1,2,3,4,5, 6]
-        policy_zip_path = model_dir+'/policy_260000.zip'
-        self.model.construct_primitive_info(name='continue', freeze=False, level=1,
+        obs_idx = [ 0,  1, 2, 3, 4, 5, 6,  7,  8, 9,10, 14,15,16, 17,18,19,20,21,22, 23,24,25, 
+                   26, 27,28,29,30,31,32, 33, 34,35,36, 40,41,42, 43,44,45,46,47,48, 49,50,51]
+        act_idx = [0,1,2,3,4,5, 6, 7,8,9,10,11,12, 13]
+        policy_zip_path = model_dir+'/policy_1100000.zip'
+        self.model.construct_primitive_info(name='continue', freeze=False, level=3,
                                         obs_range=None, obs_index=obs_idx,
                                         act_range=None, act_index=act_idx, act_scale=1,
                                         obs_relativity={},
@@ -284,9 +273,9 @@ class RL_controller:
 
         self.num_timesteps = self.steps_per_batch * self.batches_per_episodes * self.num_episodes 
         model_dict = {'gamma': 0.99, 'tensorboard_log': model_dir+sub_dir,'verbose': 1, 'seed': self.args.seed, \
-            'learning_rate':_lr_scheduler, 'learning_starts':100, 'ent_coef': ent_coef, 'batch_size': 8, 'noptepochs': 4, 'n_steps': 128}
+            'learning_rate':_lr_scheduler, 'learning_starts':0, 'ent_coef': ent_coef, 'batch_size': 8, 'noptepochs': 4, 'n_steps': 128}
         self.model.pretrainer_load(model=self.model, policy=policy, env=env, **model_dict)
-        self._write_log(model_dir, info)
+        # self._write_log(model_dir, info)
         print("\033[91mTraining Starts\033[0m")
         self.model.learn(total_timesteps=self.num_timesteps, save_interval=save_interval, save_path=model_dir+sub_dir)
         print("\033[91mTrain Finished\033[0m")
@@ -320,13 +309,13 @@ class RL_controller:
         print("Testing called")
         self.args.train_log = False
         self.args.visualize = True
-        self.args.robot_file = "jaco2_curtain_torque"
-        self.args.n_robots = 1
+        self.args.robot_file = "jaco2_dual_torque"
+        self.args.n_robots = 2
         self.args.seed = 42
 
         #                 0           1          2          3            4           5          6             7
-        task_list = ['reaching', 'grasping', 'picking', 'carrying', 'releasing', 'placing', 'pushing', 'pickAndplace']
-        self.args.task = task_list[7]
+        task_list = ['reaching', 'grasping', 'picking', 'carrying', 'releasing', 'placing', 'pushing', 'pickAndplace', 'bimanipulation']
+        self.args.task = task_list[8]
         self.args.subgoal_obs = False
         self.args.rulebased_subgoal = True
         
@@ -365,16 +354,19 @@ class RL_controller:
         # prefix = 'policies/'+self.args.task + '/policy_120000.zip'
     
         ##### pickAndplace #####
-        prefix = self.args.task + '_sac_noaux_trained_at_2021_4_23_16:3_74/policy_8220000.zip'
+        # prefix = self.args.task + '_sac_noaux_trained_at_2021_4_23_16:3_74/policy_8220000.zip'
 
+        ##### bimanipulation #####
+        prefix = self.args.task + '_test/policy_1600000.zip'
 
         model_dir = self.model_path + prefix
         test_iter = 20
-        if self.args.task in ['picking','placing','pickAndplace']:
+        if self.args.task in ['picking','placing','pickAndplace', 'bimanipulation']:
             self.model = SAC_MULTI(policy=MlpPolicy_hpcsac, env=None, _init_setup_model=False, composite_primitive_name='picking')
-            obs_idx = [0, 1,2,3,4,5,6, 7, 8,9,10, 17,18,19,20,21,22, 23,24,25]
-            act_idx = [0,1,2,3,4,5, 6]
-            self.model.construct_primitive_info(name=None, freeze=True, level=1,
+            obs_idx = [ 0,  1, 2, 3, 4, 5, 6,  7,  8, 9,10, 14,15,16, 17,18,19,20,21,22, 23,24,25, 
+                        26, 27,28,29,30,31,32, 33, 34,35,36, 40,41,42, 43,44,45,46,47,48, 49,50,51]
+            act_idx = [0,1,2,3,4,5, 6, 7,8,9,10,11,12, 13]
+            self.model.construct_primitive_info(name=None, freeze=True, level=3,
                                                 obs_range=None, obs_index=obs_idx,
                                                 act_range=None, act_index=act_idx, act_scale=1,
                                                 obs_relativity={},
@@ -384,6 +376,38 @@ class RL_controller:
             SAC_MULTI.pretrainer_load(self.model, MlpPolicy_hpcsac, env)
         else:
             self.model = SAC_MULTI.load(model_dir, MlpPolicy_hpcsac, env)
+
+        plt.ion()
+        fig, axes = plt.subplots(3,1, figsize=(10,6), sharex=True)
+        pap, = axes[0].plot([], [], color='firebrick', linewidth=2, label='Pick and Place')
+        grasp, = axes[0].plot([], [], color='forestgreen', linewidth=2, label='Grasping')
+        reach, = axes[0].plot([], [], color='blueviolet', linewidth=2, label='Reaching')
+
+        pick, = axes[1].plot([], [], color='red', linewidth=2, label='Picking')
+        place, = axes[1].plot([], [], color='mediumblue', linewidth=2, label='Placing')
+
+        pick_reach, = axes[2].plot([], [], color='dodgerblue', linestyle='-',linewidth=2, label='Pick-Reaching')
+        pick_grasp, = axes[2].plot([], [], color='yellowgreen', linestyle='-', linewidth=2, label='Pick-Grasping')
+        place_reach, = axes[2].plot([], [], color='aqua', linestyle='-', linewidth=2, label='Place-Reaching')
+        place_release, = axes[2].plot([], [], color='yellow', linestyle='-', linewidth=2, label='Place-Releasing')
+
+        axes[0].set_title('Intents of level 3 tasks')
+        axes[1].set_title('Intents of level 2 tasks')
+        axes[2].set_title('Intents of level 1 tasks')
+        axes[0].set_ylabel('Intents', fontsize=13)
+        axes[1].set_xlabel('Step', fontsize=13)
+        axes[1].set_ylabel('Intents', fontsize=13)
+        axes[2].set_ylabel('Intents', fontsize=13)
+        axes[0].grid(axis='y', alpha=0.5, linestyle='--')
+        axes[1].grid(axis='y', alpha=0.5, linestyle='--')
+        axes[2].grid(axis='y', alpha=0.5, linestyle='--')
+        axes[0].legend(loc='right', fontsize=13)
+        axes[1].legend(loc='right', fontsize=13)
+        axes[2].legend(loc='right', fontsize=13)
+        plt.xlim(0, 500)
+        axes[0].set_ylim(-0.05, 1.05)
+        axes[1].set_ylim(-0.05, 1.05)
+        axes[2].set_ylim(-0.05, 1.05)
 
         total_iter = 0
         for ti in range(test_iter):
@@ -406,6 +430,9 @@ class RL_controller:
             # file_logger = open(logger_path+logger_name, 'w')
             # file_logger.writelines(label_string+"\n")
             steps = []
+            weight_pap = []
+            weight_grasp = []
+            weight_reach = []
             weight_pick = []
             weight_place = []
             weight_pick_reach = []
@@ -416,21 +443,49 @@ class RL_controller:
             while not done:
                 total_iter += 1
                 iter += 1
-                if self.args.task in ['picking','placing','pickAndplace']:
+                steps.append(iter)
+
+                if self.args.task in ['picking','placing','pickAndplace','bimanipulation']:
                     action, subgoal, weight = self.model.predict_subgoal(obs, deterministic=True)
                     obs, reward, done, _ = env.step(action, log=False, weight=weight, subgoal=subgoal)
                 else:
                     action, _ = self.model.predict(obs, deterministic=True)
                     obs, reward, done, _ = env.step(action, log=False)
-                pickAndplace = weight['level2_pickAndplace/weight'][0]
-                pick = pickAndplace[0]
-                place = pickAndplace[1]
-                weight_pick.append(pick)
-                weight_place.append(place)
-                weight_pick_reach.append(weight['level1_picking/weight'][0][0] * pick)
-                weight_pick_grasp.append(weight['level1_picking/weight'][0][1] * pick)
-                weight_place_reach.append(weight['level1_placing/weight'][0][0] * place)
-                weight_place_release.append(weight['level1_placing/weight'][0][1] * place)
+
+
+                pap_w = weight['level3_bimanipulation/weight'][0][0]
+                grasp_w = weight['level3_bimanipulation/weight'][0][1]
+                reach_w = weight['level3_bimanipulation/weight'][0][2]
+                pickAndplace = weight['level2_pickAndplace/weight'][0] * pap_w
+                pick_w = pickAndplace[0]
+                place_w = pickAndplace[1]
+                weight_pap.append(pap_w)
+                weight_grasp.append(grasp_w)
+                weight_reach.append(reach_w)
+                weight_pick.append(pick_w)
+                weight_place.append(place_w)
+                weight_pick_reach.append(weight['level1_picking/weight'][0][0] * pick_w)
+                weight_pick_grasp.append(weight['level1_picking/weight'][0][1] * pick_w)
+                weight_place_reach.append(weight['level1_placing/weight'][0][0] * place_w)
+                weight_place_release.append(weight['level1_placing/weight'][0][1] * place_w)
+
+
+                pap.set_data(steps, weight_pap)
+                grasp.set_data(steps, weight_grasp)
+                reach.set_data(steps, weight_reach)
+                pick.set_data(steps, weight_pick)
+                place.set_data(steps, weight_place)
+                pick_reach.set_data(steps, weight_pick_reach)
+                pick_grasp.set_data(steps, weight_pick_grasp)
+                place_reach.set_data(steps, weight_place_reach)
+                place_release.set_data(steps, weight_place_release)
+
+                fig.canvas.draw()
+                fig.canvas.flush_events()
+                if iter > 500:
+                    done = True
+
+
                 # if self.args.task == 'pickAndplace':
                 #     pickAndplace = weight['level2_pickAndplace/weight'][0]
                 #     pick = weight['level1_picking/weight'][0] * pickAndplace[0]
@@ -454,6 +509,6 @@ class RL_controller:
 
 if __name__ == "__main__":
     controller = RL_controller()
-    controller.train_HPC()
+    # controller.train_HPC()
     # controller.train_HPC_continue()
-    # controller.test()
+    controller.test()

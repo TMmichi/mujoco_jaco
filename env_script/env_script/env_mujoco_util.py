@@ -353,7 +353,7 @@ class JacoMujocoEnvUtil:
                 rpy_real[0] -= pi/2
                 subgoal_ori = rpy_real + np.array([(np.random.uniform()-0.5)/10 for _ in range(3)])
             elif i == 1:
-                subgoal_pos = self.dest_goal[0]
+                subgoal_pos = self.dest_goal[0] + np.array([0,0.05,0])
                 subgoal_ori = np.array([0, -np.pi/2, 0])
             subgoal_pos_arr.append(subgoal_pos)
             subgoal_ori_arr.append(subgoal_ori)
@@ -374,7 +374,7 @@ class JacoMujocoEnvUtil:
     def __get_gripper_pose(self):
         self.gripper_pose = self.__get_property('EE', 'pose')
 
-    def _get_reward(self):
+    def _get_reward(self, weight=None):
         if self.reward_method is None:
             if self.task == 'reaching':
                 dist_coef = 5
@@ -508,15 +508,21 @@ class JacoMujocoEnvUtil:
             elif self.task == 'pickAndplace':
                 return 0
             elif self.task == 'bimanipulation':
+                reward = 0
+                if self.picked_arr[1]:
+                    reward -= weight['level3_bimanipulation/weight'][0][1] * 0.3
+                    reward += weight['level3_bimanipulation/weight'][0][2] * 0.3
                 if np.all(self.picked_arr):
-                    dist_coef = 5
-                    dist_th = 0.5
-                    obj_position = self.__get_property('object_body', 'position')
-                    dist_diff = np.linalg.norm(obj_position[0] - obj_position[1])
-                    reward = dist_coef*np.exp(-1/dist_th*dist_diff)
-                    return reward * 0.05
-                else:
-                    return 0
+
+                    # dist_coef = 5
+                    # dist_th = 0.5
+                    # obj_position = self.__get_property('object_body', 'position')
+                    # dist_diff = np.linalg.norm(obj_position[0] - obj_position[1])
+                    # reward = dist_coef*np.exp(-1/dist_th*dist_diff)
+                    # return reward * 0.05
+                    reward += weight['level3_bimanipulation/weight'][0][0] * 0.3
+                return reward
+
         elif self.reward_method is not None:
             return self.reward_module(self.gripper_pose, self.reaching_goal)
         else:
@@ -587,14 +593,14 @@ class JacoMujocoEnvUtil:
         dest_diff = np.linalg.norm(self.dest_goal[0][:2] - obj_position[0][:2])
         relx, rely, relz = self.__get_property('EE', 'position')[0] - self.base_position[0]
         wb = np.linalg.norm(self.__get_property('EE', 'position')[0] - self.base_position[0])
-        if len(self.target_pos) < 9:
-            if pi - 0.1 < self.interface.get_feedback()['q'][2] < pi + 0.1:
-                print("\033[91m \nUn wanted joint angle - possible singular state \033[0m")
-                return True, -1, wb
-        else:
-            if pi - 0.1 < self.interface.get_feedback()['q'][2] < pi + 0.1 or pi - 0.1 < self.interface.get_feedback()['q'][8] < pi + 0.1:
-                print("\033[91m \nUn wanted joint angle - possible singular state \033[0m")
-                return True, -20, wb
+        # if len(self.target_pos) < 9:
+        #     if pi - 0.1 < self.interface.get_feedback()['q'][2] < pi + 0.1:
+        #         print("\033[91m \nUn wanted joint angle - possible singular state \033[0m")
+        #         return True, -1, wb
+        # else:
+        #     if pi - 0.1 < self.interface.get_feedback()['q'][2] < pi + 0.1 or pi - 0.1 < self.interface.get_feedback()['q'][8] < pi + 0.1:
+        #         print("\033[91m \nUn wanted joint angle - possible singular state \033[0m")
+        #         return True, -20, wb
 
         if self.task == 'reaching':
             grip = transformations.unit_vector(

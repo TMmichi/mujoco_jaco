@@ -143,7 +143,7 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
             self._step_simulation()
 
         obs = self.make_observation()
-        reward_val = self._get_reward()
+        reward_val = self._get_reward(weight)
         done, additional_reward, self.wb = self.terminal_inspection()
         total_reward = reward_val + additional_reward
         # if self.current_steps % 10 == 0:
@@ -189,7 +189,7 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
             return self._get_terminal_inspection()
         else:
             print("\033[91m \nTime Out \033[0m")
-            return True, -1, 0
+            return True, -10, 0
 
     def make_observation(self):
         obs = self._get_observation()
