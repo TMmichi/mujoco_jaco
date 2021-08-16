@@ -1,6 +1,0 @@
-Layers:
-	policy:	[128, 128, 128]
-	value:	[128, 128, 128]
-
-gripper observation with -1 ~ 1
-human trajectory 5_mod

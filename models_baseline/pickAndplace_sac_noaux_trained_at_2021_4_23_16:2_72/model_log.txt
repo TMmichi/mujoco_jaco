@@ -1,5 +1,0 @@
-Layers:
-	policy:	[128, 128, 128]
-	value:	[128, 128, 128]
-
-72 ~ 74: direct weight, same config with diff seeds

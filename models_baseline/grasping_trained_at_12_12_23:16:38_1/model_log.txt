@@ -1,7 +1,0 @@
-Layers:
-	policy:	[64, 64]
-	value:	[64, 64]
-
-unSQUASHED
-obs_relativity removed
-

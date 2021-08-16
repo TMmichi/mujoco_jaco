@@ -1,2 +1,0 @@
-same formulation with smaller learning rate (1e-5 to 1e-6)
-using same human trajectory (5)

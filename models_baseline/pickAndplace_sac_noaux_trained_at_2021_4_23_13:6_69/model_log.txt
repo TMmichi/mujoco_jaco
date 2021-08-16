@@ -1,6 +1,0 @@
-Layers:
-	policy:	[128, 128, 128]
-	value:	[128, 128, 128]
-
-same with 68
-but more steps on learning starts

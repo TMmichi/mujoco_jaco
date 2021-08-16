@@ -1,4 +1,0 @@
-Layers:
-	policy:	[128, 128, 128]
-	value:	[128, 128, 128]
-same setting with much longer Q warmstart

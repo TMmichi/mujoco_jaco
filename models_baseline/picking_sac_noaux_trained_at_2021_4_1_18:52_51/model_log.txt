@@ -1,8 +1,0 @@
-Layers:
-	policy:	[128, 128, 128]
-	value:	[128, 128, 128]
-
-SAC split
-ent_coef = 1e-7
-learning_rate = 7e-5
-start from scratch

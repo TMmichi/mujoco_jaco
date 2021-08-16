@@ -1,4 +1,0 @@
-Layers:
-	policy:	[64, 64]
-	value:	[64, 64]
-
