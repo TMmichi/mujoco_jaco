@@ -1,11 +1,7 @@
 #!/usr/bin/env python
 
-import os, sys
 import numpy as np
-import time
-
 from gym import spaces
-from gym.utils import seeding
 
 from env_script.env_mujoco_util import JacoMujocoEnvUtil
 
@@ -26,7 +22,6 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
         else:
             self.task_max_steps = 1200
         self.skip_frames = 50  #0.05s per step
-        self.seed(kwargs.get('seed', None))
 
         ## Observations
         # Not touched, Inner touched, Outer touched, grasped

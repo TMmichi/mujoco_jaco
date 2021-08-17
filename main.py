@@ -4,6 +4,7 @@ import os, time
 
 from pathlib import Path
 from configuration import model_configuration
+import path_config
 
 import stable_baselines.common.tf_util as tf_util
 from stable_baselines.hpc import HPC
@@ -252,7 +253,7 @@ class RL_controller:
             while not done:
                 iter += 1
                 action, subgoal, weight = self.model.predict_subgoal(obs, deterministic=True)
-                obs, reward, done, _ = env.step(action, log=False, weight=weight, subgoal=subgoal)
+                obs, reward, done, _ = env.step(action, weight=weight, subgoal=subgoal)
                 if reward > 100 and done:
                     success += 1
         print("Success rate: ",success/test_iter*100)
