@@ -4,7 +4,7 @@ import os, time
 
 from pathlib import Path
 from configuration import model_configuration
-import path_config
+# import path_config
 
 import stable_baselines.common.tf_util as tf_util
 from stable_baselines.hpc import HPC

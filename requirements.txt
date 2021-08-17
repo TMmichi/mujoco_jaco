@@ -1,12 +1,11 @@
-tensorflow-gpu==1.15.0
-numpy
+# tensorflow-gpu==1.15.0
+tensorflow==1.15.0
 cloudpickle==1.6.0
 gym
 scipy
 joblib
 opencv-python
 pandas
-matplotlib
 cython
 sympy
 mpi4py
