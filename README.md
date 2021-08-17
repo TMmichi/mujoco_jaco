@@ -60,6 +60,12 @@ Python API for 3D Spacenav can be found [here](https://github.com/mastersign/pys
 
 ## Usage
 
+Please change the permission of the `main.sh` file to executable prior to running the script
+```bash
+chmod +x main.sh
+```
+
+Run with:
 ```bash
 ./main.sh
 ```
