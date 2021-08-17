@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
 import os, time
+
 from pathlib import Path
 from configuration import model_configuration
 
-import path_config
 import stable_baselines.common.tf_util as tf_util
 from stable_baselines.hpc import HPC
 from stable_baselines.hpc.policies import MlpPolicy
@@ -21,7 +21,7 @@ def _lr_scheduler(frac):
 class RL_controller:
     def __init__(self):
         # Arguments
-        parser = ArgParser(isbaseline=True)
+        parser = ArgParser()
         args = parser.parse_args()
 
         self.sess_SRL = tf_util.single_threaded_session()
@@ -63,7 +63,7 @@ class RL_controller:
                 + str(time.localtime().tm_hour) + ":" \
                 + str(time.localtime().tm_min)
         model_dir = self.model_path + prefix + "_" + str(self.args.seed)
-        os.makedirs(model_dir, exist_ok=True)
+        # os.makedirs(model_dir, exist_ok=True)
         print("\033[92m"+model_dir+"\033[0m")
 
         # Obs for Picking
@@ -135,7 +135,7 @@ class RL_controller:
         #                                 load_value=False)
 
         prim_name = 'picking'
-        policy_zip_path = self.model_path+'picking_sac_noaux_trained_at_2021_4_2_21:41_54/policy_4200000.zip'
+        policy_zip_path = self.model_path+'picking/policy.zip'
         self.model.construct_primitive_info(name=prim_name, freeze=True, level=2,
                                         obs_range=None, obs_index=[0, 1,2,3,4,5,6, 7, 8,9,10, 17,18,19,20,21,22], 
                                         act_range=None, act_index=[0,1,2,3,4,5, 6], act_scale=1,
@@ -145,7 +145,7 @@ class RL_controller:
                                         load_value=False)
 
         prim_name = 'placing'
-        policy_zip_path = self.model_path+'placing_sac_noaux_trained_at_2021_4_22_16:15_59/policy_120000.zip'
+        policy_zip_path = self.model_path+'placing/policy.zip'
         self.model.construct_primitive_info(name=prim_name, freeze=True, level=2,
                                         obs_range=None, obs_index=[0, 1,2,3,4,5,6, 7, 8,9,10, 14,15,16, 23,24,25], 
                                         act_range=None, act_index=[0,1,2,3,4,5, 6], act_scale=1,
@@ -181,21 +181,23 @@ class RL_controller:
         self.args.subgoal_obs = False
         self.args.rulebased_subgoal = True
 
-        composite_primitive_name = self.args.task
         env = JacoMujocoEnv(**vars(self.args))
-        self.model = HPC(policy=MlpPolicy, env=None, _init_setup_model=False, composite_primitive_name=composite_primitive_name)
+        self.model = HPC(policy=MlpPolicy, env=None, _init_setup_model=False)
         
-        model_dir = self.model_path + 'HPCtest_46/SACS_1e-7'
+        model_dir = self.model_path + self.args.task
         self.args.log_dir = model_dir
         sub_dir = '/finetune1'
         print("\033[92m"+model_dir + sub_dir+"\033[0m")
         os.makedirs(model_dir+sub_dir, exist_ok=True)
 
         # Weight definition
-        obs_idx = [0, 1,2,3,4,5,6, 7, 8,9,10, 17,18,19,20,21,22]
+        obs_idx = [ 0,  1, 2, 3, 4, 5, 6,  7,  8, 9,10, 14,15,16, 17,18,19,20,21,22, 23,24,25]  #PickAndPlace
+        # obs_idx = [ 0,  1, 2, 3, 4, 5, 6,  7,  8, 9,10, 17,18,19,20,21,22]    #Picking
+        # obs_idx = [ 0,  1, 2, 3, 4, 5, 6,  7,  8, 9,10, 14,15,16, 23,24,25]   #Placing
         act_idx = [0,1,2,3,4,5, 6]
-        policy_zip_path = model_dir+'/policy_260000.zip'
-        self.model.construct_primitive_info(name='continue', freeze=False, level=3,
+        
+        policy_zip_path = model_dir+'/policy.zip'
+        self.model.construct_primitive_info(name='continue', freeze=False, level=2,
                                         obs_range=None, obs_index=obs_idx,
                                         act_range=None, act_index=act_idx, act_scale=1,
                                         obs_relativity={},
@@ -203,16 +205,16 @@ class RL_controller:
                                         loaded_policy=HPC._load_from_file(policy_zip_path),
                                         load_value=True)
 
-        # model_dict = {'tensorboard_log':  model_dir+sub_dir, 'verbose': 1, 'seed': self.args.seed,
         model_dict = {'verbose': 1, 'seed': self.args.seed,
                 'gamma': 0.99, 'learning_rate':_lr_scheduler, 'learning_starts':0, 
                 'ent_coef': self.args.ent_coef, 'batch_size': 8, 'noptepochs': 4, 'n_steps': 128}
         self.model.pretrainer_load(model=self.model, env=env, **model_dict)
         
         print("\033[91mTraining Starts\033[0m")
-        # self.model.learn(total_timesteps=self.args.num_timesteps, save_interval=self.args.save_interval, save_path=model_dir+sub_dir)
+        self.model.learn(total_timesteps=self.args.num_timesteps, save_interval=self.args.save_interval, save_path=model_dir+sub_dir)
         print("\033[91mTrain Finished\033[0m")
-        self.model.save(model_dir+"/policy",hierarchical=True)
+        self.model.save(model_dir+sub_dir+"/policy_new",hierarchical=True)
+        print("\033[91mPolicy Saved\033[0m")
 
     def test(self):
         print("Testing called")
@@ -226,9 +228,11 @@ class RL_controller:
         # prefix = 'placing/policy.zip'
         model_dir = self.model_path + prefix
         self.model = HPC(policy=MlpPolicy, env=None, _init_setup_model=False, composite_primitive_name=self.args.task)
-        obs_idx = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25]
+        obs_idx = [ 0,  1, 2, 3, 4, 5, 6,  7,  8, 9,10, 14,15,16, 17,18,19,20,21,22, 23,24,25]  #PickAndPlace
+        # obs_idx = [ 0,  1, 2, 3, 4, 5, 6,  7,  8, 9,10, 17,18,19,20,21,22]    #Picking
+        # obs_idx = [ 0,  1, 2, 3, 4, 5, 6,  7,  8, 9,10, 14,15,16, 23,24,25]   #Placing
         act_idx = [0,1,2,3,4,5, 6]
-        self.model.construct_primitive_info(name=None, freeze=True, level=1,
+        self.model.construct_primitive_info(name=None, freeze=True, level=3,
                                             obs_range=None, obs_index=obs_idx,
                                             act_range=None, act_index=act_idx, act_scale=1,
                                             obs_relativity={},
@@ -236,6 +240,7 @@ class RL_controller:
                                             loaded_policy=HPC._load_from_file(model_dir), 
                                             load_value=True)
         HPC.pretrainer_load(self.model, env)
+
 
         test_iter = 100
         success = 0
