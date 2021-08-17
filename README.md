@@ -63,3 +63,14 @@ Python API for 3D Spacenav can be found [here](https://github.com/mastersign/pys
 cd main
 python main.py
 ```
+
+## Results
+
+### Pick and Place
+[pap](assets/pickAndplace.gif)
+
+### Picking
+[picking](assets/picking.gif)
+
+### Placing
+[placing](assets/placing.gif)
