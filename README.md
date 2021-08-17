@@ -1,9 +1,11 @@
 # mujoco_jaco
 
-Please clone this repo with the command
+Please clone this repo along with modified stable-baselines and abr_control with the following command
 
 ```bash
-git clone --recursive https://github.com/TMmichi/mujoco_jaco.git
+git clone https://github.com/TMmichi/mujoco_jaco.git
+git clone https://github.com/TMmichi/stable-baselines.git
+git clone https://github.com/TMmichi/abr_control.git
 ```
 
 ## Installation
@@ -21,15 +23,30 @@ in your anaconda environment and run::
 git clone https://github.com/studywolf/mujoco-py.git
 cd mujoco-py
 pip install -e .
-pip install requests
+cd ..
+```
+
+### Dependencies
+------
+After installing mujoco-py, setup both stable-baselines and abr_control package from the maintainer's repo.
+```bash
+cd stable-baselines
+pip install -e .
+cd ..
+cd abr_control
+pip install -e .
+cd ..
 ```
 
 ------
-After installing mujoco-py, install additional requirements via:
+Install additional requirements via:
 
 ```bash
+cd mujoco_jaco
 pip install -r requirements.txt
 ```
+
+You're all set to go.
 
 #### Note
 
