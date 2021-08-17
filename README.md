@@ -1,6 +1,6 @@
 # mujoco_jaco
 
-Please clone this repo along with modified stable-baselines and abr_control with the following command
+Please clone this repo along with the modified stable-baselines and abr_control repo with the following command
 
 ```bash
 git clone https://github.com/TMmichi/mujoco_jaco.git
@@ -50,8 +50,9 @@ You're all set to go.
 
 #### Note
 
-If you get `No matching distribution found` error for tensorflow==1.15.0, you should upgrade your pip version to the latest one.
-You need to have a CUDA and CuDNN installed in your machine.
+If you get `No matching distribution found` error for tensorflow-gpu==1.15.0, you should upgrade your pip version to the latest one.
+Also, if you're on MacOS, tensorflow-gpu is not available. Please install it with tensorflow==1.15.0
+You'll need a CUDA and CuDNN installed in your machine.
 
 ### Pyspacenav
 
@@ -60,6 +61,5 @@ Python API for 3D Spacenav can be found [here](https://github.com/mastersign/pys
 ## Usage
 
 ```bash
-cd main
-python main.py
+./main.sh
 ```
