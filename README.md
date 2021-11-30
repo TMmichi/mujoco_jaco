@@ -28,7 +28,7 @@ cd ..
 
 ### Dependencies
 ------
-After installing mujoco-py, setup both stable-baselines and abr_control package from the maintainer's repo.
+After installing mujoco-py, setup both stable-baselines and abr_control package from the downloaded repo.
 ```bash
 cd stable-baselines
 pip install -e .
