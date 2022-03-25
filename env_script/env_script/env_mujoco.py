@@ -8,6 +8,7 @@ from gym import spaces
 from gym.utils import seeding
 
 from env_script.env_mujoco_util import JacoMujocoEnvUtil
+from terminal_log import *
 
 
 class JacoMujocoEnv(JacoMujocoEnvUtil):
@@ -24,9 +25,14 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
         elif self.task in ['picking', 'placing']:
             self.task_max_steps = 700
         else:
-            self.task_max_steps = 1200
+            self.task_max_steps = 1500
         self.skip_frames = 50  #0.05s per step
-        self.seed(kwargs.get('seed', None))
+        seed = kwargs.get('seed', None)
+        self.seed(seed)
+        logger_path = "./logger_csv"
+        # logger_name = "/SR_"+self.task+"_abalation4_"+str(seed)+".csv"
+        logger_name = "/SR_"+self.task+'_'+str(seed)+".csv"
+        self.file_logger = open(logger_path+logger_name, 'w')
 
         ## Observations
         # Not touched, Inner touched, Outer touched, grasped
@@ -113,6 +119,7 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
         self.action_space = spaces.Box(self.act_min, self.act_max, dtype=np.float32)
         self.wb = 0
         self.accum_rew = 0
+        self.accum_succ = [0] * 25
         self.metadata = None
 
         ### ------------  LOGGING  ------------ ###
@@ -143,45 +150,27 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
             self._step_simulation()
 
         obs = self.make_observation()
-        reward_val = self._get_reward(weight)
-        done, additional_reward, self.wb = self.terminal_inspection()
+        reward_val = self._get_reward()
+        done, additional_reward, self.wb, succ = self.terminal_inspection()
         total_reward = reward_val + additional_reward
         # if self.current_steps % 10 == 0:
-        #     self.logging(obs, self.prev_obs, action, self.wb, total_reward) if log else None
+        #     logging(obs, self.prev_obs, action, self.wb, total_reward) if log else None
         self.prev_obs = obs
         self.accum_rew += total_reward
 
-        if np.any(np.isnan(obs)) or np.any(np.isnan(total_reward)):
-            print("WARNING: NAN in obs, resetting.")
-            self.obs = self.reset()
-            total_reward = 0
-            done = True
         if done:
-            print(self.accum_rew)
+            self.accum_succ.pop()
+            self.accum_succ.insert(0,succ)
+            sr = "{0:3.3f}".format(sum(self.accum_succ)/25 * 100)
+            print('sr: ',sr)
+            self.file_logger.writelines(sr+"\n")
+            self.file_logger.flush()
+
+        
         return obs, total_reward, done, {0: 0}
     
     def get_wb(self):
         return self.wb
-
-    def logging(self, obs, prev_obs, action, wb, reward):
-        write_str = "Act:"
-        for i in range(len(action)):
-            write_str += " {0: 2.3f}".format(action[i])
-        write_str += "\t| Obs:" 
-        write_log = write_str
-        write_str += str(int(obs[0]))
-        for i in range(1,1+self.get_num_action()):
-            write_str += self._colored_string(obs[i],prev_obs[i],action[i-1])
-            write_log += ", {0: 2.3f}".format(obs[i])
-        write_str += "\t| wb = {0: 2.3f} | \033[92mReward:\t{1:1.5f}\033[0m".format(wb,reward)
-        write_log += "\t| wb = {0: 2.3f} | Reward:\t{1:1.5f}".format(wb,reward)
-        print(write_str, end='\r')
-
-    def _colored_string(self, obs_val, prev_obs_val, action):
-        if int(np.sign(obs_val-prev_obs_val)) == int(np.sign(action)):
-            return "\t\033[92m{0:2.3f}\033[0m".format(obs_val)
-        else:
-            return "\t\033[91m{0:2.3f}\033[0m".format(obs_val)
 
     def terminal_inspection(self):
         self.current_steps += 1
@@ -189,7 +178,7 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
             return self._get_terminal_inspection()
         else:
             print("\033[91m \nTime Out \033[0m")
-            return True, -10, 0
+            return True, -10, 0, 0
 
     def make_observation(self):
         obs = self._get_observation()
