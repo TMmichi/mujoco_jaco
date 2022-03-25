@@ -44,5 +44,5 @@ Python API for 3D Spacenav can be found [here](https://github.com/mastersign/pys
 
 ```bash
 cd main
-python main.py
+./main.sh
 ```
