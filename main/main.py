@@ -506,8 +506,9 @@ class RL_controller:
         self.args.rulebased_subgoal = True
         
         if self.args.task == 'reaching':
-            # traj_dict = np.load(self.model_path+'trajectories/'+self.args.task+"2.npz", allow_pickle=True)
-            # self.args.init_buffer = np.array(traj_dict['obs'])
+            traj_dict = np.load(self.model_path+'trajectories/'+self.args.task+".npz", allow_pickle=True)
+            self.args.init_buffer = np.array(traj_dict['obs'])
+            self.args.rulebased_subgoal = False
             self.args.robot_file = "jaco2_reaching_torque"
         
         env = JacoMujocoEnv(**vars(self.args))
@@ -593,7 +594,7 @@ class RL_controller:
                     print(weight)
                     obs, reward, done, _ = env.step(action, log=False, weight=weight, subgoal=subgoal)
                 else:
-                    action, _ = self.model.predict(obs, deterministic=True)
+                    action, _ = self.model.predict(obs, deterministic=False)
                     obs, reward, done, _ = env.step(action, log=False)
                 if reward > 100 and done:
                     success += 1
@@ -630,10 +631,10 @@ class RL_controller:
 
 if __name__ == "__main__":
     controller = RL_controller()
-    controller.train_from_scratch_SAC()
+    # controller.train_from_scratch_SAC()
     # controller.train_continue()
     # controller.train_from_expert()
     # controller.train_HPC()
     # controller.train_HPC_continue()
     # controller.generate_traj()
-    # controller.test()
+    controller.test()

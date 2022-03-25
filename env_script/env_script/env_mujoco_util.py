@@ -211,10 +211,13 @@ class JacoMujocoEnvUtil:
             reach_goal.append(np.hstack([reach_goal_pos, reach_goal_ori]))
             obj_goal_pos = [uniform(-0.1,0.1), 0.65+uniform(-0.08,0.02), self.object_z]
             obj_goal.append(obj_goal_pos)
-            dest_goal_pos = np.array([0.4+uniform(-0.05,0.05), 0.3+uniform(-0.05,0.05), 0.3468])
-            self.interface.set_mocap_xyz("dest_marker", dest_goal_pos)
-            self.interface.set_dest_xyz(dest_goal_pos[:2])
-            dest_goal.append(dest_goal_pos)
+            if self.task != 'reaching':
+                dest_goal_pos = np.array([0.4+uniform(-0.05,0.05), 0.3+uniform(-0.05,0.05), 0.3468])
+                self.interface.set_mocap_xyz("dest_marker", dest_goal_pos)
+                self.interface.set_dest_xyz(dest_goal_pos[:2])
+                dest_goal.append(dest_goal_pos)
+            else:
+                dest_goal.append([0,0,0])
         return np.array(reach_goal), np.array(obj_goal), np.array(dest_goal)
 
     def _get_observation(self):
@@ -536,7 +539,7 @@ class JacoMujocoEnvUtil:
                 ang_diff = np.linalg.norm(np.array(grip_euler) - np.array(tar_euler))
                 if ang_diff > np.pi:
                     ang_diff = 2*np.pi - ang_diff
-                if dist_diff < 0.025 and ang_diff < np.pi/6: 
+                if dist_diff < 0.04 and ang_diff < np.pi/6: 
                     print("\033[92m Target Reached \033[0m")
                     return True, 200 - (self.num_episodes*0.1), wb, 1
                 else:
@@ -636,11 +639,13 @@ class JacoMujocoEnvUtil:
             subpos, subori = self._get_rulebased_subgoal()
             subgoal_reach = np.append(subpos, subori)
         else:
-            subgoal_reach = subgoal['level1_reaching/level0'][0] + self.target_pos
+            if self.task != 'reaching':
+                subgoal_reach = subgoal['level1_reaching/level0'][0] + self.target_pos
         
-        self.interface.set_mocap_xyz("subgoal_reach", subgoal_reach[:3])
-        self.interface.set_mocap_orientation("subgoal_reach", transformations.quaternion_from_euler(
-            subgoal_reach[3], subgoal_reach[4], subgoal_reach[5], axes="rxyz"))
+        if self.task != 'reaching':
+            self.interface.set_mocap_xyz("subgoal_reach", subgoal_reach[:3])
+            self.interface.set_mocap_orientation("subgoal_reach", transformations.quaternion_from_euler(
+                subgoal_reach[3], subgoal_reach[4], subgoal_reach[5], axes="rxyz"))
 
         if np.any(np.isnan(np.array(a))):
             print("WARNING, nan in action", a)
