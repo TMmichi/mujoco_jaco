@@ -191,7 +191,7 @@ class JacoMujocoEnvUtil:
         obj_goal = []
         dest_goal = []
         for i in range(self.n_robots):
-            if self.goal_buffer == None:
+            if self.goal_buffer is None:
                 print("sample goal from None")
                 reach_goal_pos = np.array([uniform(0.3, 0.42) * choice([-1, 1])
                             for _ in range(2)] + [uniform(0.3, 0.5)])
