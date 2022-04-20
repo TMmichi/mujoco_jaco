@@ -25,7 +25,7 @@ cd ..
 
 ### Dependencies
 ------
-After installing mujoco-py, setup both stable-baselines and abr_control package from the maintainer's repo.
+After installing mujoco-py, setup both stable-baselines and abr_control package from the downloaded repo.
 ```bash
 cd stable-baselines
 pip install -e .
@@ -62,6 +62,12 @@ Python API for 3D Spacenav can be found [here](https://github.com/mastersign/pys
 It is assumed that you have one or more pretrained primitives to be fused. No matter the primitives are trained from the vanilla stable-baselines or a HPC module, both share the same implementation scheme. 
 
 ### Testing
+Please change the permission of the `main.sh` file to executable prior to running the script
+```bash
+chmod +x main.sh
+```
+
+Run with:
 ```bash
 ./main.sh
 ```
