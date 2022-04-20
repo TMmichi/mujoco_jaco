@@ -12,7 +12,7 @@ from stable_baselines.hpc.policies import MlpPolicy
 from env_script.env_mujoco import JacoMujocoEnv
 
 from argparser import ArgParser
-    
+
 
 default_lr = model_configuration['learning_rate']
 def _lr_scheduler(frac):
@@ -47,9 +47,9 @@ class RL_controller:
         composite_primitive_name = self.args.task
         env = JacoMujocoEnv(**vars(self.args))
         self.model = HPC(policy=MlpPolicy, 
-                                env=None, 
-                                _init_setup_model=False, 
-                                composite_primitive_name=composite_primitive_name)
+                            env=None, 
+                            _init_setup_model=False, 
+                            composite_primitive_name=composite_primitive_name)
 
         if self.args.auxiliary:
             prefix = composite_primitive_name \
@@ -63,7 +63,7 @@ class RL_controller:
                 + str(time.localtime().tm_hour) + ":" \
                 + str(time.localtime().tm_min)
         model_dir = self.model_path + prefix + "_" + str(self.args.seed)
-        # os.makedirs(model_dir, exist_ok=True)
+        os.makedirs(model_dir, exist_ok=True)
         print("\033[92m"+model_dir+"\033[0m")
 
         # Obs for Picking
@@ -227,7 +227,10 @@ class RL_controller:
         # prefix = 'picking/policy.zip'
         # prefix = 'placing/policy.zip'
         model_dir = self.model_path + prefix
-        self.model = HPC(policy=MlpPolicy, env=None, _init_setup_model=False, composite_primitive_name=self.args.task)
+        self.model = HPC(policy=MlpPolicy, 
+                            env=None, 
+                            _init_setup_model=False, 
+                            composite_primitive_name=self.args.task)
         obs_idx = [ 0,  1, 2, 3, 4, 5, 6,  7,  8, 9,10, 14,15,16, 17,18,19,20,21,22, 23,24,25]  #PickAndPlace
         # obs_idx = [ 0,  1, 2, 3, 4, 5, 6,  7,  8, 9,10, 17,18,19,20,21,22]    #Picking
         # obs_idx = [ 0,  1, 2, 3, 4, 5, 6,  7,  8, 9,10, 14,15,16, 23,24,25]   #Placing

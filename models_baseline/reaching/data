@@ -1,0 +1,112 @@
+{
+    "composite_primitive_name": null,
+    "learning_rate": {
+        ":type:": "<class 'function'>",
+        ":serialized:": "gASV3AEAAAAAAACMF2Nsb3VkcGlja2xlLmNsb3VkcGlja2xllIwNX2J1aWx0aW5fdHlwZZSTlIwKTGFtYmRhVHlwZZSFlFKUKGgCjAhDb2RlVHlwZZSFlFKUKEsBSwBLAUsCS0NDCHQAfAAUAFMAlE6FlIwKZGVmYXVsdF9scpSFlIwEZnJhY5SFlIwHbWFpbi5weZSMDV9scl9zY2hlZHVsZXKUSxJDAgABlCkpdJRSlH2UKIwLX19wYWNrYWdlX1+UTowIX19uYW1lX1+UjAhfX21haW5fX5SMCF9fZmlsZV9flIwHbWFpbi5weZR1Tk5OdJRSlIwcY2xvdWRwaWNrbGUuY2xvdWRwaWNrbGVfZmFzdJSMEl9mdW5jdGlvbl9zZXRzdGF0ZZSTlGgbfZR9lChoFmgQjAxfX3F1YWxuYW1lX1+UaBCMD19fYW5ub3RhdGlvbnNfX5R9lIwOX19rd2RlZmF1bHRzX1+UTowMX19kZWZhdWx0c19flE6MCl9fbW9kdWxlX1+UaBeMB19fZG9jX1+UTowLX19jbG9zdXJlX1+UTowXX2Nsb3VkcGlja2xlX3N1Ym1vZHVsZXOUXZSMC19fZ2xvYmFsc19flH2UaAtHPxJZntfG+9JzdYaUhlIwLg=="
+    },
+    "buffer_size": 50000,
+    "learning_starts": 100,
+    "train_freq": 1,
+    "batch_size": 64,
+    "tau": 0.005,
+    "ent_coef": "auto",
+    "target_entropy": -6.0,
+    "gamma": 0.99,
+    "verbose": 1,
+    "observation_space": {
+        ":type:": "<class 'gym.spaces.box.Box'>",
+        ":serialized:": "gASVfAIAAAAAAACMDmd5bS5zcGFjZXMuYm94lIwDQm94lJOUKYGUfZQojAVkdHlwZZSMBW51bXB5lIwFZHR5cGWUk5SMAmY0lImIh5RSlChLA4wBPJROTk5K/////0r/////SwB0lGKMBXNoYXBllEsahZSMA2xvd5SMFW51bXB5LmNvcmUubXVsdGlhcnJheZSMDF9yZWNvbnN0cnVjdJSTlGgGjAduZGFycmF5lJOUSwCFlEMBYpSHlFKUKEsBSxqFlGgLiUNoAABAwAAAgL8AAIC/AACAvwAAgL8AAIC/AACAvwAAgL8AAIC/AACAvwAAgL8AAIC/AACAvwAAgL8AAIC/AACAvwAAgL8AAIC/AACAvwAAgL8AAIC/AACAvwAAgL8AAIC/AACAvwAAgL+UdJRijARoaWdolGgTaBVLAIWUaBeHlFKUKEsBSxqFlGgLiUNoAABAQAAAgD8AAIA/AACAPwAAgD8AAIA/AACAPwAAgD8AAIA/AACAPwAAgD8AAIA/AACAPwAAgD8AAIA/AACAPwAAgD8AAIA/AACAPwAAgD8AAIA/AACAPwAAgD8AAIA/AACAPwAAgD+UdJRijA1ib3VuZGVkX2JlbG93lGgTaBVLAIWUaBeHlFKUKEsBSxqFlGgIjAJiMZSJiIeUUpQoSwOMAXyUTk5OSv////9K/////0sAdJRiiUMaAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQGUdJRijA1ib3VuZGVkX2Fib3ZllGgTaBVLAIWUaBeHlFKUKEsBSxqFlGgriUMaAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQGUdJRijApfbnBfcmFuZG9tlE51Yi4=",
+        "dtype": "float32",
+        "shape": [
+            26
+        ],
+        "low": "[-3. -1. -1. -1. -1. -1. -1. -1. -1. -1. -1. -1. -1. -1. -1. -1. -1. -1.\n -1. -1. -1. -1. -1. -1. -1. -1.]",
+        "high": "[3. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 1.\n 1. 1.]",
+        "bounded_below": "[ True  True  True  True  True  True  True  True  True  True  True  True\n  True  True  True  True  True  True  True  True  True  True  True  True\n  True  True]",
+        "bounded_above": "[ True  True  True  True  True  True  True  True  True  True  True  True\n  True  True  True  True  True  True  True  True  True  True  True  True\n  True  True]",
+        "_np_random": null
+    },
+    "action_space": {
+        ":type:": "<class 'gym.spaces.box.Box'>",
+        ":serialized:": "gASVtAEAAAAAAACMDmd5bS5zcGFjZXMuYm94lIwDQm94lJOUKYGUfZQojAVkdHlwZZSMBW51bXB5lIwFZHR5cGWUk5SMAmY0lImIh5RSlChLA4wBPJROTk5K/////0r/////SwB0lGKMBXNoYXBllEsGhZSMA2xvd5SMFW51bXB5LmNvcmUubXVsdGlhcnJheZSMDF9yZWNvbnN0cnVjdJSTlGgGjAduZGFycmF5lJOUSwCFlEMBYpSHlFKUKEsBSwaFlGgLiUMYAACAvwAAgL8AAIC/AACAvwAAgL8AAIC/lHSUYowEaGlnaJRoE2gVSwCFlGgXh5RSlChLAUsGhZRoC4lDGAAAgD8AAIA/AACAPwAAgD8AAIA/AACAP5R0lGKMDWJvdW5kZWRfYmVsb3eUaBNoFUsAhZRoF4eUUpQoSwFLBoWUaAiMAmIxlImIh5RSlChLA4wBfJROTk5K/////0r/////SwB0lGKJQwYBAQEBAQGUdJRijA1ib3VuZGVkX2Fib3ZllGgTaBVLAIWUaBeHlFKUKEsBSwaFlGgriUMGAQEBAQEBlHSUYowKX25wX3JhbmRvbZROdWIu",
+        "dtype": "float32",
+        "shape": [
+            6
+        ],
+        "low": "[-1. -1. -1. -1. -1. -1.]",
+        "high": "[1. 1. 1. 1. 1. 1.]",
+        "bounded_below": "[ True  True  True  True  True  True]",
+        "bounded_above": "[ True  True  True  True  True  True]",
+        "_np_random": null
+    },
+    "primitives": {},
+    "tails": [],
+    "policy": {
+        ":type:": "<class 'abc.ABCMeta'>",
+        ":serialized:": "gASVLwAAAAAAAACMHXN0YWJsZV9iYXNlbGluZXMuaHBjLnBvbGljaWVzlIwJTWxwUG9saWN5lJOULg==",
+        "__module__": "stable_baselines.hpc.policies",
+        "__doc__": "\n    Policy object that implements actor critic, using a MLP (2 layers of 64)\n\n    :param sess: (TensorFlow session) The current TensorFlow session\n    :param ob_space: (Gym Space) The observation space of the environment\n    :param ac_space: (Gym Space) The action space of the environment\n    :param n_env: (int) The number of environments to run\n    :param n_steps: (int) The number of steps to run for each environment\n    :param n_batch: (int) The number of batch to run (n_envs * n_steps)\n    :param reuse: (bool) If the policy is reusable or not\n    :param _kwargs: (dict) Extra keyword arguments for the nature CNN feature extraction\n    ",
+        "__init__": "<function MlpPolicy.__init__ at 0x7fa91d9fb710>",
+        "__abstractmethods__": "frozenset()",
+        "_abc_impl": "<_abc_data object at 0x7fa91d9ea8d0>"
+    },
+    "n_envs": 1,
+    "n_cpu_tf_sess": null,
+    "seed": null,
+    "action_noise": null,
+    "random_exploration": 0.0,
+    "_vectorize_action": false,
+    "policy_kwargs": {
+        ":type:": "<class 'dict'>",
+        ":serialized:": "gASV2gAAAAAAAAB9lCiMCG5ldF9hcmNolF2UfZQojAJwaZRdlChLgEuAS4BljAJ2ZpRoBXVhjA5vYnNfcmVsYXRpdml0eZR9lIwIc3VidHJhY3SUfZQojANyZWaUXZQoSxFLEksTSxRLFUsWZYwDdGFylF2UKEsBSwJLA0sESwVLBmV1c4wJb2JzX2luZGV4lF2UKEsBSwJLA0sESwVLBksRSxJLE0sUSxVLFmWMB2FjdF9mdW6UjCB0ZW5zb3JmbG93LnB5dGhvbi5vcHMuZ2VuX25uX29wc5SMBHJlbHWUk5R1Lg==",
+        "net_arch": [
+            {
+                "pi": [
+                    128,
+                    128,
+                    128
+                ],
+                "vf": [
+                    128,
+                    128,
+                    128
+                ]
+            }
+        ],
+        "obs_relativity": {
+            "subtract": {
+                "ref": [
+                    17,
+                    18,
+                    19,
+                    20,
+                    21,
+                    22
+                ],
+                "tar": [
+                    1,
+                    2,
+                    3,
+                    4,
+                    5,
+                    6
+                ]
+            }
+        },
+        "obs_index": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22
+        ],
+        "act_fun": "<function relu at 0x7fa918fa2cb0>"
+    }
+}
