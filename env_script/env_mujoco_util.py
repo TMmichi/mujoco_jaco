@@ -438,7 +438,45 @@ class JacoMujocoEnvUtil:
             elif self.task == 'pushing':
                 return 0
             elif self.task == 'pickAndplace':
-                return 0
+                dist_coef = 5
+                dist_th = 0.2
+                angle_coef = 2
+                angle_th = np.pi/6
+                grasp_coef = 5
+                grasp_value = 0.5
+                height_coef = 100
+                scale_coef = 0.05
+                
+                roll_e,pitch_e,yaw_e = self.__get_property('EE','pose')[0][3:]
+                ee_vec = self._get_rotation(roll_e, pitch_e, yaw_e, [0,0,-1], False)
+                xyz = self.interface.get_xyz('object_body' ) - self.gripper_pose[0][:3]
+                obj_diff = np.linalg.norm(xyz)
+                xyz /= obj_diff
+                x,y,z = xyz
+                pitch = -np.arccos(z)
+                yaw = -np.arccos(-x/(np.sqrt(1-z**2)))
+                roll = 0
+                target_vec = self._get_rotation(roll, pitch, yaw, [0,0,1], True)
+                target_vec[2] *= -1
+                angle_diff = np.linalg.norm(ee_vec - target_vec)
+
+                # distance reward
+                reward = dist_coef * np.exp(-1/dist_th * obj_diff)/2
+                # angle reward
+                # reward += angle_coef * np.exp(-1/angle_th * angle_diff)/2
+                reward += angle_coef * np.exp(-1/angle_th * angle_diff)/2 / (obj_diff*15+1)
+                # gripper in-touch reward
+                if self.touch_index == 1:
+                    reward += grasp_coef * grasp_value * 0.3
+                # gripper out-touch negative reward
+                elif self.touch_index == 2:
+                    reward -= grasp_coef * grasp_value * 0.3
+                # gripper grasp reward
+                elif self.touch_index == 3:
+                    reward += grasp_coef * grasp_value
+                # pick up reward
+                reward +=  height_coef * (self.interface.get_xyz('object_body')[2] - self.object_z)
+                return reward * scale_coef
         elif self.reward_method is not None:
             return self.reward_module(self.gripper_pose, self.reaching_goal)
         else:

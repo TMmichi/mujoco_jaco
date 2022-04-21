@@ -7,8 +7,6 @@ from configuration import model_configuration
 
 import numpy as np
 import stable_baselines.common.tf_util as tf_util
-from stable_baselines.hpc import HPC
-from stable_baselines.hpc.policies import MlpPolicy
 from stable_baselines.composeNet import SACComposenet
 from stable_baselines.composeNet.policies import ComposenetPolicy
 
