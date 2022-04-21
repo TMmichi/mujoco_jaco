@@ -47,9 +47,9 @@ class RL_controller:
 
         if self.args.auxiliary:
             prefix = composite_primitive_name \
-                    + "_ComposeNet_trained_at_"
+                    + "_trained_at_"
         else:
-            prefix = composite_primitive_name \
+            prefix = 'ComposeNet/'+composite_primitive_name \
                     + "_noaux_trained_at_"
         prefix += str(time.localtime().tm_year) + "_" \
                 + str(time.localtime().tm_mon) + "_" \
@@ -106,7 +106,7 @@ class RL_controller:
                                 loaded_policy=SACComposenet._load_from_file(policy_zip_path))
 
         model_dict = {'tensorboard_log': model_dir, 'verbose': 1, 'seed': self.args.seed,
-                        'gamma': 0.99, 'learning_rate':_lr_scheduler, 'learning_starts':0, 
+                        'gamma': 0.99, 'learning_rate':_lr_scheduler, 'learning_starts':10000, 
                         'ent_coef': self.args.ent_coef, 'batch_size': 8, 'noptepochs': 4, 'n_steps': 128}
         self.model.setup_model()
         self.model.__dict__.update(model_dict)
