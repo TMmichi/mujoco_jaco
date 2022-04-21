@@ -5,6 +5,7 @@ import os, time
 from pathlib import Path
 from configuration import model_configuration
 
+import numpy as np
 import stable_baselines.common.tf_util as tf_util
 from stable_baselines.hpc import HPC
 from stable_baselines.hpc.policies import MlpPolicy
@@ -155,29 +156,37 @@ class RL_controller:
         print("Testing called")
         self.args.subgoal_obs = False
         self.args.rulebased_subgoal = True
+        if self.args.task == 'reaching':
+            traj_dict = np.load(self.model_path+'trajectories/'+self.args.task+".npz", allow_pickle=True)
+            self.args.init_buffer = np.array(traj_dict['obs'])
+            self.args.rulebased_subgoal = False
+            self.args.robot_file = "jaco2_reaching_torque"
         env = JacoMujocoEnv(**vars(self.args))
         
-        prefix = 'pickAndplace/policy.zip'
-        # prefix = 'grasping/policy.zip'
-        # prefix = 'picking/policy.zip'
-        # prefix = 'placing/policy.zip'
-        model_dir = self.model_path + prefix
-        self.model = HPC(policy=MlpPolicy, 
-                            env=None, 
-                            _init_setup_model=False, 
-                            composite_primitive_name=self.args.task)
-        obs_idx = [ 0,  1, 2, 3, 4, 5, 6,  7,  8, 9,10, 14,15,16, 17,18,19,20,21,22, 23,24,25]  #PickAndPlace
-        # obs_idx = [ 0,  1, 2, 3, 4, 5, 6,  7,  8, 9,10, 17,18,19,20,21,22]    #Picking
-        # obs_idx = [ 0,  1, 2, 3, 4, 5, 6,  7,  8, 9,10, 14,15,16, 23,24,25]   #Placing
-        act_idx = [0,1,2,3,4,5, 6]
-        self.model.construct_primitive_info(name=None, freeze=True, level=3,
-                                            obs_range=None, obs_index=obs_idx,
-                                            act_range=None, act_index=act_idx, act_scale=1,
-                                            obs_relativity={},
-                                            layer_structure=None,
-                                            loaded_policy=HPC._load_from_file(model_dir), 
-                                            load_value=True)
-        HPC.pretrainer_load(self.model, env)
+        model_dir = self.model_path + self.args.task + '/policy.zip'
+
+        if self.args.task in ['picking', 'placing', 'pickAndplace']:
+            self.model = HPC(policy=MlpPolicy, 
+                                env=None, 
+                                _init_setup_model=False, 
+                                composite_primitive_name=self.args.task)
+            if self.args.task == 'pickAndplace':
+                obs_idx = [0, 1,2,3,4,5,6, 7, 8,9,10, 17,18,19,20,21,22, 23,24,25]
+            elif self.args.task == 'picking':
+                obs_idx = [0, 1,2,3,4,5,6, 7, 8,9,10, 17,18,19,20,21,22]
+            elif self.args.task == 'placing':
+                obs_idx = [0, 1,2,3,4,5,6, 7, 8,9,10, 14,15,16, 23,24,25]
+            act_idx = [0,1,2,3,4,5, 6]
+            self.model.construct_primitive_info(name=None, freeze=True, level=3,
+                                                obs_range=None, obs_index=obs_idx,
+                                                act_range=None, act_index=act_idx, act_scale=1,
+                                                obs_relativity={},
+                                                layer_structure=None,
+                                                loaded_policy=HPC._load_from_file(model_dir), 
+                                                load_value=True)
+            HPC.pretrainer_load(self.model, env)
+        else:
+            self.model = HPC.load(model_dir, MlpPolicy, env)
 
 
         test_iter = 100
@@ -189,8 +198,12 @@ class RL_controller:
 
             while not done:
                 iter += 1
-                action, subgoal, weight = self.model.predict_subgoal(obs, deterministic=True)
-                obs, reward, done, _ = env.step(action, weight=weight, subgoal=subgoal)
+                if self.args.task in ['picking', 'placing', 'pickAndplace']:
+                    action, subgoal, weight = self.model.predict_subgoal(obs, deterministic=True)
+                    obs, reward, done, _ = env.step(action, weight=weight, subgoal=subgoal)
+                else:
+                    action, _ = self.model.predict(obs, deterministic=False)
+                    obs, reward, done, _ = env.step(action)
                 if reward > 100 and done:
                     success += 1
         print("Success rate: ",success/test_iter*100)
@@ -198,5 +211,5 @@ class RL_controller:
 
 if __name__ == "__main__":
     controller = RL_controller()
-    controller.train_CopmposeNet()
-    # controller.test()
+    # controller.train_CopmposeNet()
+    controller.test()

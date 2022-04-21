@@ -184,7 +184,7 @@ class JacoMujocoEnvUtil:
             random_init_angle = [angle0, 3.85, uniform(
                     1, 1.1), uniform(2, 2.1), uniform(0.8, 2.3), uniform(-1.2, -1.1)]
             random_init_angle *= self.n_robots
-        elif self.task is 'releasing':
+        elif self.task == 'releasing':
             random_init_angle = [uniform(1.9, 2), uniform(3.3,3.6), uniform(0.5, 0.8),
                 uniform(1.8, 2.5), uniform(1.3, 2), uniform(-0.4, -0.9), 0.6, 0.6, 0.6]
             random_init_angle *= self.n_robots
