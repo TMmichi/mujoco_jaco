@@ -9,6 +9,8 @@ import numpy as np
 import stable_baselines.common.tf_util as tf_util
 from stable_baselines.hpc import HPC
 from stable_baselines.hpc.policies import MlpPolicy
+from stable_baselines.composeNet import SACComposenet
+from stable_baselines.composeNet.policies import ComposenetPolicy
 
 from env_script.env_mujoco import JacoMujocoEnv
 
@@ -41,14 +43,13 @@ class RL_controller:
 
         composite_primitive_name = self.args.task
         env = JacoMujocoEnv(**vars(self.args))
-        self.model = HPC(policy=MlpPolicy, 
-                            env=None, 
-                            _init_setup_model=False, 
-                            composite_primitive_name=composite_primitive_name)
+        self.model = SACComposenet(policy=ComposenetPolicy,
+                                    env=env,
+                                    _init_setup_model=False)
 
         if self.args.auxiliary:
             prefix = composite_primitive_name \
-                    + "_trained_at_"
+                    + "_ComposeNet_trained_at_"
         else:
             prefix = composite_primitive_name \
                     + "_noaux_trained_at_"
@@ -82,71 +83,35 @@ class RL_controller:
         act_idx = [ 0, 1, 2, 3, 4, 5,  6]
 
         ##### Pretrained primitives #####
-        prim_name = 'reaching'    # Reaching for Picking
+        prim_name = 'reaching_pick'
         policy_zip_path = self.model_path+'reaching/policy.zip'
-        self.model.construct_primitive_info(name=prim_name, freeze=True, level=1,
-                                        obs_range=None, obs_index=[1,2,3,4,5,6, 17,18,19,20,21,22],
-                                        act_range=None, act_index=[0,1,2,3,4,5], act_scale=1,
-                                        obs_relativity={'subtract':{'ref':[17,18,19,20,21,22],'tar':[1,2,3,4,5,6]}},
-                                        layer_structure=None,
-                                        loaded_policy=HPC._load_from_file(policy_zip_path),
-                                        load_value=False)
+        self.model.setup_skills(name=prim_name, obs_idx=[1,2,3,4,5,6, 17,18,19,20,21,22],
+                                obs_relativity={'subtract':{'ref':[17,18,19,20,21,22],'tar':[1,2,3,4,5,6]}},
+                                loaded_policy=SACComposenet._load_from_file(policy_zip_path))
 
         prim_name = 'grasping'
-        policy_zip_path = self.model_path+'/policy.zip'
-        self.model.construct_primitive_info(name=prim_name, freeze=True, level=1,
-                                        obs_range=None, obs_index=[0, 1,2,3,4,5,6, 7, 8,9,10], 
-                                        act_range=None, act_index=[0,1,2,3,4,5, 6], act_scale=1,
-                                        obs_relativity={},
-                                        layer_structure=None,
-                                        loaded_policy=HPC._load_from_file(policy_zip_path), 
-                                        load_value=False)
-
-        prim_name = 'reaching_place'      # Reaching for Placing
+        policy_zip_path = self.model_path+'grasping/policy.zip'
+        self.model.setup_skills(name=prim_name, obs_idx=[0, 1,2,3,4,5,6, 7, 8,9,10],
+                                obs_relativity={},
+                                loaded_policy=SACComposenet._load_from_file(policy_zip_path))
+        
+        prim_name = 'reaching_place'
         policy_zip_path = self.model_path+'reaching/policy.zip'
-        self.model.construct_primitive_info(name=prim_name, freeze=True, level=1,
-                                        obs_range=None, obs_index=[1,2,3,4,5,6, 14,15,16, 23,24,25],
-                                        act_range=None, act_index=[0,1,2,3,4,5], act_scale=1,
-                                        obs_relativity={'subtract':{'ref':[14,15,16,23,24,25],'tar':[1,2,3,4,5,6]}},
-                                        layer_structure=None,
-                                        loaded_policy=SAC_MULTI._load_from_file(policy_zip_path),
-                                        load_value=False)
-
+        self.model.setup_skills(name=prim_name, obs_idx=[1,2,3,4,5,6, 14,15,16, 23,24,25],
+                                obs_relativity={'subtract':{'ref':[14,15,16,23,24,25],'tar':[1,2,3,4,5,6]}},
+                                loaded_policy=SACComposenet._load_from_file(policy_zip_path))
+        
         prim_name = 'releasing'
-        policy_zip_path = self.model_path+'/policy.zip'
-        self.model.construct_primitive_info(name=prim_name, freeze=True, level=1,
-                                        obs_range=None, obs_index=[0, 1,2,3,4,5,6, 7, 8,9,10, 14,15,16], 
-                                        act_range=None, act_index=[0,1,2,3,4,5, 6], act_scale=1,
-                                        obs_relativity={},
-                                        layer_structure=None,
-                                        loaded_policy=SAC_MULTI._load_from_file(policy_zip_path), 
-                                        load_value=False)
-
-        # prim_name = 'picking'
-        # policy_zip_path = self.model_path+'picking/policy.zip'
-        # self.model.construct_primitive_info(name=prim_name, freeze=True, level=2,
-        #                                 obs_range=None, obs_index=[0, 1,2,3,4,5,6, 7, 8,9,10, 17,18,19,20,21,22], 
-        #                                 act_range=None, act_index=[0,1,2,3,4,5, 6], act_scale=1,
-        #                                 obs_relativity={},
-        #                                 layer_structure=None,
-        #                                 loaded_policy=HPC._load_from_file(policy_zip_path), 
-        #                                 load_value=False)
-
-        # prim_name = 'placing'
-        # policy_zip_path = self.model_path+'placing/policy.zip'
-        # self.model.construct_primitive_info(name=prim_name, freeze=True, level=2,
-        #                                 obs_range=None, obs_index=[0, 1,2,3,4,5,6, 7, 8,9,10, 14,15,16, 23,24,25], 
-        #                                 act_range=None, act_index=[0,1,2,3,4,5, 6], act_scale=1,
-        #                                 obs_relativity={},
-        #                                 layer_structure=None,
-        #                                 loaded_policy=HPC._load_from_file(policy_zip_path), 
-        #                                 load_value=False)
-
+        policy_zip_path = self.model_path+'releasing/policy.zip'
+        self.model.setup_skills(name=prim_name, obs_idx=[0, 1,2,3,4,5,6, 7, 8,9,10, 14,15,16], 
+                                obs_relativity={},
+                                loaded_policy=SACComposenet._load_from_file(policy_zip_path))
 
         model_dict = {'tensorboard_log': model_dir, 'verbose': 1, 'seed': self.args.seed,
                         'gamma': 0.99, 'learning_rate':_lr_scheduler, 'learning_starts':0, 
                         'ent_coef': self.args.ent_coef, 'batch_size': 8, 'noptepochs': 4, 'n_steps': 128}
-        self.model.pretrainer_load(model=self.model, env=env, **model_dict)
+        self.model.setup_model()
+        self.model.__dict__.update(model_dict)
         print("\033[91mTraining Starts\033[0m")
         self.model.learn(total_timesteps=self.args.num_timesteps, save_interval=self.args.save_interval, save_path=model_dir)
         print("\033[91mTrain Finished\033[0m")
@@ -199,7 +164,7 @@ class RL_controller:
             while not done:
                 iter += 1
                 if self.args.task in ['picking', 'placing', 'pickAndplace']:
-                    action, subgoal, weight = self.model.predict_subgoal(obs, deterministic=True)
+                    action, subgoal, weight = self.model.predict_subgoal(obs, deterministic=False)
                     obs, reward, done, _ = env.step(action, weight=weight, subgoal=subgoal)
                 else:
                     action, _ = self.model.predict(obs, deterministic=False)
@@ -211,5 +176,5 @@ class RL_controller:
 
 if __name__ == "__main__":
     controller = RL_controller()
-    # controller.train_CopmposeNet()
-    controller.test()
+    controller.train_ComposeNet()
+    # controller.test()
