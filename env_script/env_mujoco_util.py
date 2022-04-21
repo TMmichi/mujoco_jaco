@@ -113,7 +113,6 @@ class JacoMujocoEnvUtil:
             self.target_pos = self.gripper_pose[0]
             reset_frame_skip = 150
             for _ in range(reset_frame_skip):
-                self.gripper_angle_array = np.zeros((self.n_robots, reset_frame_skip))
                 self._step_simulation()
                 self.interface.set_obj_xyz(pos[:3], quat)
         else:
@@ -466,7 +465,7 @@ class JacoMujocoEnvUtil:
         if inv:
             return np.matmul(rot_ee.T, vec)
         else:
-            return np.matmul(rot_ee.T, vec)
+            return np.matmul(rot_ee, vec)
 
     def _get_touch(self):
         slicenum = 13
