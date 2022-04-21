@@ -98,6 +98,7 @@ class RL_controller:
         if self.args.task == 'reaching':
             traj_dict = np.load(self.model_path+'trajectories/'+self.args.task+".npz", allow_pickle=True)
             self.args.init_buffer = np.array(traj_dict['obs'])
+            self.args.robot_file = "jaco2_reaching_torque"
             # obs_relativity = {'subtract':{'ref':[17,18,19,20,21,22],'tar':[1,2,3,4,5,6]}, 'leave':[1,2,3]}
             obs_relativity = {'subtract':{'ref':[17,18,19,20,21,22],'tar':[1,2,3,4,5,6]}}
             # obs_relativity = {}
