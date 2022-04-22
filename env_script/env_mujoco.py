@@ -148,3 +148,6 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
     
     def close(self):
         return None
+    
+    def seed(self, seed):
+        pass
