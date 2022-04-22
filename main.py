@@ -3,7 +3,6 @@
 import os, time
 
 from pathlib import Path
-from configuration import model_configuration
 
 import numpy as np
 import stable_baselines.common.tf_util as tf_util
@@ -15,8 +14,8 @@ from env_script.env_mujoco import JacoMujocoEnv
 from argparser import ArgParser
 
 
-default_lr = model_configuration['learning_rate']
 def _lr_scheduler(frac):
+    default_lr = 7e-5
     return default_lr * frac
 
 class RL_controller:
@@ -60,60 +59,43 @@ class RL_controller:
         os.makedirs(model_dir, exist_ok=True)
         print("\033[92m"+model_dir+"\033[0m")
 
-        # Obs for Picking
-        # obs_min = [-3, -1,-1,-1,-1,-1,-1, -1, -1,-1,-1, -1,-1,-1,-1,-1,-1]
-        # obs_max = [ 3,  1, 1, 1, 1, 1, 1,  1,  1, 1, 1,  1, 1, 1, 1, 1, 1]
-        # obs_idx = [ 0,  1, 2, 3, 4, 5, 6,  7,  8, 9,10, 17,18,19,20,21,22]
+        ######### Pretrained primitives #########
+        # primitives for picking & pick-and-place
+        if not self.args.task == 'placing':
+            prim_name = 'reaching_pick'
+            policy_zip_path = self.model_path+'reaching/policy.zip'
+            self.model.setup_skills(name=prim_name, obs_idx=[1,2,3,4,5,6, 17,18,19,20,21,22],
+                                    obs_relativity={'subtract':{'ref':[17,18,19,20,21,22],'tar':[1,2,3,4,5,6]}},
+                                    loaded_policy=SACComposenet._load_from_file(policy_zip_path))
 
-        # Obs for Placing
-        # obs_min = [-3, -1,-1,-1,-1,-1,-1, -1, -1,-1,-1, -1,-1,-1, -1,-1,-1]
-        # obs_max = [ 3,  1, 1, 1, 1, 1, 1,  1,  1, 1, 1,  1, 1, 1,  1, 1, 1]
-        # obs_idx = [ 0,  1, 2, 3, 4, 5, 6,  7,  8, 9,10, 14,15,16, 23,24,25]
-
-        # Obs for pickAndplace
-        obs_min = [-3, -1,-1,-1,-1,-1,-1, -1, -1,-1,-1, -1,-1,-1, -1,-1,-1,-1,-1,-1, -1,-1,-1]
-        obs_max = [ 3,  1, 1, 1, 1, 1, 1,  1,  1, 1, 1,  1, 1, 1,  1, 1, 1, 1, 1, 1,  1, 1, 1]
-        obs_idx = [ 0,  1, 2, 3, 4, 5, 6,  7,  8, 9,10, 14,15,16, 17,18,19,20,21,22, 23,24,25]
-
-        # Action
-        act_min = [-1,-1,-1,-1,-1,-1, -1]
-        act_max = [ 1, 1, 1, 1, 1, 1,  1]
-        act_idx = [ 0, 1, 2, 3, 4, 5,  6]
-
-        ##### Pretrained primitives #####
-        prim_name = 'reaching_pick'
-        policy_zip_path = self.model_path+'reaching/policy.zip'
-        self.model.setup_skills(name=prim_name, obs_idx=[1,2,3,4,5,6, 17,18,19,20,21,22],
-                                obs_relativity={'subtract':{'ref':[17,18,19,20,21,22],'tar':[1,2,3,4,5,6]}},
-                                loaded_policy=SACComposenet._load_from_file(policy_zip_path))
-
-        prim_name = 'grasping'
-        policy_zip_path = self.model_path+'grasping/policy.zip'
-        self.model.setup_skills(name=prim_name, obs_idx=[0, 1,2,3,4,5,6, 7, 8,9,10],
-                                obs_relativity={},
-                                loaded_policy=SACComposenet._load_from_file(policy_zip_path))
-        
-        prim_name = 'reaching_place'
-        policy_zip_path = self.model_path+'reaching/policy.zip'
-        self.model.setup_skills(name=prim_name, obs_idx=[1,2,3,4,5,6, 14,15,16, 23,24,25],
-                                obs_relativity={'subtract':{'ref':[14,15,16,23,24,25],'tar':[1,2,3,4,5,6]}},
-                                loaded_policy=SACComposenet._load_from_file(policy_zip_path))
-        
-        prim_name = 'releasing'
-        policy_zip_path = self.model_path+'releasing/policy.zip'
-        self.model.setup_skills(name=prim_name, obs_idx=[0, 1,2,3,4,5,6, 7, 8,9,10, 14,15,16], 
-                                obs_relativity={},
-                                loaded_policy=SACComposenet._load_from_file(policy_zip_path))
+            prim_name = 'grasping'
+            policy_zip_path = self.model_path+'grasping/policy.zip'
+            self.model.setup_skills(name=prim_name, obs_idx=[0, 1,2,3,4,5,6, 7, 8,9,10],
+                                    obs_relativity={},
+                                    loaded_policy=SACComposenet._load_from_file(policy_zip_path))
+        # primitives for placing & pick-and-place
+        if not self.args.task == 'picking':
+            prim_name = 'reaching_place'
+            policy_zip_path = self.model_path+'reaching/policy.zip'
+            self.model.setup_skills(name=prim_name, obs_idx=[1,2,3,4,5,6, 14,15,16, 23,24,25],
+                                    obs_relativity={'subtract':{'ref':[14,15,16,23,24,25],'tar':[1,2,3,4,5,6]}},
+                                    loaded_policy=SACComposenet._load_from_file(policy_zip_path))
+            
+            prim_name = 'releasing'
+            policy_zip_path = self.model_path+'releasing/policy.zip'
+            self.model.setup_skills(name=prim_name, obs_idx=[0, 1,2,3,4,5,6, 7, 8,9,10, 14,15,16], 
+                                    obs_relativity={},
+                                    loaded_policy=SACComposenet._load_from_file(policy_zip_path))
 
         model_dict = {'tensorboard_log': model_dir, 'verbose': 1, 'seed': self.args.seed,
-                        'gamma': 0.99, 'learning_rate':_lr_scheduler, 'learning_starts':10000, 
+                        'gamma': 0.99, 'learning_rate':_lr_scheduler, 'learning_starts':100, 
                         'ent_coef': self.args.ent_coef, 'batch_size': 8, 'noptepochs': 4, 'n_steps': 128}
         self.model.__dict__.update(model_dict)
         self.model.setup_model()
         print("\033[91mTraining Starts\033[0m")
         self.model.learn(total_timesteps=self.args.num_timesteps, save_interval=self.args.save_interval, save_path=model_dir)
         print("\033[91mTrain Finished\033[0m")
-        self.model.save(model_dir+"/policy", hierarchical=True)
+        self.model.save(model_dir+"/policy")
 
     def test(self):
         print("Testing called")
@@ -129,7 +111,7 @@ class RL_controller:
         model_dir = self.model_path + self.args.task + '/policy.zip'
 
         if self.args.task in ['picking', 'placing', 'pickAndplace']:
-            self.model = HPC(policy=MlpPolicy, 
+            self.model = SACComposenet(policy=ComposenetPolicy, 
                                 env=None, 
                                 _init_setup_model=False, 
                                 composite_primitive_name=self.args.task)
@@ -145,11 +127,11 @@ class RL_controller:
                                                 act_range=None, act_index=act_idx, act_scale=1,
                                                 obs_relativity={},
                                                 layer_structure=None,
-                                                loaded_policy=HPC._load_from_file(model_dir), 
+                                                loaded_policy=SACComposenet._load_from_file(model_dir), 
                                                 load_value=True)
-            HPC.pretrainer_load(self.model, env)
+            SACComposenet.pretrainer_load(self.model, env)
         else:
-            self.model = HPC.load(model_dir, MlpPolicy, env)
+            self.model = SACComposenet.load(model_dir, MlpPolComposenetPolicyicy, env)
 
 
         test_iter = 100
