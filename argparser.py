@@ -14,6 +14,7 @@ class ArgParser():
         self.parser.add_argument('--n-robot', help='number of robots', type=int, default=1)
         self.parser.add_argument('--seed', help='RNG seed', type=int, default=1)
         self.parser.add_argument('--visualize', help='render environment', default=False, action="store_true")
+        self.parser.add_argument('--use-embedding', help='Use embedding as an input to the value', default=False, action="store_true")
         self.parser.add_argument('--auxiliary', help='auxiliary network', default=False, action="store_true")
         self.parser.add_argument('--save-interval', help='save interval', type=int, default=10000)
         self.parser.add_argument('--ent-coef', help='entropy coefficient for SAC', type=float, default=1e-5)

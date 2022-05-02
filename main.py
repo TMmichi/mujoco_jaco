@@ -42,7 +42,8 @@ class RL_controller:
         env = JacoMujocoEnv(**vars(self.args))
         self.model = SACComposenet(policy=ComposenetPolicy,
                                     env=env,
-                                    _init_setup_model=False)
+                                    _init_setup_model=False,
+                                    use_embedding=self.args.use_embedding)
 
         if self.args.auxiliary:
             prefix = composite_primitive_name \
