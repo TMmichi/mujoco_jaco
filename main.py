@@ -42,7 +42,6 @@ class RL_controller:
         env = JacoMujocoEnv(**vars(self.args))
         self.model = SACComposenet(policy=ComposenetPolicy,
                                     env=env,
-                                    _init_setup_model=False,
                                     use_embedding=self.args.use_embedding)
 
         if self.args.auxiliary:
@@ -50,7 +49,7 @@ class RL_controller:
                     + "_trained_at_"
         else:
             prefix = 'ComposeNet/'+composite_primitive_name \
-                    + "_fixedcoef_trained_at_"
+                    + "_trained_at_"
         prefix += str(time.localtime().tm_year) + "_" \
                 + str(time.localtime().tm_mon) + "_" \
                 + str(time.localtime().tm_mday) + "_" \
@@ -90,7 +89,7 @@ class RL_controller:
 
         model_dict = {'tensorboard_log': model_dir, 'verbose': 1, 'seed': self.args.seed,
                         'gamma': 0.99, 'learning_rate':_lr_scheduler, 'learning_starts':10000, 
-                        'ent_coef': self.args.ent_coef, 'batch_size': 8, 'noptepochs': 4, 'n_steps': 128}
+                        'ent_coef': self.args.ent_coef, 'batch_size': 16, 'noptepochs': 4, 'n_steps': 128}
         self.model.__dict__.update(model_dict)
         self.model.setup_model()
         print("\033[91mTraining Starts\033[0m")
