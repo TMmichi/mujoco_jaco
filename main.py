@@ -20,6 +20,18 @@ def _lr_scheduler(frac):
     default_lr = 7e-5
     return default_lr * frac
 
+def set_prefix(model, task, net_size, emb):
+    prefix = model+"/Netsize"+str(net_size)
+    if emb:
+        prefix += '_emb'
+    prefix += '/' + task + '_at_'
+    prefix += str(time.localtime().tm_year) + "_" \
+            + str(time.localtime().tm_mon) + "_" \
+            + str(time.localtime().tm_mday) + "_" \
+            + str(time.localtime().tm_hour) + ":" \
+            + str(time.localtime().tm_min)
+    return prefix
+
 class RL_controller:
     def __init__(self):
         # Arguments
@@ -87,13 +99,7 @@ class RL_controller:
         self.model = SACComposenet(policy=ComposenetPolicy,
                                     env=env,
                                     use_embedding=self.args.use_embedding)
-
-        prefix = 'ComposeNet/'+self.args.task+"_trained_at_"
-        prefix += str(time.localtime().tm_year) + "_" \
-                + str(time.localtime().tm_mon) + "_" \
-                + str(time.localtime().tm_mday) + "_" \
-                + str(time.localtime().tm_hour) + ":" \
-                + str(time.localtime().tm_min)
+        prefix = set_prefix('ComposeNet', self.args.task, self.args.net_size, self.args.use_embedding)
         model_dir = self.model_path + prefix + "_" + str(self.args.seed)
         os.makedirs(model_dir, exist_ok=True)
         print("\033[92m"+model_dir+"\033[0m")
@@ -126,7 +132,8 @@ class RL_controller:
                                     obs_relativity={},
                                     loaded_policy=SACComposenet._load_from_file(policy_zip_path))
 
-        model_dict = {'tensorboard_log': model_dir, 'verbose': 1, 'seed': self.args.seed,
+        layers = {'compose_net': self.args.net_size, 'policy_net': self.args.net_size, 'value': [256,256]}
+        model_dict = {'tensorboard_log': model_dir, 'layers': layers, 'verbose': 1, 'seed': self.args.seed,
                         'gamma': 0.99, 'learning_rate':_lr_scheduler, 'learning_starts':10000, 
                         'ent_coef': self.args.ent_coef, 'batch_size': 16, 'noptepochs': 4, 'n_steps': 128}
         self.model.__dict__.update(model_dict)
@@ -195,6 +202,6 @@ class RL_controller:
 
 if __name__ == "__main__":
     controller = RL_controller()
-    controller.train_SAC()
+    # controller.train_SAC()
     controller.train_ComposeNet()
     # controller.test()
