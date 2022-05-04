@@ -6,6 +6,8 @@ from pathlib import Path
 
 import numpy as np
 import stable_baselines.common.tf_util as tf_util
+from stable_baselines.hpc import HPC
+from stable_baselines.hpc.policies import MlpPolicy
 from stable_baselines.composeNet import SACComposenet
 from stable_baselines.composeNet.policies import ComposenetPolicy
 
@@ -34,22 +36,59 @@ class RL_controller:
         self.args = args
 
 
+    def train_SAC(self):
+        self.args.subgoal_obs = False
+        self.args.rulebased_subgoal = True
+
+        prefix = 'baselines/'+self.args.task+"_trained_at_"
+        prefix += str(time.localtime().tm_year) + "_" \
+                + str(time.localtime().tm_mon) + "_" \
+                + str(time.localtime().tm_mday) + "_" \
+                + str(time.localtime().tm_hour) + ":" \
+                + str(time.localtime().tm_min)
+        model_dir = self.model_path + prefix + "_" + str(self.args.seed)
+        os.makedirs(model_dir, exist_ok=True)
+        print("\033[92m"+model_dir+"\033[0m")
+
+        if self.args.task in ['reaching', 'reaching_GA']:
+            traj_dict = np.load(self.model_path+'trajectories/reaching.npz', allow_pickle=True)
+            self.args.init_buffer = np.array(traj_dict['obs'])
+            self.args.robot_file = "jaco2_reaching_torque"
+            obs_relativity = {'subtract':{'ref':[17,18,19,20,21,22],'tar':[1,2,3,4,5,6]}}
+            obs_index = [1,2,3,4,5,6, 17,18,19,20,21,22]
+        elif self.args.task == 'grasping':
+            # buffer = self.create_buffer('trajectory_expert5_mod')
+            obs_relativity = {}
+            obs_index = [0, 1,2,3,4,5,6, 7, 8,9,10]
+        elif self.args.task == 'releasing':
+            obs_relativity = {}
+            obs_index =  [0, 1,2,3,4,5,6, 7, 8,9,10, 14,15,16]
+
+
+        env = JacoMujocoEnv(**vars(self.args))
+        policy_kwargs = {'obs_relativity':obs_relativity, 'obs_index':obs_index}
+        model_dict = {'gamma': 0.99, 'tensorboard_log': model_dir, 'policy_kwargs': policy_kwargs, 
+                        'verbose': 1, 'learning_rate':_lr_scheduler, 'base_prim': True,
+                        'layers': {'policy':[128,128,128], 'value':[128,128,128]}, }
+        self.model = HPC(MlpPolicy, env, **model_dict)
+
+        print("\033[91mTraining Starts\033[0m")
+        self.num_timesteps = 10000000
+        self.model.learn(total_timesteps=self.num_timesteps, save_interval=10000, save_path=model_dir)
+        print("\033[91mTrain Finished\033[0m")
+        self.model.save(model_dir+"/policy")
+
+
     def train_ComposeNet(self):
         self.args.subgoal_obs = False
         self.args.rulebased_subgoal = True
 
-        composite_primitive_name = self.args.task
         env = JacoMujocoEnv(**vars(self.args))
         self.model = SACComposenet(policy=ComposenetPolicy,
                                     env=env,
                                     use_embedding=self.args.use_embedding)
 
-        if self.args.auxiliary:
-            prefix = composite_primitive_name \
-                    + "_trained_at_"
-        else:
-            prefix = 'ComposeNet/'+composite_primitive_name \
-                    + "_trained_at_"
+        prefix = 'ComposeNet/'+self.args.task+"_trained_at_"
         prefix += str(time.localtime().tm_year) + "_" \
                 + str(time.localtime().tm_mon) + "_" \
                 + str(time.localtime().tm_mday) + "_" \
@@ -131,7 +170,7 @@ class RL_controller:
                                                 load_value=True)
             SACComposenet.pretrainer_load(self.model, env)
         else:
-            self.model = SACComposenet.load(model_dir, MlpPolComposenetPolicyicy, env)
+            self.model = SACComposenet.load(model_dir, ComposenetPolicy, env)
 
 
         test_iter = 100
@@ -156,5 +195,6 @@ class RL_controller:
 
 if __name__ == "__main__":
     controller = RL_controller()
+    controller.train_SAC()
     controller.train_ComposeNet()
     # controller.test()

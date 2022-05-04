@@ -15,7 +15,7 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
         self.current_steps = 0
         self.max_steps = 2500
         self.task = kwargs.get('task', None)
-        if self.task in ['reaching','grasping', 'carrying', 'releasing', 'pushing']:
+        if self.task in ['reaching', 'reaching_GA','grasping', 'carrying', 'releasing', 'pushing']:
             self.task_max_steps = 500
         elif self.task in ['picking', 'placing']:
             self.task_max_steps = 700
@@ -76,7 +76,7 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
             pose_act = np.array([self.pose_action_space_max]*6)             # x,y,z,r,p,y
             self.act_max = pose_act
             self.act_min = -pose_act
-        elif self.task in ['grasping', 'carrying', 'picking', 'releasing', 'placing', 'pickAndplace', 'bimanipulation']:
+        elif self.task in ['reaching_GA' ,'grasping', 'carrying', 'picking', 'releasing', 'placing', 'pickAndplace', 'bimanipulation']:
             pose_act = np.array([self.pose_action_space_max]*6)             # x,y,z,r,p,y
             gripper_act_max = np.array([self.gripper_action_space_max])     # g
             gripper_act_min = np.array([self.gripper_action_space_min])

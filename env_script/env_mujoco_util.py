@@ -117,7 +117,7 @@ class JacoMujocoEnvUtil:
                 self.interface.set_obj_xyz(pos[:3], quat)
         else:
             quat = [0,0,0,0]
-            if not self.task is 'reaching':
+            if self.task not in ['reaching', 'reaching_GA']:
                 self.interface.set_obj_xyz(self.obj_goal[0],quat)
 
         if self.task in ['grasping', 'carrying']:
@@ -165,7 +165,7 @@ class JacoMujocoEnvUtil:
                 dist_diff = np.linalg.norm(self.gripper_pose[0][:3] - self.obj_goal[0])
                 if dist_diff < 0.15:
                     break
-        elif self.task == 'reaching':
+        elif self.task in ['reaching', 'reaching_GA']:
             self.interface.set_mocap_xyz("target_reach", self.reaching_goal[0][:3])
             self.interface.set_mocap_orientation("target_reach", 
                 transformations.quaternion_from_euler(*self.reaching_goal[0][3:6], axes="rxyz"))
@@ -174,7 +174,7 @@ class JacoMujocoEnvUtil:
         return obs
 
     def _create_init_angle(self):
-        if self.task in ['reaching', 'picking', 'pickAndplace']:
+        if self.task in ['reaching', 'reaching_GA', 'picking', 'pickAndplace']:
             random_init_angle = [uniform(0.7, 2.5), uniform(3.8,4), uniform(
                     1, 1.7), uniform(1.8, 2.5), uniform(1, 2.5), uniform(0.8, 2.3)]
             random_init_angle *= self.n_robots
@@ -214,10 +214,13 @@ class JacoMujocoEnvUtil:
             reach_goal.append(np.hstack([reach_goal_pos, reach_goal_ori]))
             obj_goal_pos = [uniform(-0.1,0.1), 0.65+uniform(-0.08,0.02), self.object_z]
             obj_goal.append(obj_goal_pos)
-            dest_goal_pos = np.array([0.4+uniform(-0.05,0.05), 0.3+uniform(-0.05,0.05), 0.3468])
-            self.interface.set_mocap_xyz("dest_marker", dest_goal_pos)
-            self.interface.set_dest_xyz(dest_goal_pos[:2])
-            dest_goal.append(dest_goal_pos)
+            if self.task not in ['reaching', 'reaching_GA']:
+                dest_goal_pos = np.array([0.4+uniform(-0.05,0.05), 0.3+uniform(-0.05,0.05), 0.3468])
+                self.interface.set_mocap_xyz("dest_marker", dest_goal_pos)
+                self.interface.set_dest_xyz(dest_goal_pos[:2])
+                dest_goal.append(dest_goal_pos)
+            else:
+                dest_goal.append([0,0,0])
         return np.array(reach_goal), np.array(obj_goal), np.array(dest_goal)
 
     def _get_observation(self):
@@ -311,7 +314,7 @@ class JacoMujocoEnvUtil:
 
     def _get_reward(self):
         if self.reward_method is None:
-            if self.task == 'reaching':
+            if self.task in ['reaching', 'reaching_GA']:
                 dist_coef = 5
                 dist_th = 1
                 angle_coef = 2
@@ -539,7 +542,7 @@ class JacoMujocoEnvUtil:
             print("\033[91m \nUn wanted joint angle - possible singular state \033[0m")
             return True, -1, wb
         else:
-            if self.task == 'reaching':
+            if self.task in ['reaching', 'reaching_GA']:
                 grip = transformations.unit_vector(
                         transformations.quaternion_from_euler(
                             *self.gripper_pose[0][3:6], axes="rxyz"))
@@ -648,9 +651,10 @@ class JacoMujocoEnvUtil:
         else:
             subgoal_reach = subgoal['level1_reaching/level0'][0] + self.target_pos
         
-        self.interface.set_mocap_xyz("subgoal_reach", subgoal_reach[:3])
-        self.interface.set_mocap_orientation("subgoal_reach", 
-                transformations.quaternion_from_euler(*subgoal_reach[3:6], axes="rxyz"))
+        if self.task not in ['reaching', 'reaching_GA']:
+            self.interface.set_mocap_xyz("subgoal_reach", subgoal_reach[:3])
+            self.interface.set_mocap_orientation("subgoal_reach", 
+                    transformations.quaternion_from_euler(*subgoal_reach[3:6], axes="rxyz"))
 
         if np.any(np.isnan(np.array(a))):
             print("WARNING, nan in action", a)
