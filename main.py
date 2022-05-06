@@ -202,6 +202,6 @@ class RL_controller:
 
 if __name__ == "__main__":
     controller = RL_controller()
-    # controller.train_SAC()
-    controller.train_ComposeNet()
+    controller.train_SAC()
+    # controller.train_ComposeNet()
     # controller.test()

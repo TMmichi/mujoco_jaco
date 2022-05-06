@@ -207,9 +207,12 @@ class JacoMujocoEnvUtil:
                 reach_goal_ori = np.array([alpha, beta, gamma], dtype=np.float16)
             else:
                 print("sample goal from buffer")
-                random_idx = np.random.randint(0,len(self.goal_buffer)-1)
-                reach_goal_pos = self.goal_buffer[random_idx][1:4]
-                reach_goal_ori = self.goal_buffer[random_idx][4:7]
+                while True:
+                    random_idx = np.random.randint(0,len(self.goal_buffer)-1)
+                    reach_goal_pos = self.goal_buffer[random_idx][1:4]
+                    reach_goal_ori = self.goal_buffer[random_idx][4:7]
+                    if reach_goal_pos[1] > 0:
+                        break
 
             reach_goal.append(np.hstack([reach_goal_pos, reach_goal_ori]))
             obj_goal_pos = [uniform(-0.1,0.1), 0.65+uniform(-0.08,0.02), self.object_z]
@@ -554,7 +557,7 @@ class JacoMujocoEnvUtil:
                 ang_diff = np.linalg.norm(np.array(grip_euler) - np.array(tar_euler))
                 if ang_diff > np.pi:
                     ang_diff = 2*np.pi - ang_diff
-                if dist_diff < 0.025 and ang_diff < np.pi/6: 
+                if dist_diff < 0.05 and ang_diff < np.pi/6: 
                     print("\033[92m Target Reached \033[0m")
                     return True, 200 - (self.num_episodes*0.1), wb
                 else:
