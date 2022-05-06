@@ -169,8 +169,9 @@ class JacoMujocoEnvUtil:
             self.interface.set_mocap_xyz("target_reach", self.reaching_goal[0][:3])
             self.interface.set_mocap_orientation("target_reach", 
                 transformations.quaternion_from_euler(*self.reaching_goal[0][3:6], axes="rxyz"))
-            self.target_pos = np.reshape(np.hstack([self.reaching_goal]),(-1))
+            # self.target_pos = np.reshape(np.hstack([self.reaching_goal]),(-1))
         obs = self._get_observation()
+        self.target_pos = self.gripper_pose[0]
         return obs
 
     def _create_init_angle(self):
@@ -211,6 +212,7 @@ class JacoMujocoEnvUtil:
                     random_idx = np.random.randint(0,len(self.goal_buffer)-1)
                     reach_goal_pos = self.goal_buffer[random_idx][1:4]
                     reach_goal_ori = self.goal_buffer[random_idx][4:7]
+                    print(reach_goal_pos)
                     if reach_goal_pos[1] > 0:
                         break
 
@@ -663,7 +665,8 @@ class JacoMujocoEnvUtil:
             print("WARNING, nan in action", a)
         # Action: Gripper Pose Increments (m,rad)
         # Action scaled to 0.04m, 0.2 rad
-        self.target_pos = self.gripper_pose[0] + np.hstack([a[:3]/25, a[3:6]/5])
+        # self.target_pos = self.gripper_pose[0] + np.hstack([a[:3]/25, a[3:6]/5])
+        self.target_pos += np.hstack([a[:3]/25, a[3:6]/5])
         if abs(self.target_pos[5]) > pi:
             self.target_pos[5] += -np.sign(self.target_pos[5])*2*pi
 

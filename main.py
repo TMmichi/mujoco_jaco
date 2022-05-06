@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import os, time
+import os, time, curses
 
 from pathlib import Path
 
@@ -32,6 +32,9 @@ def set_prefix(model, task, net_size, emb):
             + str(time.localtime().tm_min)
     return prefix
 
+def float_to_str(value):
+    return '{:1.4f}'.format(value)
+
 class RL_controller:
     def __init__(self):
         # Arguments
@@ -40,6 +43,9 @@ class RL_controller:
 
         self.sess_SRL = tf_util.single_threaded_session()
         args.sess = self.sess_SRL
+
+        self.act_dict = {'w': (1,1), 's': (1,-1), 'a': (0,-1), 'd': (0,1), 'q': (2,-1), 'e': (2,1), 
+                        'j': (3,-1), 'l': (3,1), 'i':(4,-1), 'k':(4,1), 'u': (5,-1), 'o': (5,1)}
 
         # If resume training on pre-trained models with episodes, else None
         package_path = str(Path(__file__).resolve().parent)
@@ -200,8 +206,50 @@ class RL_controller:
         print("Success rate: ",success/test_iter*100)
 
 
+    def test_manual(self):
+        print("Testing called")
+        self.args.subgoal_obs = False
+        self.args.rulebased_subgoal = True
+        if self.args.task in ['reaching', 'reaching_GA']:
+            traj_dict = np.load(self.model_path+'trajectories/reaching.npz', allow_pickle=True)
+            self.args.init_buffer = np.array(traj_dict['obs'])
+            self.args.robot_file = "jaco2_reaching_torque"
+        env = JacoMujocoEnv(**vars(self.args))
+
+        win = curses.initscr()
+        win.addstr(0, 0, 'Action input: ')
+
+        test_iter = 100
+        success = 0
+        for _ in range(test_iter):
+            iter = 0
+            obs = env.reset()
+            done = False
+            while not done:
+                iter += 1
+                action = [0.0] * 7
+                ch = win.getch()
+                if ch in range(32, 127): 
+                    act_key = chr(ch)
+                else:
+                    act_key = '1'
+                win.timeout(10)
+                try:
+                    act_idx, act_val = self.act_dict[act_key]
+                    action[act_idx] += act_val
+                except:
+                    pass
+                obs, reward, done, target_pos = env.step(action)
+                target_pos = list(map(float_to_str, target_pos))
+                action = list(map(float_to_str, action))
+                win.addstr(5, 0, 'Rewards: '+str(reward))
+                win.addstr(7, 0, 'Actions: '+' '.join(action))
+                win.addstr(10, 0, 'Target pos: '+' '.join(target_pos))
+
+
 if __name__ == "__main__":
     controller = RL_controller()
     controller.train_SAC()
     # controller.train_ComposeNet()
     # controller.test()
+    # controller.test_manual()

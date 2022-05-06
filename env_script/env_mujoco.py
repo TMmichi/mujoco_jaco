@@ -16,7 +16,8 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
         self.max_steps = 2500
         self.task = kwargs.get('task', None)
         if self.task in ['reaching', 'reaching_GA','grasping', 'carrying', 'releasing', 'pushing']:
-            self.task_max_steps = 500
+            # self.task_max_steps = 500
+            self.task_max_steps = 10000000
         elif self.task in ['picking', 'placing']:
             self.task_max_steps = 700
         else:
@@ -122,7 +123,7 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
 
         print("Return: ", self.accum_rew) if done else None
             
-        return obs, total_reward, done, {0: 0}
+        return obs, total_reward, done, self.target_pos
     
     def get_wb(self):
         return self.wb
