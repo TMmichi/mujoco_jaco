@@ -66,6 +66,7 @@ class JacoMujocoEnvUtil:
 
         ### ------------  REWARD  ------------ ###
         self.num_episodes = 0
+        self.prev_diff = 0
         self.reward_method = kwargs.get('reward_method', None)
         self.reward_module = kwargs.get('reward_module', None)
     
@@ -97,6 +98,7 @@ class JacoMujocoEnvUtil:
         self.gripper_iter = 0
         self.touch_index = 0
         self.num_episodes = 0
+        self.prev_diff = 0
         
         init_angle = self._create_init_angle()
         self.interface.set_joint_state(init_angle, [0]*6*self.n_robots)
@@ -341,7 +343,11 @@ class JacoMujocoEnvUtil:
                     ang_diff = 2*np.pi - ang_diff
                 
                 # Exponential reward
-                reward = dist_coef*np.exp(-1/dist_th*dist_diff)/2
+                if self.prev_diff == 0:
+                    reward = dist_coef*np.exp(-1/dist_th*dist_diff)/2
+                    self.prev_diff = dist_diff
+                else:
+                    reward = dist_coef * (self.prev_diff - dist_diff)
                 reward += angle_coef*np.exp(-1/angle_th*ang_diff)/(2*(dist_diff*15+1))
 
                 # Negative Rewards
@@ -665,8 +671,9 @@ class JacoMujocoEnvUtil:
             print("WARNING, nan in action", a)
         # Action: Gripper Pose Increments (m,rad)
         # Action scaled to 0.04m, 0.2 rad
-        # self.target_pos = self.gripper_pose[0] + np.hstack([a[:3]/25, a[3:6]/5])
-        self.target_pos += np.hstack([a[:3]/25, a[3:6]/5])
+        self.target_pos[:3] = self.gripper_pose[0][:3] + np.hstack([a[:3]/25])
+        self.target_pos[3:] += np.hstack([a[3:6]/10])
+        # self.target_pos += np.hstack([a[:3]/25, a[3:6]/5])
         if abs(self.target_pos[5]) > pi:
             self.target_pos[5] += -np.sign(self.target_pos[5])*2*pi
 
