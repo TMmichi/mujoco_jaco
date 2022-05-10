@@ -113,7 +113,6 @@ class JacoMujocoEnvUtil:
             self.target_pos = self.gripper_pose[0]
             reset_frame_skip = 150
             for _ in range(reset_frame_skip):
-                self.gripper_angle_array = np.zeros((self.n_robots, reset_frame_skip))
                 self._step_simulation()
                 self.interface.set_obj_xyz(pos[:3], quat)
         else:
@@ -184,7 +183,7 @@ class JacoMujocoEnvUtil:
             random_init_angle = [angle0, 3.85, uniform(
                     1, 1.1), uniform(2, 2.1), uniform(0.8, 2.3), uniform(-1.2, -1.1)]
             random_init_angle *= self.n_robots
-        elif self.task is 'releasing':
+        elif self.task == 'releasing':
             random_init_angle = [uniform(1.9, 2), uniform(3.3,3.6), uniform(0.5, 0.8),
                 uniform(1.8, 2.5), uniform(1.3, 2), uniform(-0.4, -0.9), 0.6, 0.6, 0.6]
             random_init_angle *= self.n_robots
@@ -466,7 +465,7 @@ class JacoMujocoEnvUtil:
         if inv:
             return np.matmul(rot_ee.T, vec)
         else:
-            return np.matmul(rot_ee.T, vec)
+            return np.matmul(rot_ee, vec)
 
     def _get_touch(self):
         slicenum = 13

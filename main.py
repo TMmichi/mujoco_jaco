@@ -226,17 +226,17 @@ class RL_controller:
         self.args.rulebased_subgoal = True
         env = JacoMujocoEnv(**vars(self.args))
         
-        prefix = 'pickAndplace/policy.zip'
-        # prefix = 'grasping/policy.zip'
-        # prefix = 'picking/policy.zip'
-        # prefix = 'placing/policy.zip'
+        # prefix = 'policies/pickAndplace/policy.zip'
+        # prefix = 'policies/grasping/policy.zip'
+        # prefix = 'policies/picking/policy.zip'
+        prefix = 'policies/placing/policy.zip'
         model_dir = self.model_path + prefix
         self.model = HPC(policy=MlpPolicy, 
                             env=None, 
                             _init_setup_model=False, 
                             composite_primitive_name=self.args.task)
-        obs_idx = [ 0,  1, 2, 3, 4, 5, 6,  7,  8, 9,10, 14,15,16, 17,18,19,20,21,22, 23,24,25]  #PickAndPlace
-        # obs_idx = [ 0,  1, 2, 3, 4, 5, 6,  7,  8, 9,10, 17,18,19,20,21,22]    #Picking
+        # obs_idx = [ 0,  1, 2, 3, 4, 5, 6,  7,  8, 9,10, 14,15,16, 17,18,19,20,21,22, 23,24,25]  #PickAndPlace
+        obs_idx = [ 0,  1, 2, 3, 4, 5, 6,  7,  8, 9,10, 17,18,19,20,21,22]    #Picking
         # obs_idx = [ 0,  1, 2, 3, 4, 5, 6,  7,  8, 9,10, 14,15,16, 23,24,25]   #Placing
         act_idx = [0,1,2,3,4,5, 6]
         self.model.construct_primitive_info(name=None, freeze=True, level=3,
