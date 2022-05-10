@@ -106,7 +106,6 @@ class RL_controller:
         print("\033[91mTrain Finished\033[0m")
         self.model.save(model_dir+"/policy")
 
-
     def train_ComposeNet(self):
         self.args.subgoal_obs = False
         self.args.rulebased_subgoal = True
