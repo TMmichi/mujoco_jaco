@@ -67,9 +67,9 @@ class RL_controller:
         print("\033[92m"+model_dir+"\033[0m")
 
         # Obs for Picking
-        # obs_min = [-3, -1,-1,-1,-1,-1,-1, -1, -1,-1,-1, -1,-1,-1,-1,-1,-1]
-        # obs_max = [ 3,  1, 1, 1, 1, 1, 1,  1,  1, 1, 1,  1, 1, 1, 1, 1, 1]
-        # obs_idx = [ 0,  1, 2, 3, 4, 5, 6,  7,  8, 9,10, 17,18,19,20,21,22]
+        obs_min = [-3, -1,-1,-1,-1,-1,-1, -1, -1,-1,-1, -1,-1,-1,-1,-1,-1]
+        obs_max = [ 3,  1, 1, 1, 1, 1, 1,  1,  1, 1, 1,  1, 1, 1, 1, 1, 1]
+        obs_idx = [ 0,  1, 2, 3, 4, 5, 6,  7,  8, 9,10, 17,18,19,20,21,22]
 
         # Obs for Placing
         # obs_min = [-3, -1,-1,-1,-1,-1,-1, -1, -1,-1,-1, -1,-1,-1, -1,-1,-1]
@@ -77,9 +77,9 @@ class RL_controller:
         # obs_idx = [ 0,  1, 2, 3, 4, 5, 6,  7,  8, 9,10, 14,15,16, 23,24,25]
 
         # Obs for pickAndplace
-        obs_min = [-3, -1,-1,-1,-1,-1,-1, -1, -1,-1,-1, -1,-1,-1, -1,-1,-1,-1,-1,-1, -1,-1,-1]
-        obs_max = [ 3,  1, 1, 1, 1, 1, 1,  1,  1, 1, 1,  1, 1, 1,  1, 1, 1, 1, 1, 1,  1, 1, 1]
-        obs_idx = [ 0,  1, 2, 3, 4, 5, 6,  7,  8, 9,10, 14,15,16, 17,18,19,20,21,22, 23,24,25]
+        #obs_min = [-3, -1,-1,-1,-1,-1,-1, -1, -1,-1,-1, -1,-1,-1, -1,-1,-1,-1,-1,-1, -1,-1,-1]
+        #obs_max = [ 3,  1, 1, 1, 1, 1, 1,  1,  1, 1, 1,  1, 1, 1,  1, 1, 1, 1, 1, 1,  1, 1, 1]
+        #obs_idx = [ 0,  1, 2, 3, 4, 5, 6,  7,  8, 9,10, 14,15,16, 17,18,19,20,21,22, 23,24,25]
 
         # Action
         act_min = [-1,-1,-1,-1,-1,-1, -1]
@@ -96,7 +96,7 @@ class RL_controller:
         ##### Pretrained primitives #####
         prim_name = 'reaching'    # Reaching for Picking
         # policy_zip_path = self.model_path+'reaching_trained_at_1_13_17:47:15_31/continue1/policy_3860000.zip'
-        policy_zip_path = self.model_path+'reaching/policy.zip'
+        policy_zip_path = self.model_path+'policies/reaching/policy.zip'
         self.model.construct_primitive_info(name=prim_name, freeze=True, level=1,
                                         obs_range=None, obs_index=[1,2,3,4,5,6, 17,18,19,20,21,22],
                                         act_range=None, act_index=[0,1,2,3,4,5], act_scale=1,
@@ -108,7 +108,7 @@ class RL_controller:
 
         prim_name = 'grasping'
         # policy_zip_path = self.model_path+'comparison_observation_range_sym_discard_0/policy_8070000.zip'
-        policy_zip_path = self.model_path+'grasping/policy.zip'
+        policy_zip_path = self.model_path+'policies/grasping/policy.zip'
         self.model.construct_primitive_info(name=prim_name, freeze=True, level=1,
                                         obs_range=None, obs_index=[0, 1,2,3,4,5,6, 7, 8,9,10], 
                                         act_range=None, act_index=[0,1,2,3,4,5, 6], act_scale=1,
