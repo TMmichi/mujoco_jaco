@@ -146,5 +146,8 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
     def take_action(self, a, weight=None, subgoal=None, id=None):
         self._take_action(a, weight, subgoal, id)
     
+    def seed(self, seed):
+        pass
+    
     def close(self):
         return None

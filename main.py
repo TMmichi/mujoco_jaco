@@ -94,25 +94,28 @@ class RL_controller:
                                             layer_structure={'policy':[128, 128, 128]})
 
         ##### Pretrained primitives #####
-        # prim_name = 'reaching'    # Reaching for Picking
+        prim_name = 'reaching'    # Reaching for Picking
         # policy_zip_path = self.model_path+'reaching_trained_at_1_13_17:47:15_31/continue1/policy_3860000.zip'
-        # self.model.construct_primitive_info(name=prim_name, freeze=True, level=1,
-        #                                 obs_range=None, obs_index=[1,2,3,4,5,6, 17,18,19,20,21,22],
-        #                                 act_range=None, act_index=[0,1,2,3,4,5], act_scale=1,
-        #                                 obs_relativity={'subtract':{'ref':[17,18,19,20,21,22],'tar':[1,2,3,4,5,6]}},
-        #                                 layer_structure=None,
-        #                                 loaded_policy=HPC._load_from_file(policy_zip_path),
-        #                                 load_value=False)
+        policy_zip_path = self.model_path+'reaching/policy.zip'
+        self.model.construct_primitive_info(name=prim_name, freeze=True, level=1,
+                                        obs_range=None, obs_index=[1,2,3,4,5,6, 17,18,19,20,21,22],
+                                        act_range=None, act_index=[0,1,2,3,4,5], act_scale=1,
+                                        obs_relativity={'subtract':{'ref':[17,18,19,20,21,22],'tar':[1,2,3,4,5,6]}},
+                                        layer_structure=None,
+                                        loaded_policy=HPC._load_from_file(policy_zip_path),
+                                        load_value=False,
+                                        aux_act_idx=[6])
 
-        # prim_name = 'grasping'
+        prim_name = 'grasping'
         # policy_zip_path = self.model_path+'comparison_observation_range_sym_discard_0/policy_8070000.zip'
-        # self.model.construct_primitive_info(name=prim_name, freeze=True, level=1,
-        #                                 obs_range=None, obs_index=[0, 1,2,3,4,5,6, 7, 8,9,10], 
-        #                                 act_range=None, act_index=[0,1,2,3,4,5, 6], act_scale=1,
-        #                                 obs_relativity={},
-        #                                 layer_structure=None,
-        #                                 loaded_policy=HPC._load_from_file(policy_zip_path), 
-        #                                 load_value=False)
+        policy_zip_path = self.model_path+'grasping/policy.zip'
+        self.model.construct_primitive_info(name=prim_name, freeze=True, level=1,
+                                        obs_range=None, obs_index=[0, 1,2,3,4,5,6, 7, 8,9,10], 
+                                        act_range=None, act_index=[0,1,2,3,4,5, 6], act_scale=1,
+                                        obs_relativity={},
+                                        layer_structure=None,
+                                        loaded_policy=HPC._load_from_file(policy_zip_path), 
+                                        load_value=False)
 
         # prim_name = 'reaching_place'      # Reaching for Placing
         # policy_zip_path = self.model_path+'reaching_trained_at_1_13_17:47:15_31/continue1/policy_3860000.zip'
@@ -134,25 +137,25 @@ class RL_controller:
         #                                 loaded_policy=SAC_MULTI._load_from_file(policy_zip_path), 
         #                                 load_value=False)
 
-        prim_name = 'picking'
-        policy_zip_path = self.model_path+'picking/policy.zip'
-        self.model.construct_primitive_info(name=prim_name, freeze=True, level=2,
-                                        obs_range=None, obs_index=[0, 1,2,3,4,5,6, 7, 8,9,10, 17,18,19,20,21,22], 
-                                        act_range=None, act_index=[0,1,2,3,4,5, 6], act_scale=1,
-                                        obs_relativity={},
-                                        layer_structure=None,
-                                        loaded_policy=HPC._load_from_file(policy_zip_path), 
-                                        load_value=False)
+        # prim_name = 'picking'
+        # policy_zip_path = self.model_path+'picking/policy.zip'
+        # self.model.construct_primitive_info(name=prim_name, freeze=True, level=2,
+        #                                 obs_range=None, obs_index=[0, 1,2,3,4,5,6, 7, 8,9,10, 17,18,19,20,21,22], 
+        #                                 act_range=None, act_index=[0,1,2,3,4,5, 6], act_scale=1,
+        #                                 obs_relativity={},
+        #                                 layer_structure=None,
+        #                                 loaded_policy=HPC._load_from_file(policy_zip_path), 
+        #                                 load_value=False)
 
-        prim_name = 'placing'
-        policy_zip_path = self.model_path+'placing/policy.zip'
-        self.model.construct_primitive_info(name=prim_name, freeze=True, level=2,
-                                        obs_range=None, obs_index=[0, 1,2,3,4,5,6, 7, 8,9,10, 14,15,16, 23,24,25], 
-                                        act_range=None, act_index=[0,1,2,3,4,5, 6], act_scale=1,
-                                        obs_relativity={},
-                                        layer_structure=None,
-                                        loaded_policy=HPC._load_from_file(policy_zip_path), 
-                                        load_value=False)
+        # prim_name = 'placing'
+        # policy_zip_path = self.model_path+'placing/policy.zip'
+        # self.model.construct_primitive_info(name=prim_name, freeze=True, level=2,
+        #                                 obs_range=None, obs_index=[0, 1,2,3,4,5,6, 7, 8,9,10, 14,15,16, 23,24,25], 
+        #                                 act_range=None, act_index=[0,1,2,3,4,5, 6], act_scale=1,
+        #                                 obs_relativity={},
+        #                                 layer_structure=None,
+        #                                 loaded_policy=HPC._load_from_file(policy_zip_path), 
+        #                                 load_value=False)
 
         ################## Meta-Policy ##################
         number_of_primitives = 3 if self.args.auxiliary else 2
@@ -160,7 +163,7 @@ class RL_controller:
             subgoal_dict = None
         else:
             subgoal_dict = {'level1_reaching/level0':[17,18,19,20,21,22]}
-        self.model.construct_primitive_info(name='weight', freeze=False, level=3,
+        self.model.construct_primitive_info(name='weight', freeze=False, level=2,
                                         obs_range=0, obs_index=obs_idx,
                                         act_range=0, act_index=list(range(number_of_primitives)), act_scale=None,
                                         obs_relativity={},
@@ -173,6 +176,7 @@ class RL_controller:
                         'ent_coef': self.args.ent_coef, 'batch_size': 8, 'noptepochs': 4, 'n_steps': 128}
         self.model.pretrainer_load(model=self.model, env=env, **model_dict)
         print("\033[91mTraining Starts\033[0m")
+        # quit()
         self.model.learn(total_timesteps=self.args.num_timesteps, save_interval=self.args.save_interval, save_path=model_dir)
         print("\033[91mTrain Finished\033[0m")
         self.model.save(model_dir+"/policy", hierarchical=True)
@@ -263,6 +267,6 @@ class RL_controller:
 
 if __name__ == "__main__":
     controller = RL_controller()
-    # controller.train_HPC()
+    controller.train_HPC()
     # controller.train_HPC_continue()
-    controller.test()
+    # controller.test()
