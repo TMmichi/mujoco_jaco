@@ -345,9 +345,9 @@ class JacoMujocoEnvUtil:
                 # Exponential reward
                 if self.prev_diff == 0:
                     reward = dist_coef*np.exp(-1/dist_th*dist_diff)/2
-                    self.prev_diff = dist_diff
                 else:
                     reward = dist_coef * (self.prev_diff - dist_diff)
+                self.prev_diff = dist_diff
                 reward += angle_coef*np.exp(-1/angle_th*ang_diff)/(2*(dist_diff*15+1))
 
                 # Negative Rewards
@@ -565,7 +565,7 @@ class JacoMujocoEnvUtil:
                 ang_diff = np.linalg.norm(np.array(grip_euler) - np.array(tar_euler))
                 if ang_diff > np.pi:
                     ang_diff = 2*np.pi - ang_diff
-                if dist_diff < 0.05 and ang_diff < np.pi/6: 
+                if dist_diff < 0.10 and ang_diff < np.pi/3: 
                     print("\033[92m Target Reached \033[0m")
                     return True, 200 - (self.num_episodes*0.1), wb
                 else:

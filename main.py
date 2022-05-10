@@ -88,11 +88,21 @@ class RL_controller:
         model_dict = {'gamma': 0.99, 'tensorboard_log': model_dir, 'policy_kwargs': policy_kwargs, 
                         'verbose': 1, 'learning_rate':_lr_scheduler, 'base_prim': True,
                         'layers': {'policy':[128,128,128], 'value':[128,128,128]}, }
-        self.model = HPC(MlpPolicy, env, **model_dict)
+        
+        if self.args.load:
+            model_dir = self.model_path + 'baselines/reaching_GA_trained_at_2022_5_6_18:7_0/'
+            sub_dir = 'continue2'
+            policy_dir = model_dir + 'policy_7100000.zip'
+            self.model = HPC.load(policy_dir, MlpPolicy, env, tensorboard_log=model_dir+sub_dir,
+                                    learning_rate=_lr_scheduler, base_prim=True, 
+                                    layers={'policy':[128,128,128], 'value':[128,128,128]})
+        else:
+            self.model = HPC(MlpPolicy, env, **model_dict)
+
 
         print("\033[91mTraining Starts\033[0m")
         self.num_timesteps = 10000000
-        self.model.learn(total_timesteps=self.num_timesteps, save_interval=10000, save_path=model_dir)
+        self.model.learn(total_timesteps=self.num_timesteps, save_interval=10000, save_path=model_dir+sub_dir)
         print("\033[91mTrain Finished\033[0m")
         self.model.save(model_dir+"/policy")
 
@@ -204,7 +214,6 @@ class RL_controller:
                 if reward > 100 and done:
                     success += 1
         print("Success rate: ",success/test_iter*100)
-
 
     def test_manual(self):
         print("Testing called")

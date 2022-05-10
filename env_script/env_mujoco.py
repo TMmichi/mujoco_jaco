@@ -123,7 +123,8 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
 
         print("Return: ", self.accum_rew) if done else None
             
-        return obs, total_reward, done, self.target_pos
+        # return obs, total_reward, done, self.target_pos
+        return obs, total_reward, done, {}
     
     def get_wb(self):
         return self.wb

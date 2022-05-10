@@ -9,6 +9,7 @@ class ArgParser():
         return self.parser.parse_args()
 
     def _add_arguments(self):
+        self.parser.add_argument('--load', help='Continue learning', default=False, action="store_true")
         self.parser.add_argument('--task', help='task name', type=str, default='pickAndplace')
         self.parser.add_argument('--robot-file', help='environment xml', type=str, default='jaco2_curtain_torque')
         self.parser.add_argument('--n-robot', help='number of robots', type=int, default=1)
