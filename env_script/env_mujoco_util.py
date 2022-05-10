@@ -570,11 +570,11 @@ class JacoMujocoEnvUtil:
                     print("\033[91m Dropped \033[0m")
                     return True, -20, wb
                 # Released Success
-                elif dest_diff < 0.04 and self.touch_index == 0 and obj_position[2] < 0.35:
+                elif dest_diff < 0.02 and self.touch_index == 0 and obj_position[2] < 0.35:
                     print("\033[92m Placing Succeeded \033[0m")
                     return True, 200 - (self.num_episodes*0.1), wb
                 # Released Wrong
-                elif dest_diff > 0.04 and self.touch_index == 0 and obj_position[2] < 0.20:
+                elif dest_diff > 0.02 and self.touch_index == 0 and obj_position[2] < 0.20:
                     print("\033[91m Released at the wrong position \033[0m")
                     return True, -20, wb
                 # Else
