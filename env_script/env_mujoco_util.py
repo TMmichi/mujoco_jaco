@@ -499,7 +499,7 @@ class JacoMujocoEnvUtil:
         wb = np.linalg.norm(self.__get_property('EE', 'position')[0] - self.base_position[0])
         if pi - 0.1 < self.interface.get_feedback()['q'][2] < pi + 0.1:
             print("\033[91m \nUn wanted joint angle - possible singular state \033[0m")
-            return True, -1, wb
+            return True, -1, wb, 0
         else:
             if self.task == 'reaching':
                 grip = transformations.unit_vector(
@@ -538,14 +538,14 @@ class JacoMujocoEnvUtil:
                 # Picked
                 if (obj_position[2] > self.object_z + 0.07) and self.touch_index in [1,3]:
                     print("\033[92m Picking Succeeded \033[0m")
-                    return True, 200 - (self.num_episodes*0.1), wb
+                    return True, 200 - (self.num_episodes*0.1), wb, 1
                 # Dropped
                 elif obj_position[2] < 0.1:
                     print("\033[91m Dropped \033[0m")
-                    return True, -20, wb
+                    return True, -20, wb, 0
                 # Else
                 else:
-                    return False, 0, wb
+                    return False, 0, wb, 0
             elif self.task == 'carrying':
                 return True, 0, wb
             elif self.task == 'releasing':
@@ -568,18 +568,18 @@ class JacoMujocoEnvUtil:
                 # Dropped
                 if obj_position[2] < 0.1:
                     print("\033[91m Dropped \033[0m")
-                    return True, -20, wb
+                    return True, -20, wb, 0
                 # Released Success
                 elif dest_diff < 0.02 and self.touch_index == 0 and obj_position[2] < 0.35:
                     print("\033[92m Placing Succeeded \033[0m")
-                    return True, 200 - (self.num_episodes*0.1), wb
+                    return True, 200 - (self.num_episodes*0.1), wb, 1
                 # Released Wrong
                 elif dest_diff > 0.02 and self.touch_index == 0 and obj_position[2] < 0.20:
                     print("\033[91m Released at the wrong position \033[0m")
-                    return True, -20, wb
+                    return True, -20, wb, 0
                 # Else
                 else:
-                    return False, 0, wb
+                    return False, 0, wb, 0
             elif self.task == 'pushing':
                 return True, 0, wb
             elif self.task == 'pickAndplace':

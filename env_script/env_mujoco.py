@@ -22,6 +22,10 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
         else:
             self.task_max_steps = 1200
         self.skip_frames = 50  #0.05s per step
+        logger_path = "./logger_csv"
+        logger_name = "/SR_"+self.task+"_abalation_GA_learned_2.csv"
+        # logger_name = "/SR_"+self.task+".csv"
+        self.file_logger = open(logger_path+logger_name, 'w')
 
         ## Observations
         # Not touched, Inner touched, Outer touched, grasped
@@ -85,6 +89,7 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
         self.action_space = spaces.Box(self.act_min, self.act_max, dtype=np.float32)
         self.wb = 0
         self.accum_rew = 0
+        self.accum_succ = [0] * 25
         self.metadata = None
 
         ### ------------  LOGGING  ------------ ###
@@ -116,9 +121,18 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
 
         obs = self.make_observation()
         reward_val = self._get_reward()
-        done, additional_reward, self.wb = self.terminal_inspection()
+        # done, additional_reward, self.wb = self.terminal_inspection()
+        done, additional_reward, self.wb, succ = self.terminal_inspection()
         total_reward = reward_val + additional_reward
         self.accum_rew += total_reward
+
+        if done:
+            self.accum_succ.pop()
+            self.accum_succ.insert(0,succ)
+            sr = "{0:3.3f}".format(sum(self.accum_succ)/25 * 100)
+            print('sr: ',sr)
+            self.file_logger.writelines(sr+"\n")
+            self.file_logger.flush()
 
         print("Return: ", self.accum_rew) if done else None
             
@@ -133,7 +147,7 @@ class JacoMujocoEnv(JacoMujocoEnvUtil):
             return self._get_terminal_inspection()
         else:
             print("\033[91m \nTime Out \033[0m")
-            return True, -10, 0
+            return True, -10, 0, 0
 
     def make_observation(self):
         obs = self._get_observation()
